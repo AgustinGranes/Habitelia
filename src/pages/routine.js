@@ -113,11 +113,85 @@ export function render() {
       <section class="saved-routines-section">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
           <h3 style="font-family: 'Playfair Display', serif; font-size: 20px; color: #fff; margin: 0;">Rutinas Guardadas</h3>
+          <button id="btn-create-custom-routine" class="btn-primary" style="padding: 8px 16px; font-size: 13px; min-height: 38px; border-radius: 10px; margin: 0;">➕ Crear Rutina</button>
         </div>
         ${routinesHtml}
       </section>
     </div>
   `;
+}
+
+function openCreateRoutineModal() {
+  document.getElementById('create-routine-modal')?.remove();
+  const habits = store.getState().habits || [];
+  
+  const habitsCheckboxes = habits.length === 0 
+    ? `<div style="font-size: 13px; color: var(--text-muted);">Primero tenés que crear algún hábito.</div>`
+    : habits.map(h => `
+        <label style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(255,255,255,0.04); border-radius: 10px; cursor: pointer;">
+          <input type="checkbox" class="routine-habit-checkbox" value="${h.id}" checked style="width: 18px; height: 18px; accent-color: #F5C518;">
+          <span style="font-size: 20px;">${h.icon || '🎯'}</span>
+          <span style="font-weight: 600; font-size: 14px; color: #fff;">${h.name} (${h.cue?.time || '08:00'})</span>
+        </label>
+      `).join('');
+
+  const modalHtml = `
+    <div id="create-routine-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+      <div class="glass-card" style="width: 100%; max-width: 480px; padding: 28px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.15); max-height: 85vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 style="font-family: 'Playfair Display', serif; font-size: 22px; margin: 0; color: #fff;">➕ Crear Nueva Rutina</h3>
+          <button id="close-routine-modal" style="background: rgba(255,255,255,0.1); border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer;">✕</button>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; font-weight: 600; color: #fff; margin-bottom: 8px; font-size: 14px;">Nombre de la Rutina</label>
+          <input type="text" id="custom-routine-name" class="input" placeholder="Ej. Rutina Mañana / Noche..." style="width: 100%; min-height: 46px;">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; font-weight: 600; color: #fff; margin-bottom: 10px; font-size: 14px;">Seleccionar Hábitos para incluir</label>
+          <div style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto;">
+            ${habitsCheckboxes}
+          </div>
+        </div>
+
+        <button id="btn-save-modal-routine" class="btn-primary" style="width: 100%; min-height: 48px; border-radius: 12px; font-size: 15px; font-weight: 700; margin: 0;">Guardar Rutina</button>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  document.getElementById('close-routine-modal')?.addEventListener('click', () => {
+    document.getElementById('create-routine-modal')?.remove();
+  });
+
+  document.getElementById('btn-save-modal-routine')?.addEventListener('click', () => {
+    const name = document.getElementById('custom-routine-name')?.value.trim();
+    if (!name) {
+      showToast('Ingresá un nombre para la rutina', 'error');
+      return;
+    }
+
+    const selectedHabits = Array.from(document.querySelectorAll('.routine-habit-checkbox:checked')).map(cb => cb.value);
+    if (selectedHabits.length === 0) {
+      showToast('Seleccioná al menos un hábito para la rutina', 'error');
+      return;
+    }
+
+    const routine = {
+      id: store.generateId(),
+      name,
+      habitIds: selectedHabits,
+      repeatDays: [],
+      createdAt: new Date().toISOString()
+    };
+
+    store.saveRoutine(routine);
+    showToast(`Rutina "${name}" guardada con éxito 🎉`, 'success');
+    document.getElementById('create-routine-modal')?.remove();
+    navigate('/routine');
+  });
 }
 
 export function mount() {
@@ -137,6 +211,10 @@ export function mount() {
       }
     });
   }
+
+  document.getElementById('btn-create-custom-routine')?.addEventListener('click', () => {
+    openCreateRoutineModal();
+  });
 
   // Save Today's Routine
   document.getElementById('btn-save-today-routine')?.addEventListener('click', () => {

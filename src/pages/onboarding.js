@@ -10,6 +10,8 @@ export function render(props = {}) {
                 <div class="wizard-step-indicator" id="dot-2"></div>
                 <div class="wizard-connector"></div>
                 <div class="wizard-step-indicator" id="dot-3"></div>
+                <div class="wizard-connector"></div>
+                <div class="wizard-step-indicator" id="dot-4"></div>
             </div>
             <div id="step-content"></div>
         </div>
@@ -84,8 +86,7 @@ export function mount() {
 
                     <div class="glass-card law-vertical-card" style="padding: 24px 16px; display: flex; flex-direction: column; align-items: center; border-radius: 18px; border-top: 3px solid #F5C518;">
                         <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #F5C518; background: rgba(245,197,24,0.12); padding: 4px 10px; border-radius: 20px; margin-bottom: 16px;">Ley 3</span>
-                        <div style="font-size: 36px; margin-bottom: 12px; line-height: 1;">🎯</div>
-                        <h3 style="font-family: 'Playfair Display', serif; font-size: 18px; margin: 0 0 4px 0; color: #fff;">Hacerlo Sencillo</h3>
+                        <div style="font-size: 36px; font-size: 18px; margin: 0 0 4px 0; color: #fff;">Hacerlo Sencillo</h3>
                         <span style="font-size: 12px; color: #F5C518; font-weight: 600; margin-bottom: 12px;">(Respuesta)</span>
                         <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin: 0;">Empezá con 2 minutos. Lo ridículo sostenido se vuelve imparable.</p>
                     </div>
@@ -111,6 +112,59 @@ export function mount() {
     }
 
     function renderStep3() {
+        container.innerHTML = `
+            <div class="step-container slide-in" style="width: 100%; max-width: 520px; margin: 0 auto;">
+                <h2 class="auth-title" style="font-size: 26px; margin-bottom: 8px;">🤝 Socio Corresponsable</h2>
+                <p class="auth-subtitle" style="margin-bottom: 24px;">Configurá a alguien de confianza a quien rendirle cuentas si fallás tu hábito.</p>
+
+                <div class="glass-card" style="padding: 24px; border-radius: 20px; margin-bottom: 24px;">
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label class="form-label" style="display: block; font-weight: 600; color: #fff; margin-bottom: 6px; font-size: 13px;">Nombre del Socio</label>
+                        <input type="text" id="partner-name" class="input" placeholder="Ej. Juan, Mamá, Carlos..." style="width: 100%; min-height: 46px;">
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label class="form-label" style="display: block; font-weight: 600; color: #fff; margin-bottom: 6px; font-size: 13px;">WhatsApp / Teléfono</label>
+                        <input type="tel" id="partner-phone" class="input" placeholder="+54 9 11..." style="width: 100%; min-height: 46px;">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 8px;">
+                        <label class="form-label" style="display: block; font-weight: 600; color: #fff; margin-bottom: 6px; font-size: 13px;">Consecuencia (Contrato)</label>
+                        <input type="text" id="partner-contract" class="input" placeholder="Ej. Pagar $500 o invitar una cena" style="width: 100%; min-height: 46px;">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn-ghost" id="skip-partner-btn" style="flex: 1; border: 1px solid rgba(255,255,255,0.15); color: var(--text-muted);">Omitir por ahora</button>
+                    <button class="btn-primary" id="save-partner-btn" style="flex: 1.5;">Guardar y Continuar</button>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('save-partner-btn').addEventListener('click', () => {
+            const name = document.getElementById('partner-name')?.value.trim();
+            const phone = document.getElementById('partner-phone')?.value.trim();
+            const contract = document.getElementById('partner-contract')?.value.trim();
+
+            store.saveUserProfile({
+                partner: { enabled: true, name, phone, contract }
+            });
+
+            currentStep = 4;
+            updateWizard();
+        });
+
+        document.getElementById('skip-partner-btn').addEventListener('click', () => {
+            store.saveUserProfile({
+                partner: { enabled: false }
+            });
+
+            currentStep = 4;
+            updateWizard();
+        });
+    }
+
+    function renderStep4() {
         container.innerHTML = `
             <div class="step-container slide-in" style="text-align:center;">
                 <h1 class="auth-title" style="margin-bottom: 10px;">¡Creá tu primer hábito!</h1>
@@ -142,6 +196,7 @@ export function mount() {
         if (currentStep === 1) renderStep1();
         else if (currentStep === 2) renderStep2();
         else if (currentStep === 3) renderStep3();
+        else if (currentStep === 4) renderStep4();
     }
 
     updateWizard();

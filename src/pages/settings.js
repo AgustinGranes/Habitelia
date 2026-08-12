@@ -9,6 +9,7 @@ export function render(props = {}) {
     const email = currentUser?.email || state.user?.email || localStorage.getItem('user_email_v1') || 'Sin email';
     const name = currentUser?.displayName || state.user?.name || state.user?.displayName || localStorage.getItem('user_name_v1') || 'Usuario';
     const identity = state.user?.identity || localStorage.getItem('user_identity_v1') || 'No definida';
+    const partner = state.user?.partner || { enabled: false, name: '', phone: '', contract: '' };
 
     return `
         <div class="page settings-page" style="padding: 24px 20px 100px 20px; max-width: 600px; margin: 0 auto; width: 100%; box-sizing: border-box; overflow-y: auto;">
@@ -28,6 +29,35 @@ export function render(props = {}) {
                     </div>
                     <button id="edit-identity-btn" class="btn-ghost" style="background: rgba(245, 197, 24, 0.1); border: 1px solid rgba(245, 197, 24, 0.3); color: #F5C518; cursor: pointer; padding: 8px 16px; border-radius: 10px; font-weight: 600; min-height: 40px;">Editar</button>
                     <button id="save-identity-btn" class="btn-ghost" style="display: none; background: rgba(76, 175, 80, 0.15); border: 1px solid rgba(76, 175, 80, 0.4); color: #4CAF50; cursor: pointer; padding: 8px 16px; border-radius: 10px; font-weight: 600; min-height: 40px;">Guardar</button>
+                </div>
+            </div>
+
+            <div class="settings-section glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                    <h3 style="margin: 0; color: #F5C518; font-size: 18px; font-family: 'Playfair Display', serif;">🤝 Socio Corresponsable</h3>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: #fff;">
+                        <input type="checkbox" id="partner-toggle" ${partner.enabled ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: #F5C518;">
+                        Activo
+                    </label>
+                </div>
+
+                <div id="partner-fields" style="${partner.enabled ? '' : 'display: none;'}">
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label class="form-label" style="display: block; font-weight: 600; color: #fff; margin-bottom: 6px; font-size: 13px;">Nombre del Socio</label>
+                        <input type="text" id="settings-partner-name" class="input" value="${partner.name || ''}" placeholder="Ej. Carlos, Mamá..." style="width: 100%; min-height: 42px;">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label class="form-label" style="display: block; font-weight: 600; color: #fff; margin-bottom: 6px; font-size: 13px;">WhatsApp / Teléfono</label>
+                        <input type="tel" id="settings-partner-phone" class="input" value="${partner.phone || ''}" placeholder="+54 9 11..." style="width: 100%; min-height: 42px;">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label class="form-label" style="display: block; font-weight: 600; color: #fff; margin-bottom: 6px; font-size: 13px;">Consecuencia (Contrato)</label>
+                        <input type="text" id="settings-partner-contract" class="input" value="${partner.contract || ''}" placeholder="Ej. Pagar $500 si no cumplo" style="width: 100%; min-height: 42px;">
+                    </div>
+
+                    <button id="save-partner-btn" class="btn-primary" style="width: 100%; min-height: 44px; border-radius: 12px; font-size: 14px; font-weight: 700; margin: 0;">Guardar Socio Corresponsable</button>
                 </div>
             </div>
 
@@ -97,6 +127,30 @@ export function mount() {
         input.style.display = 'none';
         editBtn.style.display = 'block';
         saveBtn.style.display = 'none';
+    });
+
+    // Partner toggle & save
+    const partnerToggle = document.getElementById('partner-toggle');
+    const partnerFields = document.getElementById('partner-fields');
+
+    partnerToggle?.addEventListener('change', (e) => {
+        const enabled = e.target.checked;
+        if (partnerFields) partnerFields.style.display = enabled ? 'block' : 'none';
+        store.saveUserProfile({
+            partner: { ...(store.getState().user?.partner || {}), enabled }
+        });
+        showToast(enabled ? 'Socio Corresponsable activado' : 'Socio Corresponsable desactivado', 'info');
+    });
+
+    document.getElementById('save-partner-btn')?.addEventListener('click', () => {
+        const name = document.getElementById('settings-partner-name')?.value.trim();
+        const phone = document.getElementById('settings-partner-phone')?.value.trim();
+        const contract = document.getElementById('settings-partner-contract')?.value.trim();
+
+        store.saveUserProfile({
+            partner: { enabled: partnerToggle?.checked ?? true, name, phone, contract }
+        });
+        showToast('Socio Corresponsable guardado', 'success');
     });
 
     document.getElementById('delete-data-btn')?.addEventListener('click', () => {
