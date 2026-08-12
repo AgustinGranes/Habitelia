@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut as fbSignOut, onAuthStateChanged, updateProfile } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut as fbSignOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, collection, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -25,6 +25,10 @@ export const signUp = async (email, password, displayName) => {
   const result = await createUserWithEmailAndPassword(auth, email, password);
   await updateProfile(result.user, { displayName });
   return result.user;
+};
+
+export const resetPassword = async (email) => {
+  return await sendPasswordResetEmail(auth, email);
 };
 
 export const signInGoogle = async () => {

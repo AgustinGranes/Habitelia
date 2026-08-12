@@ -1,12 +1,40 @@
 import { auth, saveDocument, getDocument, getCollection, deleteDocument, getUserPath } from './firebase.js';
 
+// Synchronous initial load from localStorage
+function getInitialLocalData() {
+  let user = null;
+  let habits = [];
+  let routines = [];
+
+  try {
+    const rawUser = localStorage.getItem('user_profile_v1') || localStorage.getItem('user_profile_guest');
+    if (rawUser) user = JSON.parse(rawUser);
+
+    const rawHabits = localStorage.getItem('habits_v1') || localStorage.getItem('habits_guest');
+    if (rawHabits) habits = JSON.parse(rawHabits);
+
+    const rawRoutines = localStorage.getItem('routines_v1') || localStorage.getItem('routines_guest');
+    if (rawRoutines) routines = JSON.parse(rawRoutines);
+  } catch (e) {
+    console.error('Error loading initial local storage:', e);
+  }
+
+  return {
+    user: user || { uid: 'guest', name: 'Viajero', identity: 'una persona disciplinada' },
+    habits: Array.isArray(habits) ? habits : [],
+    routines: Array.isArray(routines) ? routines : []
+  };
+}
+
+const initialData = getInitialLocalData();
+
 const initialState = {
-  user: null,
-  habits: [],
-  routines: [],
+  user: initialData.user,
+  habits: initialData.habits,
+  routines: initialData.routines,
   todaySchedule: null,
   currentRoute: '/login',
-  loading: true,
+  loading: false,
   sidebarOpen: false
 };
 
@@ -41,35 +69,50 @@ export const store = {
     
     try {
       const userDoc = auth.currentUser ? await getDocument(`users/${uid}`) : null;
-      let habits = auth.currentUser ? await getCollection(`users/${uid}/habits`) : [];
-      const routines = auth.currentUser ? await getCollection(`users/${uid}/routines`) : [];
+      let remoteHabits = auth.currentUser ? await getCollection(`users/${uid}/habits`) : [];
+      let remoteRoutines = auth.currentUser ? await getCollection(`users/${uid}/routines`) : [];
       const todayDate = store.getTodayString();
       const todaySchedule = auth.currentUser ? await getDocument(`users/${uid}/schedules/${todayDate}`) : null;
       
-      // Merge with localStorage habits fallback
-      const localHabitsJson = localStorage.getItem(`habits_${uid}`) || localStorage.getItem('habits_guest');
-      if (localHabitsJson) {
-        try {
-          const localHabits = JSON.parse(localHabitsJson);
-          if (Array.isArray(localHabits)) {
-            const combinedMap = new Map();
-            (habits || []).forEach(h => combinedMap.set(h.id, h));
-            localHabits.forEach(h => combinedMap.set(h.id, h));
-            habits = Array.from(combinedMap.values());
-          }
-        } catch (e) {}
-      }
+      // Combine remote & local habits
+      const combinedMap = new Map();
+      (state.habits || []).forEach(h => combinedMap.set(h.id, h));
+      (remoteHabits || []).forEach(h => combinedMap.set(h.id, h));
+      const mergedHabits = Array.from(combinedMap.values());
+
+      const routineMap = new Map();
+      (state.routines || []).forEach(r => routineMap.set(r.id, r));
+      (remoteRoutines || []).forEach(r => routineMap.set(r.id, r));
+      const mergedRoutines = Array.from(routineMap.values());
 
       const localOnboarded = localStorage.getItem(`onboardingCompleted_${uid}`) === 'true' || localStorage.getItem('onboardingCompleted_guest') === 'true';
-      const userObj = userDoc || { uid, email: auth.currentUser?.email || '', name: auth.currentUser?.displayName || 'Viajero' };
-      if (localOnboarded) {
+      const userObj = {
+        ...(state.user || {}),
+        ...(userDoc || {}),
+        uid,
+        email: auth.currentUser?.email || state.user?.email || '',
+        name: auth.currentUser?.displayName || userDoc?.name || state.user?.name || 'Viajero',
+        identity: userDoc?.identity || state.user?.identity || 'una persona disciplinada'
+      };
+
+      if (localOnboarded || userDoc?.onboardingCompleted) {
         userObj.onboardingCompleted = true;
       }
       
+      // Persist merged to localStorage
+      try {
+        localStorage.setItem('user_profile_v1', JSON.stringify(userObj));
+        localStorage.setItem(`user_profile_${uid}`, JSON.stringify(userObj));
+        localStorage.setItem('habits_v1', JSON.stringify(mergedHabits));
+        localStorage.setItem(`habits_${uid}`, JSON.stringify(mergedHabits));
+        localStorage.setItem('routines_v1', JSON.stringify(mergedRoutines));
+        localStorage.setItem(`routines_${uid}`, JSON.stringify(mergedRoutines));
+      } catch (e) {}
+
       store.setState({
         user: userObj,
-        habits: habits || [],
-        routines: routines || [],
+        habits: mergedHabits,
+        routines: mergedRoutines,
         todaySchedule
       });
     } catch (error) {
@@ -79,11 +122,19 @@ export const store = {
   
   saveUserProfile: async (data) => {
     const uid = auth.currentUser?.uid || 'guest';
-    if (data.onboardingCompleted) {
-      localStorage.setItem(`onboardingCompleted_${uid}`, 'true');
-      localStorage.setItem('onboardingCompleted_guest', 'true');
-    }
-    store.setState({ user: { ...(state.user || {}), ...data } });
+    const updatedUser = { ...(state.user || {}), ...data };
+    
+    try {
+      localStorage.setItem('user_profile_v1', JSON.stringify(updatedUser));
+      localStorage.setItem(`user_profile_${uid}`, JSON.stringify(updatedUser));
+      if (data.onboardingCompleted) {
+        localStorage.setItem(`onboardingCompleted_${uid}`, 'true');
+        localStorage.setItem('onboardingCompleted_guest', 'true');
+      }
+    } catch (e) {}
+
+    store.setState({ user: updatedUser });
+
     if (auth.currentUser) {
       saveDocument(`users/${uid}`, data).catch(e => console.error('Error saving user profile doc:', e));
     }
@@ -102,8 +153,8 @@ export const store = {
       newHabits.push(habitToSave);
     }
     
-    // Save to localStorage synchronously
     try {
+      localStorage.setItem('habits_v1', JSON.stringify(newHabits));
       localStorage.setItem(`habits_${uid}`, JSON.stringify(newHabits));
       localStorage.setItem('habits_guest', JSON.stringify(newHabits));
     } catch (e) {}
@@ -118,35 +169,59 @@ export const store = {
   },
   
   deleteHabit: async (habitId) => {
-    if (!auth.currentUser) return;
-    const uid = auth.currentUser.uid;
-    await deleteDocument(`users/${uid}/habits/${habitId}`);
-    store.setState({ habits: state.habits.filter(h => h.id !== habitId) });
+    const uid = auth.currentUser?.uid || 'guest';
+    const newHabits = (state.habits || []).filter(h => h.id !== habitId);
+    try {
+      localStorage.setItem('habits_v1', JSON.stringify(newHabits));
+      localStorage.setItem(`habits_${uid}`, JSON.stringify(newHabits));
+      localStorage.setItem('habits_guest', JSON.stringify(newHabits));
+    } catch (e) {}
+
+    store.setState({ habits: newHabits });
+
+    if (auth.currentUser) {
+      deleteDocument(`users/${uid}/habits/${habitId}`).catch(e => console.error(e));
+    }
   },
   
   saveRoutine: async (routine) => {
-    if (!auth.currentUser) return;
-    const uid = auth.currentUser.uid;
+    const uid = auth.currentUser?.uid || 'guest';
     const id = routine.id || store.generateId();
     const routineToSave = { ...routine, id };
     
-    await saveDocument(`users/${uid}/routines/${id}`, routineToSave);
-    
-    const existingIndex = state.routines.findIndex(r => r.id === id);
-    const newRoutines = [...state.routines];
+    const existingIndex = (state.routines || []).findIndex(r => r.id === id);
+    const newRoutines = [...(state.routines || [])];
     if (existingIndex >= 0) {
       newRoutines[existingIndex] = routineToSave;
     } else {
       newRoutines.push(routineToSave);
     }
+
+    try {
+      localStorage.setItem('routines_v1', JSON.stringify(newRoutines));
+      localStorage.setItem(`routines_${uid}`, JSON.stringify(newRoutines));
+    } catch (e) {}
+
     store.setState({ routines: newRoutines });
+
+    if (auth.currentUser) {
+      saveDocument(`users/${uid}/routines/${id}`, routineToSave).catch(e => console.error(e));
+    }
   },
   
   deleteRoutine: async (routineId) => {
-    if (!auth.currentUser) return;
-    const uid = auth.currentUser.uid;
-    await deleteDocument(`users/${uid}/routines/${routineId}`);
-    store.setState({ routines: state.routines.filter(r => r.id !== routineId) });
+    const uid = auth.currentUser?.uid || 'guest';
+    const newRoutines = (state.routines || []).filter(r => r.id !== routineId);
+    try {
+      localStorage.setItem('routines_v1', JSON.stringify(newRoutines));
+      localStorage.setItem(`routines_${uid}`, JSON.stringify(newRoutines));
+    } catch (e) {}
+
+    store.setState({ routines: newRoutines });
+
+    if (auth.currentUser) {
+      deleteDocument(`users/${uid}/routines/${routineId}`).catch(e => console.error(e));
+    }
   },
   
   saveTodaySchedule: async (schedule) => {
