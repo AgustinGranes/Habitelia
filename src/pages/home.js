@@ -97,7 +97,7 @@ export function render(props = {}) {
 
     return `
         <div class="page home-page" style="padding: 24px 20px 100px 20px; max-width: 600px; margin: 0 auto; width: 100%; box-sizing: border-box;">
-            <header style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; width: 100%;">
+            <header style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; width: 100%;">
                 <div style="display: flex; align-items: center; gap: 16px;">
                     <button id="menu-btn" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #fff; width: 44px; height: 44px; border-radius: 12px; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">☰</button>
                     <div>
@@ -107,24 +107,24 @@ export function render(props = {}) {
                 </div>
             </header>
 
-            <div class="quote-banner glass-card" style="border-left: 4px solid #F5C518; padding: 20px 24px; margin-bottom: 32px; font-style: italic; font-size: 15px; line-height: 1.6; color: #e0e0e0; border-radius: 16px; background: rgba(26,26,30,0.6);">
+            <div class="quote-banner glass-card" style="border-left: 4px solid #F5C518; padding: 20px 24px; margin-bottom: 24px; font-style: italic; font-size: 15px; line-height: 1.6; color: #e0e0e0; border-radius: 16px; background: rgba(26,26,30,0.6);">
                 "${quote}"
             </div>
 
-            <div class="next-event-section" style="margin-bottom: 36px;">
+            <div class="next-event-section" style="margin-bottom: 24px;">
                 ${nextEventHtml}
             </div>
 
             ${(remainingEvents.length > 1 || completedEvents.length > 0) ? `
-            <div class="remaining-events-list">
-                <h3 style="font-size: 18px; font-family: 'Playfair Display', serif; margin-bottom: 16px; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Resto del día</h3>
+            <div class="remaining-events-list" style="margin-bottom: 24px;">
+                <h3 style="font-size: 18px; font-family: 'Playfair Display', serif; margin-bottom: 14px; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Resto del día</h3>
                 ${remainingListHtml}
                 ${completedListHtml}
             </div>
             ` : ''}
 
             ${todayEvents.length > 0 ? `
-            <div class="streak-summary" style="margin-top: 36px; text-align: center; font-size: 14px; color: var(--text-muted); padding: 20px; border-top: 1px solid rgba(255,255,255,0.06);">
+            <div class="streak-summary" style="margin-top: 24px; text-align: center; font-size: 14px; color: var(--text-muted); padding: 20px; border-top: 1px solid rgba(255,255,255,0.06);">
                 <span style="color: #F5C518; font-weight: 700; font-size: 18px;">${completedEvents.length}</span> de <span style="font-weight: 700; color: #fff;">${todayEvents.length}</span> hábitos completados hoy
             </div>
             ` : ''}
