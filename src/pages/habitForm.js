@@ -6,12 +6,23 @@ import { parseTime, formatTime, minutesToTime, getEndTime, checkCollision } from
 let currentStep = 1;
 let habitData = {};
 
-export function render(props) {
+export function render(props = {}) {
   currentStep = 1;
-  const isEdit = !!props?.id;
-  if (isEdit) {
+  const hashId = new URLSearchParams(window.location.hash.split('?')[1] || '').get('id');
+  const targetId = props?.id || hashId;
+
+  if (targetId) {
     const state = store.getState();
-    habitData = JSON.parse(JSON.stringify(state.habits.find(h => h.id === props.id) || {}));
+    const existing = (state.habits || []).find(h => h.id === targetId);
+    if (existing) {
+      habitData = JSON.parse(JSON.stringify(existing));
+    } else {
+      habitData = {
+        name: '', icon: '🎯', duration: 15, cue: { time: '08:00', place: '' },
+        craving: { linkedPleasure: 'Tomar un té caliente' },
+        response: { twoMinVersion: '' }
+      };
+    }
   } else {
     habitData = {
       name: '', icon: '🎯', duration: 15, cue: { time: '08:00', place: '' },

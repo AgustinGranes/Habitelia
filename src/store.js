@@ -108,7 +108,7 @@ export const store = {
         identity: userDoc?.identity || state.user?.identity || localIdentity || 'una persona disciplinada'
       };
 
-      if (localOnboarded || userDoc?.onboardingCompleted) {
+      if (localOnboarded || userDoc?.onboardingCompleted || userDoc?.identity) {
         userObj.onboardingCompleted = true;
       }
       
@@ -116,6 +116,9 @@ export const store = {
       try {
         localStorage.setItem('user_profile_v1', JSON.stringify(userObj));
         localStorage.setItem(`user_profile_${uid}`, JSON.stringify(userObj));
+        if (userObj.onboardingCompleted) {
+          localStorage.setItem(`onboardingCompleted_${uid}`, 'true');
+        }
         if (userObj.identity) localStorage.setItem('user_identity_v1', userObj.identity);
         if (userObj.name) localStorage.setItem('user_name_v1', userObj.name);
         if (userObj.email) localStorage.setItem('user_email_v1', userObj.email);
@@ -147,20 +150,19 @@ export const store = {
       ...data,
       email,
       name,
-      identity
+      identity,
+      onboardingCompleted: true
     };
     
     try {
       localStorage.setItem('user_profile_v1', JSON.stringify(updatedUser));
       localStorage.setItem(`user_profile_${uid}`, JSON.stringify(updatedUser));
+      localStorage.setItem(`onboardingCompleted_${uid}`, 'true');
+      localStorage.setItem('onboardingCompleted_guest', 'true');
+
       if (updatedUser.identity) localStorage.setItem('user_identity_v1', updatedUser.identity);
       if (updatedUser.name) localStorage.setItem('user_name_v1', updatedUser.name);
       if (updatedUser.email) localStorage.setItem('user_email_v1', updatedUser.email);
-
-      if (data.onboardingCompleted) {
-        localStorage.setItem(`onboardingCompleted_${uid}`, 'true');
-        localStorage.setItem('onboardingCompleted_guest', 'true');
-      }
     } catch (e) {}
 
     store.setState({ user: updatedUser });

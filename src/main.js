@@ -80,8 +80,8 @@ const initialize = () => {
       store.setState({ loading: false });
       
       const state = store.getState();
-      const localOnboarded = localStorage.getItem(`onboardingCompleted_${user.uid}`) === 'true';
-      const isOnboarded = state.user?.onboardingCompleted || localOnboarded;
+      const localOnboarded = localStorage.getItem(`onboardingCompleted_${user.uid}`) === 'true' || localStorage.getItem('onboardingCompleted_guest') === 'true';
+      const isOnboarded = state.user?.onboardingCompleted || !!state.user?.identity || localOnboarded;
       
       if (!isOnboarded) {
         if (getCurrentRoute().path !== '/onboarding') {
