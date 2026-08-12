@@ -10,6 +10,15 @@ function getInitialLocalData() {
     const rawUser = localStorage.getItem('user_profile_v1') || localStorage.getItem('user_profile_guest');
     if (rawUser) user = JSON.parse(rawUser);
 
+    const savedIdentity = localStorage.getItem('user_identity_v1');
+    const savedName = localStorage.getItem('user_name_v1');
+    const savedEmail = localStorage.getItem('user_email_v1');
+
+    if (!user) user = {};
+    if (savedIdentity) user.identity = savedIdentity;
+    if (savedName && !user.name) user.name = savedName;
+    if (savedEmail && !user.email) user.email = savedEmail;
+
     const rawHabits = localStorage.getItem('habits_v1') || localStorage.getItem('habits_guest');
     if (rawHabits) habits = JSON.parse(rawHabits);
 
@@ -86,13 +95,17 @@ export const store = {
       const mergedRoutines = Array.from(routineMap.values());
 
       const localOnboarded = localStorage.getItem(`onboardingCompleted_${uid}`) === 'true' || localStorage.getItem('onboardingCompleted_guest') === 'true';
+      const localIdentity = localStorage.getItem('user_identity_v1');
+      const localName = localStorage.getItem('user_name_v1');
+      const localEmail = localStorage.getItem('user_email_v1');
+
       const userObj = {
         ...(state.user || {}),
         ...(userDoc || {}),
         uid,
-        email: auth.currentUser?.email || state.user?.email || '',
-        name: auth.currentUser?.displayName || userDoc?.name || state.user?.name || 'Viajero',
-        identity: userDoc?.identity || state.user?.identity || 'una persona disciplinada'
+        email: auth.currentUser?.email || userDoc?.email || state.user?.email || localEmail || '',
+        name: auth.currentUser?.displayName || userDoc?.name || state.user?.name || localName || 'Viajero',
+        identity: userDoc?.identity || state.user?.identity || localIdentity || 'una persona disciplinada'
       };
 
       if (localOnboarded || userDoc?.onboardingCompleted) {
@@ -103,6 +116,9 @@ export const store = {
       try {
         localStorage.setItem('user_profile_v1', JSON.stringify(userObj));
         localStorage.setItem(`user_profile_${uid}`, JSON.stringify(userObj));
+        if (userObj.identity) localStorage.setItem('user_identity_v1', userObj.identity);
+        if (userObj.name) localStorage.setItem('user_name_v1', userObj.name);
+        if (userObj.email) localStorage.setItem('user_email_v1', userObj.email);
         localStorage.setItem('habits_v1', JSON.stringify(mergedHabits));
         localStorage.setItem(`habits_${uid}`, JSON.stringify(mergedHabits));
         localStorage.setItem('routines_v1', JSON.stringify(mergedRoutines));
@@ -122,11 +138,25 @@ export const store = {
   
   saveUserProfile: async (data) => {
     const uid = auth.currentUser?.uid || 'guest';
-    const updatedUser = { ...(state.user || {}), ...data };
+    const email = data.email || auth.currentUser?.email || state.user?.email || localStorage.getItem('user_email_v1') || '';
+    const name = data.name || auth.currentUser?.displayName || state.user?.name || localStorage.getItem('user_name_v1') || 'Viajero';
+    const identity = data.identity || state.user?.identity || localStorage.getItem('user_identity_v1') || 'una persona disciplinada';
+
+    const updatedUser = {
+      ...(state.user || {}),
+      ...data,
+      email,
+      name,
+      identity
+    };
     
     try {
       localStorage.setItem('user_profile_v1', JSON.stringify(updatedUser));
       localStorage.setItem(`user_profile_${uid}`, JSON.stringify(updatedUser));
+      if (updatedUser.identity) localStorage.setItem('user_identity_v1', updatedUser.identity);
+      if (updatedUser.name) localStorage.setItem('user_name_v1', updatedUser.name);
+      if (updatedUser.email) localStorage.setItem('user_email_v1', updatedUser.email);
+
       if (data.onboardingCompleted) {
         localStorage.setItem(`onboardingCompleted_${uid}`, 'true');
         localStorage.setItem('onboardingCompleted_guest', 'true');
@@ -136,7 +166,7 @@ export const store = {
     store.setState({ user: updatedUser });
 
     if (auth.currentUser) {
-      saveDocument(`users/${uid}`, data).catch(e => console.error('Error saving user profile doc:', e));
+      saveDocument(`users/${uid}`, updatedUser).catch(e => console.error('Error saving user profile doc:', e));
     }
   },
   

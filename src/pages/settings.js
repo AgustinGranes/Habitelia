@@ -1,11 +1,14 @@
 import { store } from '../store.js';
+import { auth } from '../firebase.js';
 import { showToast } from '../components/toast.js';
 
 export function render(props = {}) {
     const state = store.getState();
-    const email = state.user?.email || 'Sin email';
-    const name = state.user?.displayName || state.user?.name || 'Usuario';
-    const identity = state.user?.identity || 'No definida';
+    const currentUser = auth.currentUser;
+
+    const email = currentUser?.email || state.user?.email || localStorage.getItem('user_email_v1') || 'Sin email';
+    const name = currentUser?.displayName || state.user?.name || state.user?.displayName || localStorage.getItem('user_name_v1') || 'Usuario';
+    const identity = state.user?.identity || localStorage.getItem('user_identity_v1') || 'No definida';
 
     return `
         <div class="page settings-page" style="padding: 24px 20px 100px 20px; max-width: 600px; margin: 0 auto; width: 100%; box-sizing: border-box; overflow-y: auto;">
@@ -85,8 +88,9 @@ export function mount() {
         const newIdentity = input.value.trim();
         if (newIdentity) {
             store.saveUserProfile({ identity: newIdentity });
+            localStorage.setItem('user_identity_v1', newIdentity);
             display.textContent = newIdentity;
-            showToast('Identidad actualizada', 'success');
+            showToast('Identidad actualizada correctamente', 'success');
         }
         
         display.style.display = 'block';
