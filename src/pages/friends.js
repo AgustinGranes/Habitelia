@@ -2,7 +2,7 @@ import { store } from '../store.js';
 import { auth, getPublicUserData, addFriendToCloud, removeFriendFromCloud, getFriendsFromCloud } from '../firebase.js';
 import { showToast } from '../components/toast.js';
 import { iconSVG } from '../components/icons.js';
-import { getCategoryForTeam } from '../driverEngine.js';
+import { getTeamForOVR, getCategoryForTeam, calculateMarketValue, getOVRColor, TEAMS_DATA } from '../driverEngine.js';
 import { renderSidebar, mountSidebar } from '../components/sidebar.js';
 
 let friendsDataList = [];
@@ -126,40 +126,88 @@ function renderFriendsList() {
         </div>
 
         <!-- Friend Pilot Career Card (If Active) -->
-        ${hasDriver ? `
-          <div style="padding: 16px; border-radius: 16px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-subtle); margin-bottom: 18px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                ${iconSVG('helmet', 18)}
-                <span style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-tertiary);">PILOTO F1</span>
-              </div>
-              <div style="padding: 3px 8px; border-radius: 6px; background: var(--text-primary); color: var(--bg-primary); font-size: 11px; font-weight: 900;">
-                ${category}
-              </div>
-            </div>
+        ${hasDriver ? (() => {
+          const ovr = driver.ovr || 50;
+          const teamKey = getTeamForOVR(ovr);
+          const teamData = TEAMS_DATA[teamKey] || { name: 'Apex', category: 'F4' };
+          const category = teamData.category;
+          const teamName = teamData.name;
+          const ovrBgColor = getOVRColor(ovr);
+          const isDarkOvrText = ovr >= 90;
+          const marketValue = calculateMarketValue(ovr, driver.titlesDriver || 0, driver.titlesConstructor || 0);
+          const surname = driver.surname || friendName.split(' ')[0].toUpperCase();
 
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <div>
-                <div style="font-size: 28px; font-weight: 900; color: var(--text-primary); line-height: 1;">${driver.ovr || 50} <span style="font-size: 12px; font-weight: 700; color: var(--text-tertiary);">OVR</span></div>
-                <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-top: 4px;">${driver.team || 'Williams Racing'}</div>
+          return `
+            <div class="glass-card" style="padding: 20px 18px; border-radius: 22px; border: 1px solid var(--border-subtle); background: #0A0A0A; box-shadow: 0 12px 30px rgba(0,0,0,0.8); position: relative; margin-bottom: 20px;">
+              
+              <!-- Top Row: OVR Left + Info/Stats Right -->
+              <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: stretch;">
+                
+                <!-- OVR Box -->
+                <div style="width: 84px; border-radius: 16px; background: ${ovrBgColor}; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 4px; flex-shrink: 0;">
+                  <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.05em; color: ${isDarkOvrText ? '#0F172A' : '#FFFFFF'};">OVR</span>
+                  <span style="font-size: 40px; font-weight: 900; line-height: 1; margin-top: 2px; color: ${isDarkOvrText ? '#0F172A' : '#FFFFFF'}; font-family: var(--font-sans);">${ovr}</span>
+                </div>
+
+                <!-- Right Column: Pills + Stats -->
+                <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                  
+                  <!-- Pills Row -->
+                  <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+                    <div style="padding: 4px 8px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); font-size: 12px;">
+                      ${driver.flag || 'AR'}
+                    </div>
+                    <div style="padding: 4px 8px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); font-size: 11px; font-weight: 600; color: var(--text-primary);">
+                      Valor <span style="color: var(--text-secondary);">€${marketValue}M</span>
+                    </div>
+                    <div style="padding: 4px 10px; border-radius: 8px; background: #FFFFFF; color: #000000; font-size: 12px; font-weight: 800;">
+                      #${driver.number || 86}
+                    </div>
+                    <div style="padding: 4px 8px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); font-size: 11px; font-weight: 600; color: var(--text-secondary);">
+                      ${driver.code || 'PIL'}
+                    </div>
+                  </div>
+
+                  <!-- Stats Bar -->
+                  <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 6px 12px; margin-top: 6px;">
+                    <div style="text-align: center;">
+                      <div style="font-size: 9px; font-weight: 700; color: var(--text-tertiary);">TEMP</div>
+                      <div style="font-size: 13px; font-weight: 800; color: var(--text-primary);">${driver.seasons || 1}</div>
+                    </div>
+                    <div style="text-align: center;">
+                      <div style="font-size: 9px; font-weight: 700; color: var(--text-tertiary);">VCT</div>
+                      <div style="font-size: 13px; font-weight: 800; color: var(--text-primary);">${driver.wins || 0}</div>
+                    </div>
+                    <div style="text-align: center;">
+                      <div style="font-size: 9px; font-weight: 700; color: var(--text-tertiary);">POD</div>
+                      <div style="font-size: 13px; font-weight: 800; color: var(--text-primary);">${driver.podiums || 0}</div>
+                    </div>
+                    <div style="text-align: center;">
+                      <div style="font-size: 9px; font-weight: 700; color: var(--text-tertiary);">PTS</div>
+                      <div style="font-size: 13px; font-weight: 800; color: var(--text-primary);">${driver.points || 0}</div>
+                    </div>
+                  </div>
+
+                </div>
               </div>
-              <div style="display: flex; gap: 14px; text-align: center;">
-                <div>
-                  <div style="font-size: 10px; font-weight: 700; color: var(--text-tertiary);">PTS</div>
-                  <div style="font-size: 15px; font-weight: 800; color: var(--text-primary);">${driver.points || 0}</div>
-                </div>
-                <div>
-                  <div style="font-size: 10px; font-weight: 700; color: var(--text-tertiary);">VCT</div>
-                  <div style="font-size: 15px; font-weight: 800; color: #D69E2E;">${driver.wins || 0}</div>
-                </div>
-                <div>
-                  <div style="font-size: 10px; font-weight: 700; color: var(--text-tertiary);">POD</div>
-                  <div style="font-size: 15px; font-weight: 800; color: #7CDEDC;">${driver.podiums || 0}</div>
-                </div>
+
+              <!-- Surname Centered -->
+              <div style="text-align: center; font-size: 22px; font-weight: 900; letter-spacing: 0.12em; color: #FFFFFF; text-transform: uppercase; margin: 10px 0 14px 0;">
+                ${surname}
               </div>
+
+              <!-- Trayectoria Box -->
+              <div style="padding: 12px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); text-align: center;">
+                <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-tertiary); margin-bottom: 8px;">TRAYECTORIA</div>
+                <div style="display: inline-block; padding: 4px 14px; border-radius: 8px; background: rgba(255,255,255,0.08); border: 1px solid var(--border-subtle); font-size: 13px; font-weight: 900; color: #FFFFFF; margin-bottom: 4px;">
+                  ${category}
+                </div>
+                <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">${teamName}</div>
+              </div>
+
             </div>
-          </div>
-        ` : ''}
+          `;
+        })() : ''}
 
         <!-- Uncompleted Habits / Incident Log Section -->
         <div style="border-top: 1px solid var(--border-subtle); padding-top: 14px;">

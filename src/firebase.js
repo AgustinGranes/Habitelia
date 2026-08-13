@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut as fbSignOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut as fbSignOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail, deleteUser } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, collection, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -112,4 +112,41 @@ export const getFriendsFromCloud = async () => {
   if (!auth.currentUser) return [];
   const uid = auth.currentUser.uid;
   return await getCollection(`users/${uid}/friends`);
+};
+
+export const deleteAccountAndAllData = async () => {
+  if (!auth.currentUser) return { success: false, error: 'No hay usuario autenticado' };
+  const user = auth.currentUser;
+  const uid = user.uid;
+
+  try {
+    const habits = await getCollection(`users/${uid}/habits`);
+    for (const h of habits) {
+      await deleteDocument(`users/${uid}/habits/${h.id}`).catch(() => {});
+    }
+
+    const routines = await getCollection(`users/${uid}/routines`);
+    for (const r of routines) {
+      await deleteDocument(`users/${uid}/routines/${r.id}`).catch(() => {});
+    }
+
+    const incidents = await getCollection(`users/${uid}/incidents`);
+    for (const inc of incidents) {
+      await deleteDocument(`users/${uid}/incidents/${inc.id}`).catch(() => {});
+    }
+
+    const friends = await getCollection(`users/${uid}/friends`);
+    for (const f of friends) {
+      await deleteDocument(`users/${uid}/friends/${f.id}`).catch(() => {});
+    }
+
+    await deleteDocument(`users/${uid}/driverProfile/main`).catch(() => {});
+    await deleteDocument(`users/${uid}`).catch(() => {});
+
+    await deleteUser(user);
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting account and data:', error);
+    return { success: false, error: error.message };
+  }
 };

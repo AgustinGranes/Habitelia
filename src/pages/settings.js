@@ -1,5 +1,6 @@
 import { store } from '../store.js';
-import { auth } from '../firebase.js';
+import { auth, deleteAccountAndAllData } from '../firebase.js';
+import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { iconSVG } from '../components/icons.js';
 
@@ -87,8 +88,17 @@ export function render(props = {}) {
                     <button id="sync-cloud-btn" class="btn-primary" style="width: 100%; font-size: 14px; padding: 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
                         ${iconSVG('check', 16)} Sincronizar Todos Mis Datos en la Nube
                     </button>
-                    <button id="delete-data-btn" class="btn-danger" style="width: 100%; font-size: 14px; padding: 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        ${iconSVG('trash', 16)} Borrar Todos Mis Datos Locales
+                </div>
+            </div>
+
+            <div class="glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 18px; border: 1px solid rgba(229, 62, 62, 0.4); background: rgba(229, 62, 62, 0.04);">
+                <h3 class="editorial-title" style="font-size: 20px; margin-bottom: 8px; color: #E53E3E;">Zona de Peligro</h3>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.4;">
+                    Si eliminás tu cuenta, se borrarán de forma <strong>permanente e irreversible</strong> todos tus hábitos, rutinas, perfil de piloto y datos de la base de datos en la nube. Podrás registrarte nuevamente en el futuro con el mismo email si lo deseás, pero comenzarás desde cero.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button id="delete-account-btn" style="width: 100%; font-size: 14px; padding: 13px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; background: #E53E3E; color: #FFFFFF; border: none; font-weight: 700; cursor: pointer; transition: opacity 0.2s ease;">
+                        ${iconSVG('trash', 16)} Eliminar Mi Cuenta y Datos Definitivamente
                     </button>
                 </div>
             </div>
@@ -180,13 +190,21 @@ export function mount() {
         }
     });
 
-    document.getElementById('delete-data-btn')?.addEventListener('click', () => {
-        if (confirm('¿Estás seguro de que querés borrar TODOS tus hábitos y progreso? Esta acción no se puede deshacer.')) {
-            localStorage.clear();
-            showToast('Datos borrados. Recargando...', 'info');
-            setTimeout(() => {
-                window.location.reload();
-            }, 1200);
+    document.getElementById('delete-account-btn')?.addEventListener('click', async () => {
+        const confirmMsg = "⚠️ ¿ESTÁS ABSOLUTAMENTE SEGURO DE QUE QUERÉS ELIMINAR TU CUENTA?\n\nEsta acción ELIMINARÁ PERMANENTEMENTE todos tus hábitos, rutinas, historial, ficha de piloto y tu usuario de la base de datos en la nube. Podrás volver a registrarte en el futuro pero tus datos actuales se perderán para siempre.";
+        if (confirm(confirmMsg)) {
+            showToast('Eliminando tu cuenta y datos de la base de datos...', 'info');
+            const res = await deleteAccountAndAllData();
+            if (res.success) {
+                localStorage.clear();
+                showToast('Cuenta y datos eliminados con éxito.', 'success');
+                setTimeout(() => {
+                    navigate('/login');
+                    window.location.reload();
+                }, 1200);
+            } else {
+                showToast('Error al eliminar cuenta: ' + (res.error || ''), 'error');
+            }
         }
     });
 }
