@@ -193,18 +193,16 @@ export function mount() {
     document.getElementById('delete-account-btn')?.addEventListener('click', async () => {
         const confirmMsg = "⚠️ ¿ESTÁS ABSOLUTAMENTE SEGURO DE QUE QUERÉS ELIMINAR TU CUENTA?\n\nEsta acción ELIMINARÁ PERMANENTEMENTE todos tus hábitos, rutinas, historial, ficha de piloto y tu usuario de la base de datos en la nube. Podrás volver a registrarte en el futuro pero tus datos actuales se perderán para siempre.";
         if (confirm(confirmMsg)) {
-            showToast('Eliminando tu cuenta y datos de la base de datos...', 'info');
-            const res = await deleteAccountAndAllData();
-            if (res.success) {
-                localStorage.clear();
-                showToast('Cuenta y datos eliminados con éxito.', 'success');
-                setTimeout(() => {
-                    navigate('/login');
-                    window.location.reload();
-                }, 1200);
-            } else {
-                showToast('Error al eliminar cuenta: ' + (res.error || ''), 'error');
-            }
+            showToast('Eliminando tu cuenta y cerrando sesión...', 'info');
+            
+            // Clear localStorage & store state immediately
+            localStorage.clear();
+            store.setState({ user: null, habits: [], routines: [], driverProfile: null });
+
+            await deleteAccountAndAllData();
+
+            showToast('Cuenta eliminada y sesión cerrada.', 'success');
+            navigate('/login');
         }
     });
 }

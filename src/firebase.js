@@ -143,10 +143,16 @@ export const deleteAccountAndAllData = async () => {
     await deleteDocument(`users/${uid}/driverProfile/main`).catch(() => {});
     await deleteDocument(`users/${uid}`).catch(() => {});
 
-    await deleteUser(user);
+    await deleteUser(user).catch(async () => {
+      await fbSignOut(auth);
+    });
+
+    await fbSignOut(auth).catch(() => {});
+
     return { success: true };
   } catch (error) {
     console.error('Error deleting account and data:', error);
+    await fbSignOut(auth).catch(() => {});
     return { success: false, error: error.message };
   }
 };
