@@ -1,6 +1,7 @@
 import { store } from '../store.js';
 import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
+import { iconSVG } from '../components/icons.js';
 import { parseTime, formatTime, minutesToTime, getEndTime, checkCollision } from '../utils/time.js';
 
 let currentStep = 1;
@@ -32,20 +33,23 @@ export function render(props = {}) {
   }
 
   return `
-    <div class="page habit-form-page" style="padding: 20px 16px 80px 16px; max-width: 540px; margin: 0 auto;">
-      <div class="wizard-progress" style="display: flex; align-items: center; justify-content: center; margin-bottom: 24px; gap: 12px;">
-        <div class="wizard-step-indicator active" data-step="1" style="width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; background: var(--accent-gradient); color: #000;">1</div>
-        <div class="wizard-connector" style="flex: 1; max-width: 60px; height: 3px; background: rgba(255,255,255,0.15);"></div>
-        <div class="wizard-step-indicator" data-step="2" style="width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; background: rgba(255,255,255,0.1); color: var(--text-muted);">2</div>
+    <div class="page habit-form-page" style="padding: 24px 16px 80px 16px; max-width: 540px; margin: 0 auto;">
+      <!-- Monochromatic Progress Bar -->
+      <div class="wizard-progress" style="display: flex; align-items: center; justify-content: center; margin-bottom: 28px; gap: 12px;">
+        <div class="wizard-step-indicator active" data-step="1" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; background: var(--accent-primary); color: var(--accent-inverted); font-size: 13px;">1</div>
+        <div class="wizard-connector" style="flex: 1; max-width: 60px; height: 2px; background: var(--border-subtle);"></div>
+        <div class="wizard-step-indicator" data-step="2" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; background: var(--bg-subtle); color: var(--text-secondary); font-size: 13px; border: 1px solid var(--border-subtle);">2</div>
       </div>
       
-      <div id="step-container" class="glass-card form-container" style="padding: 28px 24px; border-radius: 20px; margin-bottom: 20px;">
+      <div id="step-container" class="glass-card form-container" style="padding: 32px 24px; border-radius: 20px; margin-bottom: 20px;">
         ${renderStep1()}
       </div>
       
       <div class="form-actions" style="display: flex; gap: 12px; width: 100%;">
-        <button id="btn-back" class="btn-secondary" style="display:none; flex: 1; min-height: 48px; margin: 0; border-radius: 14px;">Atrás</button>
-        <button id="btn-next" class="btn-primary" style="flex: 2; min-height: 48px; margin: 0; border-radius: 14px;">Siguiente ➔</button>
+        <button id="btn-back" class="btn-secondary" style="display:none; flex: 1; min-height: 48px; margin: 0; border-radius: 12px;">Atrás</button>
+        <button id="btn-next" class="btn-primary" style="flex: 2; min-height: 48px; margin: 0; border-radius: 12px;">
+          Siguiente ${iconSVG('arrowRight', 16)}
+        </button>
       </div>
     </div>
   `;
@@ -53,29 +57,30 @@ export function render(props = {}) {
 
 function renderStep1() {
   return `
-    <div style="margin-bottom: 20px;">
-      <h2 style="font-family: 'Playfair Display', serif; font-size: 24px; margin: 0 0 6px 0; color: #fff;">⏰ 1. Horario y Detalles del Hábito</h2>
-      <p style="color: var(--text-muted); font-size: 14px; margin: 0;">Ingresá el nombre, horario y la duración de tu nuevo hábito.</p>
+    <div style="margin-bottom: 24px;">
+      <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 4px;">Paso 1 de 2</div>
+      <h2 class="editorial-title" style="font-size: 26px; margin: 0 0 6px 0;">Horario y Detalle.</h2>
+      <p style="color: var(--text-secondary); font-size: 14px; margin: 0;">Ingresá el nombre, la hora y la duración de tu hábito.</p>
     </div>
 
-    <div class="form-group" style="margin-bottom: 18px;">
-      <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: #fff; font-size: 14px;">Nombre del Hábito</label>
+    <div class="form-group" style="margin-bottom: 20px;">
+      <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Nombre del Hábito</label>
       <input type="text" id="habit-name" class="input" value="${habitData.name || ''}" placeholder="Ej. Meditar, Correr, Leer..." style="width:100%; min-height:46px;">
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
       <div class="form-group" style="margin: 0;">
-        <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: #fff; font-size: 14px;">Hora de Inicio</label>
+        <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Hora de Inicio</label>
         <input type="time" id="habit-time" class="input" value="${habitData.cue?.time || '08:00'}" style="width:100%; min-height:46px;">
       </div>
       <div class="form-group" style="margin: 0;">
-        <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: #fff; font-size: 14px;">Duración (min)</label>
+        <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Duración (min)</label>
         <input type="number" id="habit-duration" class="input" value="${habitData.duration || 15}" min="1" max="180" style="width:100%; min-height:46px;">
       </div>
     </div>
 
     <div class="form-group" style="margin-bottom: 8px;">
-      <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: #fff; font-size: 14px;">Lugar (Opcional)</label>
+      <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Lugar (Opcional)</label>
       <input type="text" id="habit-place" class="input" value="${habitData.cue?.place || ''}" placeholder="Ej. En mi escritorio, parque..." style="width:100%; min-height:46px;">
     </div>
   `;
@@ -83,35 +88,40 @@ function renderStep1() {
 
 function renderStep2() {
   const defaultTwoMin = habitData.response?.twoMinVersion || (habitData.name ? `1 minuto de ${habitData.name}` : '');
-  const defaultPleasure = habitData.craving?.linkedPleasure || 'Tomar un rico té caliente';
+  const defaultPleasure = habitData.craving?.linkedPleasure || 'Tomar un té caliente';
 
   return `
-    <div style="margin-bottom: 20px;">
-      <h2 style="font-family: 'Playfair Display', serif; font-size: 24px; margin: 0 0 6px 0; color: #fff;">✨ 2. Hábitos Atómicos (Preparación)</h2>
-      <p style="color: var(--text-muted); font-size: 14px; margin: 0;">Diseñá la experiencia para que sea imposible fallar.</p>
+    <div style="margin-bottom: 24px;">
+      <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 4px;">Paso 2 de 2</div>
+      <h2 class="editorial-title" style="font-size: 26px; margin: 0 0 6px 0;">Hábitos Atómicos.</h2>
+      <p style="color: var(--text-secondary); font-size: 14px; margin: 0;">Diseñá la experiencia para que sea imposible fallar.</p>
     </div>
 
-    <div class="glass-card" style="padding: 16px; border-left: 4px solid #F5C518; margin-bottom: 20px; border-radius: 14px; background: rgba(245, 197, 24, 0.08);">
-      <div style="font-weight: 700; font-size: 14px; color: #F5C518; margin-bottom: 6px;">💡 Hacerlo Atractivo & Disfrutable</div>
-      <div style="font-size: 13px; color: #eee; line-height: 1.5;">
-        Recordá hacer actividades que te gusten durante la realización de tu hábito, como tomar un té. Creá un ritual de motivación previo como servir el té.
+    <div class="glass-card" style="padding: 18px; border-left: 3px solid var(--text-primary); margin-bottom: 20px; border-radius: 12px; background: var(--bg-primary);">
+      <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+        ${iconSVG('star', 14)} Hacerlo Atractivo & Disfrutable
+      </div>
+      <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+        Recordá hacer actividades que te gusten durante la realización de tu hábito, como tomar un té. Creá un ritual previo para entrar en foco.
       </div>
     </div>
 
-    <div class="glass-card" style="padding: 16px; border-left: 4px solid #4CAF50; margin-bottom: 20px; border-radius: 14px; background: rgba(76, 175, 80, 0.08);">
-      <div style="font-weight: 700; font-size: 14px; color: #4CAF50; margin-bottom: 6px;">⚡ La Regla de los 2 Minutos</div>
-      <div style="font-size: 13px; color: #eee; line-height: 1.5;">
-        Cualquier hábito puede reducirse a una versión de 2 minutos para empezar sin esfuerzo. En lugar de "Leer 30 min", empezá con "Leer una página", y prepará tu ambiente.
+    <div class="glass-card" style="padding: 18px; border-left: 3px solid var(--text-secondary); margin-bottom: 20px; border-radius: 12px; background: var(--bg-primary);">
+      <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+        ${iconSVG('target', 14)} La Regla de los 2 Minutos
+      </div>
+      <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+        Cualquier hábito puede reducirse a una versión de 2 minutos para empezar sin esfuerzo. En lugar de "Leer 30 min", empezá con "Leer 1 página".
       </div>
     </div>
 
-    <div class="form-group" style="margin-bottom: 18px;">
-      <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: #fff; font-size: 14px;">Versión de 2 minutos</label>
+    <div class="form-group" style="margin-bottom: 20px;">
+      <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Versión de 2 minutos</label>
       <input type="text" id="habit-twomin" class="input" value="${defaultTwoMin}" placeholder="Ej. Leer 1 página / Ponerte las zapatillas" style="width:100%; min-height:46px;">
     </div>
 
     <div class="form-group" style="margin-bottom: 8px;">
-      <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: #fff; font-size: 14px;">Placer vinculado / Ritual previo</label>
+      <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Placer vinculado / Ritual previo</label>
       <input type="text" id="habit-pleasure" class="input" value="${defaultPleasure}" placeholder="Ej. Tomar un té mientras lo realizo" style="width:100%; min-height:46px;">
     </div>
   `;
@@ -126,7 +136,7 @@ function checkAndShowCollisions(newHabit, onConfirmed) {
     return;
   }
 
-  // COLLISION DETECTED -> Open Multi-Suggestion Assistant Modal
+  // COLLISION DETECTED -> Open Multi-Suggestion Assistant Modal Monochromatic
   const conflict = conflictingHabits[0];
   
   const newStartMin = parseTime(newHabit.cue.time);
@@ -145,55 +155,55 @@ function checkAndShowCollisions(newHabit, onConfirmed) {
 
   const modalHtml = `
     <div id="collision-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px;">
-      <div class="glass-card" style="width: 100%; max-width: 520px; padding: 28px; border-radius: 24px; border: 1px solid rgba(244,67,54,0.4); max-height: 88vh; overflow-y: auto;">
+      <div class="glass-card" style="width: 100%; max-width: 500px; padding: 28px; border-radius: 20px; border: 1px solid var(--border-subtle); max-height: 88vh; overflow-y: auto; background: var(--bg-surface);">
         
         <div style="text-align: center; margin-bottom: 20px;">
-          <div style="font-size: 44px; margin-bottom: 8px;">⚠️</div>
-          <h3 style="font-family: 'Playfair Display', serif; font-size: 22px; color: #FF5252; margin: 0 0 6px 0;">Conflicto de Horarios Solapados</h3>
-          <p style="color: var(--text-muted); font-size: 13px; margin: 0;">El hábito que querés guardar se solapa con otro hábito en tu agenda.</p>
+          <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--bg-subtle); color: var(--text-primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto;">
+            ${iconSVG('alert', 22)}
+          </div>
+          <h3 class="editorial-title" style="font-size: 22px; margin: 0 0 6px 0;">Conflicto de Horarios</h3>
+          <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">El hábito que deseas guardar se solapa con otro evento existente.</p>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-          <div style="background: rgba(245, 197, 24, 0.1); border: 1px solid rgba(245, 197, 24, 0.3); padding: 14px; border-radius: 14px;">
-            <div style="font-size: 11px; font-weight: 700; color: #F5C518; text-transform: uppercase;">Nuevo Hábito</div>
-            <div style="font-weight: 700; font-size: 15px; color: #fff; margin-top: 4px;">${newHabit.name || 'Hábito Nuevo'}</div>
-            <div style="font-size: 13px; color: #eee; margin-top: 2px;">⏰ ${newHabit.cue.time} - ${getEndTime(newHabit.cue.time, newHabit.duration)}</div>
+          <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); padding: 14px; border-radius: 12px;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Nuevo Hábito</div>
+            <div style="font-weight: 600; font-size: 14px; color: var(--text-primary); margin-top: 4px;">${newHabit.name || 'Hábito Nuevo'}</div>
+            <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 2px;">⏰ ${newHabit.cue.time} - ${getEndTime(newHabit.cue.time, newHabit.duration)}</div>
           </div>
 
-          <div style="background: rgba(244, 67, 54, 0.1); border: 1px solid rgba(244, 67, 54, 0.3); padding: 14px; border-radius: 14px;">
-            <div style="font-size: 11px; font-weight: 700; color: #FF5252; text-transform: uppercase;">Hábito Existente</div>
-            <div style="font-weight: 700; font-size: 15px; color: #fff; margin-top: 4px;">${conflict.name}</div>
-            <div style="font-size: 13px; color: #eee; margin-top: 2px;">⏰ ${conflict.cue.time} - ${getEndTime(conflict.cue.time, conflict.duration)}</div>
+          <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); padding: 14px; border-radius: 12px;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Existente</div>
+            <div style="font-weight: 600; font-size: 14px; color: var(--text-primary); margin-top: 4px;">${conflict.name}</div>
+            <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 2px;">⏰ ${conflict.cue.time} - ${getEndTime(conflict.cue.time, conflict.duration)}</div>
           </div>
         </div>
 
-        <h4 style="font-size: 14px; font-family: 'Playfair Display', serif; color: #fff; margin: 0 0 12px 0;">💡 Múltiples Sugerencias de Corrección Automática:</h4>
+        <h4 style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin: 0 0 12px 0;">Sugerencias de corrección:</h4>
 
-        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px;">
-          <button class="btn-collision-opt" data-opt="1" style="text-align: left; padding: 12px 16px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff; cursor: pointer; transition: background 0.2s;">
-            <div style="font-weight: 700; font-size: 13px; color: #F5C518;">👉 Mover "${newHabit.name}" antes</div>
-            <div style="font-size: 12px; color: var(--text-muted);">Cambiar horario a ⏰ ${sugg1NewTime} - ${getEndTime(sugg1NewTime, newHabit.duration)}</div>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px;">
+          <button class="btn-collision-opt" data-opt="1" style="text-align: left; padding: 12px 16px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border-subtle); color: var(--text-primary); cursor: pointer; transition: background 0.2s ease;">
+            <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">Mover "${newHabit.name}" antes</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">Cambiar a ⏰ ${sugg1NewTime} - ${getEndTime(sugg1NewTime, newHabit.duration)}</div>
           </button>
 
-          <button class="btn-collision-opt" data-opt="2" style="text-align: left; padding: 12px 16px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff; cursor: pointer; transition: background 0.2s;">
-            <div style="font-weight: 700; font-size: 13px; color: #F5C518;">👉 Mover "${newHabit.name}" después</div>
-            <div style="font-size: 12px; color: var(--text-muted);">Cambiar horario a ⏰ ${sugg2NewTime} - ${getEndTime(sugg2NewTime, newHabit.duration)}</div>
+          <button class="btn-collision-opt" data-opt="2" style="text-align: left; padding: 12px 16px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border-subtle); color: var(--text-primary); cursor: pointer; transition: background 0.2s ease;">
+            <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">Mover "${newHabit.name}" después</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">Cambiar a ⏰ ${sugg2NewTime} - ${getEndTime(sugg2NewTime, newHabit.duration)}</div>
           </button>
 
-          <button class="btn-collision-opt" data-opt="3" style="text-align: left; padding: 12px 16px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff; cursor: pointer; transition: background 0.2s;">
-            <div style="font-weight: 700; font-size: 13px; color: #4CAF50;">👈 Mover "${conflict.name}" antes</div>
-            <div style="font-size: 12px; color: var(--text-muted);">Mover "${conflict.name}" a ⏰ ${sugg3ConfTime}</div>
+          <button class="btn-collision-opt" data-opt="3" style="text-align: left; padding: 12px 16px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border-subtle); color: var(--text-primary); cursor: pointer; transition: background 0.2s ease;">
+            <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">Mover "${conflict.name}" antes</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">Mover "${conflict.name}" a ⏰ ${sugg3ConfTime}</div>
           </button>
 
-          <button class="btn-collision-opt" data-opt="4" style="text-align: left; padding: 12px 16px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff; cursor: pointer; transition: background 0.2s;">
-            <div style="font-weight: 700; font-size: 13px; color: #4CAF50;">👈 Mover "${conflict.name}" después</div>
-            <div style="font-size: 12px; color: var(--text-muted);">Mover "${conflict.name}" a ⏰ ${sugg4ConfTime}</div>
+          <button class="btn-collision-opt" data-opt="4" style="text-align: left; padding: 12px 16px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border-subtle); color: var(--text-primary); cursor: pointer; transition: background 0.2s ease;">
+            <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">Mover "${conflict.name}" después</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">Mover "${conflict.name}" a ⏰ ${sugg4ConfTime}</div>
           </button>
         </div>
 
-        <div style="display: flex; gap: 12px;">
-          <button id="btn-cancel-collision" style="flex: 1; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); background: transparent; color: #ccc; font-weight: 600; cursor: pointer;">Ajustar Manualmente</button>
-        </div>
+        <button id="btn-cancel-collision" class="btn-secondary" style="width: 100%;">Ajustar Manualmente</button>
 
       </div>
     </div>
@@ -233,14 +243,14 @@ function updateStepIndicators() {
   document.querySelectorAll('.wizard-step-indicator').forEach(el => {
     const step = parseInt(el.dataset.step);
     if (step === currentStep) {
-      el.style.background = 'var(--accent-gradient)';
-      el.style.color = '#000';
+      el.style.background = 'var(--accent-primary)';
+      el.style.color = 'var(--accent-inverted)';
     } else if (step < currentStep) {
-      el.style.background = '#4CAF50';
-      el.style.color = '#fff';
+      el.style.background = 'var(--bg-subtle)';
+      el.style.color = 'var(--text-primary)';
     } else {
-      el.style.background = 'rgba(255,255,255,0.1)';
-      el.style.color = 'var(--text-muted)';
+      el.style.background = 'var(--bg-subtle)';
+      el.style.color = 'var(--text-secondary)';
     }
   });
 }
@@ -280,13 +290,13 @@ export function mount() {
       currentStep = 2;
       container.innerHTML = renderStep2();
       btnBack.style.display = 'block';
-      btnNext.textContent = 'Guardar Hábito ✓';
+      btnNext.innerHTML = `Guardar Hábito ${iconSVG('check', 16)}`;
       updateStepIndicators();
     } else if (currentStep === 2) {
       // Confirm Habit Save with Collision Assistant
       checkAndShowCollisions(habitData, async (finalHabit) => {
         await store.saveHabit(finalHabit);
-        showToast('¡Hábito guardado con éxito! 🎉', 'success');
+        showToast('¡Hábito guardado con éxito!', 'success');
         navigate('/home');
       });
     }
@@ -298,7 +308,7 @@ export function mount() {
       currentStep = 1;
       container.innerHTML = renderStep1();
       btnBack.style.display = 'none';
-      btnNext.textContent = 'Siguiente ➔';
+      btnNext.innerHTML = `Siguiente ${iconSVG('arrowRight', 16)}`;
       updateStepIndicators();
     }
   });

@@ -1,38 +1,55 @@
 import { store } from '../store.js';
 import { navigate } from '../router.js';
 import { logOut } from '../firebase.js';
+import { iconSVG } from './icons.js';
 
 export function renderSidebar() {
     const state = store.getState();
     const name = state.user?.displayName || state.user?.name || 'Viajero';
-    const identity = state.user?.identity || 'Sin identidad';
+    const identity = state.user?.identity || 'Sin identidad definida';
     const currentRoute = state.currentRoute;
 
     const isActive = (path) => currentRoute === path ? 'active' : '';
 
     return `
-        <div class="sidebar-overlay" id="sidebar-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 100; opacity: 0; transition: opacity 0.3s;"></div>
-        <div class="sidebar glass-card" id="sidebar-panel" style="position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; z-index: 101; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; border-radius: 0; border-left: none; border-top: none; border-bottom: none;">
-            <div class="sidebar-header" style="padding: 30px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px;">
-                <h2 style="margin: 0; font-family: 'Playfair Display', serif; font-size: 24px; color: #fff;">${name}</h2>
-                <div style="font-size: 14px; color: #F5C518; margin-top: 8px; font-style: italic;">${identity}</div>
+        <div class="sidebar-overlay" id="sidebar-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 100; opacity: 0; transition: opacity 0.25s ease;"></div>
+        <div class="sidebar glass-card" id="sidebar-panel" style="position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; z-index: 101; transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; border-radius: 0; border-left: none; border-top: none; border-bottom: none; background: var(--bg-surface);">
+            <div class="sidebar-header" style="padding: 32px 24px 24px 24px; border-bottom: 1px solid var(--border-subtle);">
+                <div style="font-family: var(--font-serif); font-size: 26px; color: var(--text-primary); letter-spacing: -0.02em; font-weight: 400; margin-bottom: 16px;">
+                    HABITELIA<span class="brand-dot" style="color: var(--text-primary);">.</span>
+                </div>
+                <div style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">${name}</div>
+                <div style="font-size: 13px; color: var(--text-secondary); font-style: italic; font-family: var(--font-serif);">${identity}</div>
             </div>
-            <nav class="sidebar-nav" style="flex: 1; overflow-y: auto; padding: 0 10px;">
-                <div class="sidebar-nav-item ${isActive('/home')}" data-path="/home" style="padding: 15px 20px; border-radius: 10px; margin-bottom: 5px; display: flex; align-items: center; gap: 15px; cursor: pointer; color: #eee; transition: background 0.2s, color 0.2s;"><span style="font-size: 20px;">🏠</span> Inicio</div>
-                <div class="sidebar-nav-item ${isActive('/routine')}" data-path="/routine" style="padding: 15px 20px; border-radius: 10px; margin-bottom: 5px; display: flex; align-items: center; gap: 15px; cursor: pointer; color: #eee; transition: background 0.2s, color 0.2s;"><span style="font-size: 20px;">📋</span> Rutina de Hoy</div>
-                <div class="sidebar-nav-item ${isActive('/calendar')}" data-path="/calendar" style="padding: 15px 20px; border-radius: 10px; margin-bottom: 5px; display: flex; align-items: center; gap: 15px; cursor: pointer; color: #eee; transition: background 0.2s, color 0.2s;"><span style="font-size: 20px;">📅</span> Calendario</div>
-                <div class="sidebar-nav-item ${isActive('/chain')}" data-path="/chain" style="padding: 15px 20px; border-radius: 10px; margin-bottom: 5px; display: flex; align-items: center; gap: 15px; cursor: pointer; color: #eee; transition: background 0.2s, color 0.2s;"><span style="font-size: 20px;">🔗</span> Mi Cadena</div>
-                <div class="sidebar-nav-item ${isActive('/settings')}" data-path="/settings" style="padding: 15px 20px; border-radius: 10px; margin-bottom: 5px; display: flex; align-items: center; gap: 15px; cursor: pointer; color: #eee; transition: background 0.2s, color 0.2s;"><span style="font-size: 20px;">⚙️</span> Configuración</div>
+
+            <nav class="sidebar-nav" style="flex: 1; overflow-y: auto; padding: 16px 12px;">
+                <div class="sidebar-nav-item ${isActive('/home')}" data-path="/home" style="padding: 12px 16px; border-radius: 10px; margin-bottom: 4px; display: flex; align-items: center; gap: 14px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease;">
+                    ${iconSVG('home', 18)} <span style="font-size: 14px;">Inicio</span>
+                </div>
+                <div class="sidebar-nav-item ${isActive('/routine')}" data-path="/routine" style="padding: 12px 16px; border-radius: 10px; margin-bottom: 4px; display: flex; align-items: center; gap: 14px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease;">
+                    ${iconSVG('routine', 18)} <span style="font-size: 14px;">Rutina</span>
+                </div>
+                <div class="sidebar-nav-item ${isActive('/calendar')}" data-path="/calendar" style="padding: 12px 16px; border-radius: 10px; margin-bottom: 4px; display: flex; align-items: center; gap: 14px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease;">
+                    ${iconSVG('calendar', 18)} <span style="font-size: 14px;">Calendario</span>
+                </div>
+                <div class="sidebar-nav-item ${isActive('/chain')}" data-path="/chain" style="padding: 12px 16px; border-radius: 10px; margin-bottom: 4px; display: flex; align-items: center; gap: 14px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease;">
+                    ${iconSVG('chain', 18)} <span style="font-size: 14px;">Mi Cadena</span>
+                </div>
+                <div class="sidebar-nav-item ${isActive('/settings')}" data-path="/settings" style="padding: 12px 16px; border-radius: 10px; margin-bottom: 4px; display: flex; align-items: center; gap: 14px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease;">
+                    ${iconSVG('settings', 18)} <span style="font-size: 14px;">Configuración</span>
+                </div>
                 
-                <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 20px 20px;"></div>
+                <div style="height: 1px; background: var(--border-subtle); margin: 16px 12px;"></div>
                 
-                <div class="sidebar-nav-item logout-item" id="sidebar-logout" style="padding: 15px 20px; border-radius: 10px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; color: #F44336; transition: background 0.2s;"><span style="font-size: 20px;">🚪</span> Cerrar Sesión</div>
+                <div class="sidebar-nav-item logout-item" id="sidebar-logout" style="padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; color: var(--text-tertiary); transition: all 0.2s ease;">
+                    ${iconSVG('logout', 18)} <span style="font-size: 14px;">Cerrar Sesión</span>
+                </div>
             </nav>
         </div>
         <style>
-            .sidebar-nav-item:hover { background: rgba(255,255,255,0.05); }
-            .sidebar-nav-item.active { background: rgba(245,197,24,0.1); color: #F5C518 !important; font-weight: bold; }
-            .sidebar-nav-item.logout-item:hover { background: rgba(244, 67, 54, 0.1); }
+            .sidebar-nav-item:hover { background: var(--bg-surface-hover); color: var(--text-primary) !important; }
+            .sidebar-nav-item.active { background: var(--bg-subtle); color: var(--text-primary) !important; font-weight: 600; }
+            .sidebar-nav-item.logout-item:hover { background: rgba(255, 255, 255, 0.05); color: var(--text-primary) !important; }
             .sidebar.open { left: 0 !important; }
             .sidebar-overlay.show { opacity: 1 !important; }
         </style>
@@ -72,7 +89,6 @@ export function mountSidebar() {
         const isOpen = store.getState().sidebarOpen;
         if (isOpen) {
             overlay.style.display = 'block';
-            // Slight delay to allow display block to apply before animating opacity
             requestAnimationFrame(() => {
                 panel.classList.add('open');
                 overlay.classList.add('show');
@@ -82,7 +98,7 @@ export function mountSidebar() {
             overlay.classList.remove('show');
             setTimeout(() => {
                 if(!store.getState().sidebarOpen) overlay.style.display = 'none';
-            }, 300);
+            }, 250);
         }
     });
     

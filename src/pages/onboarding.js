@@ -1,17 +1,18 @@
 import { store } from '../store.js';
 import { navigate } from '../router.js';
+import { iconSVG } from '../components/icons.js';
 
 export function render(props = {}) {
     return `
-        <div class="onboarding-screen page" id="onboarding-container">
-            <div class="wizard-progress">
-                <div class="wizard-step-indicator active" id="dot-1"></div>
-                <div class="wizard-connector"></div>
-                <div class="wizard-step-indicator" id="dot-2"></div>
-                <div class="wizard-connector"></div>
-                <div class="wizard-step-indicator" id="dot-3"></div>
-                <div class="wizard-connector"></div>
-                <div class="wizard-step-indicator" id="dot-4"></div>
+        <div class="onboarding-screen page" id="onboarding-container" style="padding: 32px 20px; max-width: 520px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box;">
+            <div class="wizard-progress" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 32px;">
+                <div class="wizard-step-indicator active" id="dot-1" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; background: var(--accent-primary); color: var(--accent-inverted);">1</div>
+                <div class="wizard-connector" style="flex: 1; max-width: 40px; height: 2px; background: var(--border-subtle);"></div>
+                <div class="wizard-step-indicator" id="dot-2" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; background: var(--bg-subtle); color: var(--text-secondary); border: 1px solid var(--border-subtle);">2</div>
+                <div class="wizard-connector" style="flex: 1; max-width: 40px; height: 2px; background: var(--border-subtle);"></div>
+                <div class="wizard-step-indicator" id="dot-3" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; background: var(--bg-subtle); color: var(--text-secondary); border: 1px solid var(--border-subtle);">3</div>
+                <div class="wizard-connector" style="flex: 1; max-width: 40px; height: 2px; background: var(--border-subtle);"></div>
+                <div class="wizard-step-indicator" id="dot-4" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; background: var(--bg-subtle); color: var(--text-secondary); border: 1px solid var(--border-subtle);">4</div>
             </div>
             <div id="step-content"></div>
         </div>
@@ -24,22 +25,23 @@ export function mount() {
     
     function renderStep1() {
         container.innerHTML = `
-            <div class="step-container slide-in">
-                <h1 class="onboarding-question" style="font-family: 'Playfair Display', serif; font-size: 32px; margin-bottom: 10px;">¿Qué tipo de persona querés ser?</h1>
-                <p class="auth-subtitle" style="margin-bottom: 30px;">No pienses en metas. Pensá en quién querés convertirte.</p>
+            <div class="glass-card" style="padding: 32px 28px; border-radius: 20px;">
+                <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 4px;">Identidad</div>
+                <h1 class="editorial-title" style="font-size: 28px; margin-bottom: 8px;">¿Qué tipo de persona quieres ser?</h1>
+                <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px; line-height: 1.5;">No pienses en metas finales. Piensa en la identidad que deseas construir.</p>
                 
-                <textarea id="identity-input" class="input" rows="4" placeholder="Quiero ser alguien que..."></textarea>
+                <textarea id="identity-input" class="input" rows="3" placeholder="Quiero ser alguien que..." style="width: 100%; margin-bottom: 16px; font-size: 14px;"></textarea>
                 
-                <div class="suggestion-chips" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:15px; margin-bottom:30px;">
-                    <span class="chip glass-card" style="padding:8px 12px; cursor:pointer; font-size:14px; border-radius:20px;">Un corredor</span>
-                    <span class="chip glass-card" style="padding:8px 12px; cursor:pointer; font-size:14px; border-radius:20px;">Alguien saludable</span>
-                    <span class="chip glass-card" style="padding:8px 12px; cursor:pointer; font-size:14px; border-radius:20px;">Un lector</span>
-                    <span class="chip glass-card" style="padding:8px 12px; cursor:pointer; font-size:14px; border-radius:20px;">Alguien disciplinado</span>
-                    <span class="chip glass-card" style="padding:8px 12px; cursor:pointer; font-size:14px; border-radius:20px;">Un buen estudiante</span>
-                    <span class="chip glass-card" style="padding:8px 12px; cursor:pointer; font-size:14px; border-radius:20px;">Alguien organizado</span>
+                <div class="suggestion-chips" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px;">
+                    <span class="chip" style="padding: 6px 12px; cursor: pointer; font-size: 13px; border-radius: 20px; background: var(--bg-primary); border: 1px solid var(--border-subtle); color: var(--text-primary);">Un corredor constante</span>
+                    <span class="chip" style="padding: 6px 12px; cursor: pointer; font-size: 13px; border-radius: 20px; background: var(--bg-primary); border: 1px solid var(--border-subtle); color: var(--text-primary);">Alguien saludable</span>
+                    <span class="chip" style="padding: 6px 12px; cursor: pointer; font-size: 13px; border-radius: 20px; background: var(--bg-primary); border: 1px solid var(--border-subtle); color: var(--text-primary);">Un lector disciplinado</span>
+                    <span class="chip" style="padding: 6px 12px; cursor: pointer; font-size: 13px; border-radius: 20px; background: var(--bg-primary); border: 1px solid var(--border-subtle); color: var(--text-primary);">Alguien organizado</span>
                 </div>
                 
-                <button class="btn-primary" id="next-btn-1">Siguiente</button>
+                <button class="btn-primary" id="next-btn-1">
+                    Siguiente ${iconSVG('arrowRight', 16)}
+                </button>
             </div>
         `;
 
@@ -62,49 +64,36 @@ export function mount() {
 
     function renderStep2() {
         container.innerHTML = `
-            <div class="step-container fade-in" style="width: 100%; max-width: 840px; margin: 0 auto; text-align: center;">
-                <h2 class="auth-title" style="font-size: 30px; margin-bottom: 8px;">Las 4 Leyes del Cambio</h2>
-                <p class="auth-subtitle" style="margin-bottom: 32px;">Cada hábito que crees en Habitelia seguirá este ciclo fundamental</p>
+            <div class="glass-card" style="padding: 32px 28px; border-radius: 20px;">
+                <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 4px;">Diseño de Hábitos</div>
+                <h1 class="editorial-title" style="font-size: 28px; margin-bottom: 8px;">Las 4 Leyes del Cambio de Conducta</h1>
+                <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px; line-height: 1.5;">El método científico de James Clear para formar hábitos duraderos:</p>
                 
-                <div class="onboarding-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-bottom: 36px; text-align: center;">
-                    
-                    <div class="glass-card law-vertical-card" style="padding: 24px 16px; display: flex; flex-direction: column; align-items: center; border-radius: 18px; border-top: 3px solid #F5C518;">
-                        <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #F5C518; background: rgba(245,197,24,0.12); padding: 4px 10px; border-radius: 20px; margin-bottom: 16px;">Ley 1</span>
-                        <div style="font-size: 36px; margin-bottom: 12px; line-height: 1;">🔔</div>
-                        <h3 style="font-family: 'Playfair Display', serif; font-size: 18px; margin: 0 0 4px 0; color: #fff;">Hacerlo Obvio</h3>
-                        <span style="font-size: 12px; color: #F5C518; font-weight: 600; margin-bottom: 12px;">(Señal)</span>
-                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin: 0;">Definí cuándo, dónde y después de qué hábito actuarás.</p>
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px;">
+                    <div style="padding: 12px 16px; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 12px;">
+                        <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">1. Señal</div>
+                        <div style="font-size: 13px; color: var(--text-secondary);">Hazlo obvio definiendo hora y lugar.</div>
                     </div>
-
-                    <div class="glass-card law-vertical-card" style="padding: 24px 16px; display: flex; flex-direction: column; align-items: center; border-radius: 18px; border-top: 3px solid #F5C518;">
-                        <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #F5C518; background: rgba(245,197,24,0.12); padding: 4px 10px; border-radius: 20px; margin-bottom: 16px;">Ley 2</span>
-                        <div style="font-size: 36px; margin-bottom: 12px; line-height: 1;">✨</div>
-                        <h3 style="font-family: 'Playfair Display', serif; font-size: 18px; margin: 0 0 4px 0; color: #fff;">Hacerlo Atractivo</h3>
-                        <span style="font-size: 12px; color: #F5C518; font-weight: 600; margin-bottom: 12px;">(Anhelo)</span>
-                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin: 0;">Vinculá el hábito con algo que disfrutás.</p>
+                    <div style="padding: 12px 16px; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 12px;">
+                        <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">2. Anhelo</div>
+                        <div style="font-size: 13px; color: var(--text-secondary);">Hazlo atractivo vinculando placeres.</div>
                     </div>
-
-                    <div class="glass-card law-vertical-card" style="padding: 24px 16px; display: flex; flex-direction: column; align-items: center; border-radius: 18px; border-top: 3px solid #F5C518;">
-                        <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #F5C518; background: rgba(245,197,24,0.12); padding: 4px 10px; border-radius: 20px; margin-bottom: 16px;">Ley 3</span>
-                        <div style="font-size: 36px; font-size: 18px; margin: 0 0 4px 0; color: #fff;">Hacerlo Sencillo</h3>
-                        <span style="font-size: 12px; color: #F5C518; font-weight: 600; margin-bottom: 12px;">(Respuesta)</span>
-                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin: 0;">Empezá con 2 minutos. Lo ridículo sostenido se vuelve imparable.</p>
+                    <div style="padding: 12px 16px; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 12px;">
+                        <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">3. Respuesta</div>
+                        <div style="font-size: 13px; color: var(--text-secondary);">Hazlo fácil aplicando la regla de los 2 minutos.</div>
                     </div>
-
-                    <div class="glass-card law-vertical-card" style="padding: 24px 16px; display: flex; flex-direction: column; align-items: center; border-radius: 18px; border-top: 3px solid #F5C518;">
-                        <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #F5C518; background: rgba(245,197,24,0.12); padding: 4px 10px; border-radius: 20px; margin-bottom: 16px;">Ley 4</span>
-                        <div style="font-size: 36px; margin-bottom: 12px; line-height: 1;">🏆</div>
-                        <h3 style="font-family: 'Playfair Display', serif; font-size: 18px; margin: 0 0 4px 0; color: #fff;">Hacerlo Satisfactorio</h3>
-                        <span style="font-size: 12px; color: #F5C518; font-weight: 600; margin-bottom: 12px;">(Recompensa)</span>
-                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin: 0;">Medí tu progreso. Nunca rompas la cadena.</p>
+                    <div style="padding: 12px 16px; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 12px;">
+                        <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">4. Recompensa</div>
+                        <div style="font-size: 13px; color: var(--text-secondary);">Hazlo satisfactorio registrando tu racha.</div>
                     </div>
-
                 </div>
                 
-                <button class="btn-primary" id="next-btn-2" style="max-width: 320px; margin: 0 auto;">Siguiente</button>
+                <button class="btn-primary" id="next-btn-2">
+                    Entendido ${iconSVG('arrowRight', 16)}
+                </button>
             </div>
         `;
-        
+
         document.getElementById('next-btn-2').addEventListener('click', () => {
             currentStep = 3;
             updateWizard();
@@ -113,86 +102,90 @@ export function mount() {
 
     function renderStep3() {
         container.innerHTML = `
-            <div class="step-container slide-in" style="width: 100%; max-width: 520px; margin: 0 auto;">
-                <h2 class="auth-title" style="font-size: 26px; margin-bottom: 8px;">🤝 Socio Corresponsable</h2>
-                <p class="auth-subtitle" style="margin-bottom: 24px;">Configurá a alguien de confianza a quien rendirle cuentas si fallás tu hábito.</p>
+            <div class="glass-card" style="padding: 32px 28px; border-radius: 20px;">
+                <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 4px;">Responsabilidad</div>
+                <h1 class="editorial-title" style="font-size: 28px; margin-bottom: 8px;">Socio Corresponsable</h1>
+                <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px; line-height: 1.5;">Configura una persona que valide tu progreso y te mantenga firme.</p>
 
-                <div class="glass-card" style="padding: 24px; border-radius: 20px; margin-bottom: 24px;">
-                    <div class="form-group" style="margin-bottom: 16px;">
-                        <label class="form-label" style="display: block; font-weight: 600; color: #fff; margin-bottom: 6px; font-size: 13px;">Nombre del Socio</label>
-                        <input type="text" id="partner-name" class="input" placeholder="Ej. Juan, Mamá, Carlos..." style="width: 100%; min-height: 46px;">
-                    </div>
-                    
-                    <div class="form-group" style="margin-bottom: 16px;">
-                        <label class="form-label" style="display: block; font-weight: 600; color: #fff; margin-bottom: 6px; font-size: 13px;">WhatsApp / Teléfono</label>
-                        <input type="tel" id="partner-phone" class="input" placeholder="+54 9 11..." style="width: 100%; min-height: 46px;">
-                    </div>
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label class="form-label">Nombre del Socio</label>
+                    <input type="text" id="partner-name" class="input" placeholder="Ej. Carlos, Mamá..." style="width: 100%;">
+                </div>
 
-                    <div class="form-group" style="margin-bottom: 8px;">
-                        <label class="form-label" style="display: block; font-weight: 600; color: #fff; margin-bottom: 6px; font-size: 13px;">Consecuencia (Contrato)</label>
-                        <input type="text" id="partner-contract" class="input" placeholder="Ej. Pagar $500 o invitar una cena" style="width: 100%; min-height: 46px;">
-                    </div>
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label class="form-label">WhatsApp / Teléfono</label>
+                    <input type="tel" id="partner-phone" class="input" placeholder="+54 9 11..." style="width: 100%;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 24px;">
+                    <label class="form-label">Consecuencia (Contrato)</label>
+                    <input type="text" id="partner-contract" class="input" placeholder="Ej. Pagar $500 si falto 2 días" style="width: 100%;">
                 </div>
 
                 <div style="display: flex; gap: 12px;">
-                    <button class="btn-ghost" id="skip-partner-btn" style="flex: 1; border: 1px solid rgba(255,255,255,0.15); color: var(--text-muted);">Omitir por ahora</button>
-                    <button class="btn-primary" id="save-partner-btn" style="flex: 1.5;">Guardar y Continuar</button>
+                    <button class="btn-secondary" id="skip-btn-3" style="flex: 1;">Omitir</button>
+                    <button class="btn-primary" id="next-btn-3" style="flex: 2;">Guardar Socio</button>
                 </div>
             </div>
         `;
 
-        document.getElementById('save-partner-btn').addEventListener('click', () => {
+        const savePartner = (enabled = true) => {
             const name = document.getElementById('partner-name')?.value.trim();
             const phone = document.getElementById('partner-phone')?.value.trim();
             const contract = document.getElementById('partner-contract')?.value.trim();
 
             store.saveUserProfile({
-                partner: { enabled: true, name, phone, contract }
+                partner: { enabled, name, phone, contract },
+                onboardingCompleted: true
             });
-
             currentStep = 4;
             updateWizard();
-        });
+        };
 
-        document.getElementById('skip-partner-btn').addEventListener('click', () => {
-            store.saveUserProfile({
-                partner: { enabled: false }
-            });
-
-            currentStep = 4;
-            updateWizard();
-        });
+        document.getElementById('next-btn-3').addEventListener('click', () => savePartner(true));
+        document.getElementById('skip-btn-3').addEventListener('click', () => savePartner(false));
     }
 
     function renderStep4() {
         container.innerHTML = `
-            <div class="step-container slide-in" style="text-align:center;">
-                <h1 class="auth-title" style="margin-bottom: 10px;">¡Creá tu primer hábito!</h1>
-                <p class="auth-subtitle">Empezamos con algo pequeño</p>
-                
-                <div style="margin-top:40px; display:flex; flex-direction:column; gap:15px;">
-                    <button class="btn-primary" id="create-habit-btn">Crear mi primer hábito</button>
-                    <button class="btn-ghost" id="explore-btn" style="background:transparent; border:none; color:#F5C518; font-weight:bold; cursor:pointer; padding: 12px; width: 100%;">Explorar primero</button>
+            <div class="glass-card" style="padding: 36px 28px; border-radius: 20px; text-align: center;">
+                <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--accent-primary); color: var(--accent-inverted); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto;">
+                    ${iconSVG('check', 24)}
                 </div>
+                <h1 class="editorial-title" style="font-size: 32px; margin-bottom: 8px;">Todo está listo.</h1>
+                <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 32px; line-height: 1.5;">
+                    Cada acción que tomas es un voto a favor de la persona en la que deseas convertirte.
+                </p>
+                
+                <button class="btn-primary" id="finish-btn" style="min-height: 50px;">
+                    Comenzar mi sistema ${iconSVG('arrowRight', 16)}
+                </button>
             </div>
         `;
 
-        document.getElementById('create-habit-btn').addEventListener('click', () => {
-            store.saveUserProfile({ onboardingCompleted: true });
-            navigate('/habit/new');
-        });
-        document.getElementById('explore-btn').addEventListener('click', () => {
+        document.getElementById('finish-btn').addEventListener('click', () => {
             store.saveUserProfile({ onboardingCompleted: true });
             navigate('/home');
         });
     }
 
     function updateWizard() {
-        document.querySelectorAll('.wizard-step-indicator').forEach((dot, index) => {
-            if (index < currentStep) dot.classList.add('active');
-            else dot.classList.remove('active');
-        });
-        
+        for (let i = 1; i <= 4; i++) {
+            const dot = document.getElementById(`dot-${i}`);
+            if (dot) {
+                if (i === currentStep) {
+                    dot.style.background = 'var(--accent-primary)';
+                    dot.style.color = 'var(--accent-inverted)';
+                } else if (i < currentStep) {
+                    dot.style.background = 'var(--bg-subtle)';
+                    dot.style.color = 'var(--text-primary)';
+                } else {
+                    dot.style.background = 'var(--bg-subtle)';
+                    dot.style.color = 'var(--text-secondary)';
+                }
+            }
+        }
+
         if (currentStep === 1) renderStep1();
         else if (currentStep === 2) renderStep2();
         else if (currentStep === 3) renderStep3();
@@ -202,4 +195,5 @@ export function mount() {
     updateWizard();
 }
 
-export function unmount() {}
+export function unmount() {
+}

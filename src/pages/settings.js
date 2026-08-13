@@ -1,6 +1,7 @@
 import { store } from '../store.js';
 import { auth } from '../firebase.js';
 import { showToast } from '../components/toast.js';
+import { iconSVG } from '../components/icons.js';
 
 export function render(props = {}) {
     const state = store.getState();
@@ -12,71 +13,80 @@ export function render(props = {}) {
     const partner = state.user?.partner || { enabled: false, name: '', phone: '', contract: '' };
 
     return `
-        <div class="page settings-page" style="padding: 24px 20px 100px 20px; max-width: 600px; margin: 0 auto; width: 100%; box-sizing: border-box; overflow-y: auto;">
+        <div class="page settings-page" style="padding: 24px 20px 100px 20px; max-width: 620px; margin: 0 auto; width: 100%; box-sizing: border-box;">
             <header style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; width: 100%;">
-                <div style="display: flex; align-items: center; gap: 16px;">
-                    <button id="menu-btn" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #fff; width: 44px; height: 44px; border-radius: 12px; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">☰</button>
-                    <h1 style="font-family: 'Playfair Display', serif; margin: 0; font-size: 26px; color: #fff; font-weight: 700;">Configuración</h1>
+                <div>
+                    <h1 class="editorial-title" style="margin: 0; font-size: 32px;">Configuración<span style="color: var(--text-secondary);">.</span></h1>
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Gestión de cuenta e identidad</div>
                 </div>
+                <button id="menu-btn" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-primary); width: 44px; height: 44px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    ${iconSVG('menu', 20)}
+                </button>
             </header>
 
-            <div class="settings-section glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 20px;">
-                <h3 style="margin-top: 0; color: #F5C518; font-size: 18px; margin-bottom: 16px; font-family: 'Playfair Display', serif; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Mi Identidad</h3>
-                <div class="settings-item" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
+            <div class="glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 18px;">
+                <h3 class="editorial-title" style="font-size: 20px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">Mi Identidad</h3>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
                     <div style="flex: 1;">
-                        <div id="identity-display" style="font-style: italic; color: #eee; font-size: 15px; line-height: 1.5;">${identity}</div>
+                        <div id="identity-display" style="font-family: var(--font-serif); font-style: italic; color: var(--text-primary); font-size: 16px; line-height: 1.5;">${identity}</div>
                         <textarea id="identity-input" class="input" rows="3" style="display: none; margin-top: 10px; width: 100%; font-size: 14px;">${identity}</textarea>
                     </div>
-                    <button id="edit-identity-btn" class="btn-ghost" style="background: rgba(245, 197, 24, 0.1); border: 1px solid rgba(245, 197, 24, 0.3); color: #F5C518; cursor: pointer; padding: 8px 16px; border-radius: 10px; font-weight: 600; min-height: 40px;">Editar</button>
-                    <button id="save-identity-btn" class="btn-ghost" style="display: none; background: rgba(76, 175, 80, 0.15); border: 1px solid rgba(76, 175, 80, 0.4); color: #4CAF50; cursor: pointer; padding: 8px 16px; border-radius: 10px; font-weight: 600; min-height: 40px;">Guardar</button>
+                    <button id="edit-identity-btn" class="btn-secondary" style="width: auto; padding: 8px 16px; min-height: 40px;">
+                        ${iconSVG('edit', 14)} Editar
+                    </button>
+                    <button id="save-identity-btn" class="btn-primary" style="display: none; width: auto; padding: 8px 16px; min-height: 40px;">
+                        ${iconSVG('check', 14)} Guardar
+                    </button>
                 </div>
             </div>
 
-            <div class="settings-section glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
-                    <h3 style="margin: 0; color: #F5C518; font-size: 18px; font-family: 'Playfair Display', serif;">🤝 Socio Corresponsable</h3>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: #fff;">
-                        <input type="checkbox" id="partner-toggle" ${partner.enabled ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: #F5C518;">
+            <div class="glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
+                    <h3 class="editorial-title" style="font-size: 20px; margin: 0;">Socio Corresponsable</h3>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-primary);">
+                        <input type="checkbox" id="partner-toggle" ${partner.enabled ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: var(--text-primary);">
                         Activo
                     </label>
                 </div>
 
                 <div id="partner-fields" style="${partner.enabled ? '' : 'display: none;'}">
                     <div class="form-group" style="margin-bottom: 14px;">
-                        <label class="form-label" style="display: block; font-weight: 600; color: #fff; margin-bottom: 6px; font-size: 13px;">Nombre del Socio</label>
+                        <label class="form-label" style="display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; font-size: 13px;">Nombre del Socio</label>
                         <input type="text" id="settings-partner-name" class="input" value="${partner.name || ''}" placeholder="Ej. Carlos, Mamá..." style="width: 100%; min-height: 42px;">
                     </div>
 
                     <div class="form-group" style="margin-bottom: 14px;">
-                        <label class="form-label" style="display: block; font-weight: 600; color: #fff; margin-bottom: 6px; font-size: 13px;">WhatsApp / Teléfono</label>
+                        <label class="form-label" style="display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; font-size: 13px;">WhatsApp / Teléfono</label>
                         <input type="tel" id="settings-partner-phone" class="input" value="${partner.phone || ''}" placeholder="+54 9 11..." style="width: 100%; min-height: 42px;">
                     </div>
 
                     <div class="form-group" style="margin-bottom: 16px;">
-                        <label class="form-label" style="display: block; font-weight: 600; color: #fff; margin-bottom: 6px; font-size: 13px;">Consecuencia (Contrato)</label>
+                        <label class="form-label" style="display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; font-size: 13px;">Consecuencia (Contrato)</label>
                         <input type="text" id="settings-partner-contract" class="input" value="${partner.contract || ''}" placeholder="Ej. Pagar $500 si no cumplo" style="width: 100%; min-height: 42px;">
                     </div>
 
-                    <button id="save-partner-btn" class="btn-primary" style="width: 100%; min-height: 44px; border-radius: 12px; font-size: 14px; font-weight: 700; margin: 0;">Guardar Socio Corresponsable</button>
+                    <button id="save-partner-btn" class="btn-primary" style="width: 100%; min-height: 44px; margin: 0;">Guardar Socio Corresponsable</button>
                 </div>
             </div>
 
-            <div class="settings-section glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 20px;">
-                <h3 style="margin-top: 0; color: #F5C518; font-size: 18px; margin-bottom: 16px; font-family: 'Playfair Display', serif; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Mi Cuenta</h3>
-                <div class="settings-item" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-size: 14px; color: var(--text-muted);">Nombre</div>
-                    <div style="font-weight: 600; color: #fff; font-size: 15px;">${name}</div>
+            <div class="glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 18px;">
+                <h3 class="editorial-title" style="font-size: 20px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">Mi Cuenta</h3>
+                <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 14px; color: var(--text-secondary);">Nombre</div>
+                    <div style="font-weight: 600; color: var(--text-primary); font-size: 14px;">${name}</div>
                 </div>
-                <div class="settings-item" style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-size: 14px; color: var(--text-muted);">Email</div>
-                    <div style="font-weight: 600; color: #fff; font-size: 15px;">${email}</div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 14px; color: var(--text-secondary);">Email</div>
+                    <div style="font-weight: 600; color: var(--text-primary); font-size: 14px;">${email}</div>
                 </div>
             </div>
 
-            <div class="settings-section glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 20px;">
-                <h3 style="margin-top: 0; color: #F5C518; font-size: 18px; margin-bottom: 16px; font-family: 'Playfair Display', serif; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Datos & Privacidad</h3>
-                <div class="settings-item">
-                    <button id="delete-data-btn" class="btn-danger" style="background: rgba(244, 67, 54, 0.12); border: 1px solid rgba(244, 67, 54, 0.35); color: #FF5252; padding: 14px; border-radius: 12px; cursor: pointer; width: 100%; font-weight: 600; font-size: 14px; transition: background 0.2s;">🗑️ Borrar Todos Mis Datos</button>
+            <div class="glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 18px;">
+                <h3 class="editorial-title" style="font-size: 20px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">Datos & Privacidad</h3>
+                <div>
+                    <button id="delete-data-btn" class="btn-danger" style="width: 100%; font-size: 14px; padding: 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        ${iconSVG('trash', 16)} Borrar Todos Mis Datos
+                    </button>
                 </div>
             </div>
         </div>
@@ -84,7 +94,6 @@ export function render(props = {}) {
 }
 
 export function mount() {
-    // Menu button sidebar trigger
     const menuBtn = document.getElementById('menu-btn');
     if (menuBtn) {
         menuBtn.addEventListener('click', () => {
@@ -129,7 +138,6 @@ export function mount() {
         saveBtn.style.display = 'none';
     });
 
-    // Partner toggle & save
     const partnerToggle = document.getElementById('partner-toggle');
     const partnerFields = document.getElementById('partner-fields');
 
@@ -159,7 +167,7 @@ export function mount() {
             showToast('Datos borrados. Recargando...', 'info');
             setTimeout(() => {
                 window.location.reload();
-            }, 1500);
+            }, 1200);
         }
     });
 }

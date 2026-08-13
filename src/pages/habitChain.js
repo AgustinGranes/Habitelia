@@ -1,12 +1,13 @@
 import { store } from '../store.js';
 import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
+import { iconSVG } from '../components/icons.js';
 
 let selectedHabitId = null;
 
 function renderHeatmapGrid(habit) {
-  const months = ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
-  const dayLabels = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
+  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const dayLabels = ['', 'Lun', '', 'Mié', '', 'Vie', ''];
   
   const today = new Date();
   const days = [];
@@ -26,7 +27,7 @@ function renderHeatmapGrid(habit) {
   }
 
   const monthsHeader = `
-    <div style="display: flex; justify-content: space-between; margin-left: 36px; margin-bottom: 8px; font-size: 11px; color: var(--text-muted); padding-right: 10px;">
+    <div style="display: flex; justify-content: space-between; margin-left: 36px; margin-bottom: 10px; font-size: 11px; color: var(--text-tertiary); font-weight: 500;">
       ${months.map(m => `<span>${m}</span>`).join('')}
     </div>
   `;
@@ -34,26 +35,34 @@ function renderHeatmapGrid(habit) {
   const gridRows = dayLabels.map((label, dayIdx) => {
     const cells = weeks.map(week => {
       const dayData = week[dayIdx] || {};
-      const color = dayData.isCompleted ? '#4CAF50' : 'rgba(255, 255, 255, 0.05)';
-      const border = dayData.isCompleted ? '1px solid #81C784' : '1px solid rgba(255, 255, 255, 0.03)';
-      return `<div title="${dayData.dateStr || ''}" style="width: 10px; height: 10px; border-radius: 2px; background: ${color}; border: ${border}; flex-shrink: 0;"></div>`;
+      const color = dayData.isCompleted ? 'var(--text-primary)' : 'var(--bg-subtle)';
+      const border = dayData.isCompleted ? '1px solid var(--text-primary)' : '1px solid var(--border-subtle)';
+      return `<div title="${dayData.dateStr || ''}" style="width: 10px; height: 10px; border-radius: 2px; background: ${color}; border: ${border}; flex-shrink: 0; transition: background 0.2s;"></div>`;
     }).join('');
 
     return `
-      <div style="display: flex; align-items: center; gap: 3px;">
-        <span style="width: 30px; font-size: 10px; color: var(--text-muted); text-align: right; margin-right: 6px;">${label}</span>
+      <div style="display: flex; align-items: center; gap: 4px;">
+        <span style="width: 30px; font-size: 10px; color: var(--text-tertiary); text-align: right; margin-right: 6px;">${label}</span>
         <div style="display: flex; gap: 3px;">${cells}</div>
       </div>
     `;
   }).join('');
 
   return `
-    <div class="heatmap-container" style="background: rgba(10, 10, 14, 0.95); padding: 20px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.08); overflow-x: auto;">
+    <div class="heatmap-container glass-card" style="padding: 24px; border-radius: 18px; overflow-x: auto;">
       <div style="min-width: 600px;">
         ${monthsHeader}
         <div style="display: flex; flex-direction: column; gap: 3px;">
           ${gridRows}
         </div>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 16px; font-size: 11px; color: var(--text-secondary);">
+        <span>Menos</span>
+        <div style="width: 10px; height: 10px; border-radius: 2px; background: var(--bg-subtle); border: 1px solid var(--border-subtle);"></div>
+        <div style="width: 10px; height: 10px; border-radius: 2px; background: var(--text-tertiary);"></div>
+        <div style="width: 10px; height: 10px; border-radius: 2px; background: var(--text-secondary);"></div>
+        <div style="width: 10px; height: 10px; border-radius: 2px; background: var(--text-primary);"></div>
+        <span>Más</span>
       </div>
     </div>
   `;
@@ -65,19 +74,26 @@ export function render() {
   
   if (habits.length === 0) {
     return `
-      <div class="page habit-chain-page" style="padding: 24px 20px 100px 20px; max-width: 720px; margin: 0 auto; width: 100%; box-sizing: border-box; overflow-y: auto;">
+      <div class="page habit-chain-page" style="padding: 24px 20px 100px 20px; max-width: 720px; margin: 0 auto; width: 100%; box-sizing: border-box;">
         <header style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; width: 100%;">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <button id="menu-btn" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #fff; width: 44px; height: 44px; border-radius: 12px; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">☰</button>
-            <h1 style="font-family: 'Playfair Display', serif; margin: 0; font-size: 26px; color: #fff; font-weight: 700;">Mi Cadena</h1>
+          <div>
+            <h1 class="editorial-title" style="margin: 0; font-size: 32px;">Mi Cadena.</h1>
+            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Nunca rompas la cadena</div>
           </div>
+          <button id="menu-btn" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-primary); width: 44px; height: 44px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+            ${iconSVG('menu', 20)}
+          </button>
         </header>
 
-        <div class="empty-state glass-card" style="text-align: center; padding: 48px 24px; border-radius: 24px;">
-          <div style="font-size: 56px; margin-bottom: 16px;">🔗</div>
-          <h3 style="font-family: 'Playfair Display', serif; font-size: 24px; color: #fff; margin-bottom: 8px;">Aún no tenés hábitos</h3>
-          <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">Creá tu primer hábito para ver tu gráfico de constancia.</p>
-          <button class="btn-primary" onclick="window.location.hash='/habit/new'" style="max-width: 240px; margin: 0 auto;">+ Crear Hábito</button>
+        <div class="glass-card" style="text-align: center; padding: 48px 24px; border-radius: 20px;">
+          <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--bg-subtle); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; color: var(--text-secondary);">
+            ${iconSVG('chain', 24)}
+          </div>
+          <h3 class="editorial-title" style="font-size: 22px; margin-bottom: 8px;">Aún no tienes hábitos</h3>
+          <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">Creá tu primer hábito para ver tu gráfico de constancia.</p>
+          <button class="btn-primary" onclick="window.location.hash='/habit/new'" style="max-width: 240px; margin: 0 auto;">
+            ${iconSVG('plus', 16)} Crear Hábito
+          </button>
         </div>
       </div>
     `;
@@ -90,49 +106,57 @@ export function render() {
   const habit = habits.find(h => h.id === selectedHabitId) || habits[0];
   
   const optionsHtml = habits.map(h => 
-    `<option value="${h.id}" ${h.id === selectedHabitId ? 'selected' : ''}>${h.icon || '🎯'} ${h.name}</option>`
+    `<option value="${h.id}" ${h.id === selectedHabitId ? 'selected' : ''}>${h.name}</option>`
   ).join('');
 
   return `
-    <div class="page habit-chain-page" style="padding: 24px 20px 100px 20px; max-width: 720px; margin: 0 auto; width: 100%; box-sizing: border-box; overflow-y: auto;">
+    <div class="page habit-chain-page" style="padding: 24px 20px 100px 20px; max-width: 720px; margin: 0 auto; width: 100%; box-sizing: border-box;">
       <header style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; width: 100%;">
-        <div style="display: flex; align-items: center; gap: 16px;">
-          <button id="menu-btn" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #fff; width: 44px; height: 44px; border-radius: 12px; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">☰</button>
-          <div>
-            <h1 style="font-family: 'Playfair Display', serif; margin: 0; font-size: 26px; color: #fff; font-weight: 700;">Mi Cadena</h1>
-            <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Nunca rompas la cadena</div>
-          </div>
+        <div>
+          <h1 class="editorial-title" style="margin: 0; font-size: 32px;">Mi Cadena<span style="color: var(--text-secondary);">.</span></h1>
+          <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Visualización de constancia de alto rendimiento</div>
         </div>
+        <button id="menu-btn" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-primary); width: 44px; height: 44px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+          ${iconSVG('menu', 20)}
+        </button>
       </header>
 
       <div style="margin-bottom: 24px;">
         <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">Seleccionar Hábito</label>
-        <select id="habit-selector" class="input" style="width: 100%; min-height: 48px; font-size: 1rem; border-radius: 14px;">
+        <select id="habit-selector" class="input" style="width: 100%; min-height: 48px; font-size: 14px; border-radius: 12px;">
           ${optionsHtml}
         </select>
       </div>
 
-      <div class="streak-counter glass-card" style="text-align: center; padding: 28px; border-radius: 20px; margin-bottom: 28px; border: 1px solid rgba(245, 197, 24, 0.3);">
-        <div style="font-size: 40px; font-weight: 800; color: #F5C518; font-family: 'Playfair Display', serif; margin-bottom: 4px;">
-          🔥 ${habit.streak || 0} Días de Racha
+      <!-- Streak Counter Monochromatic Card -->
+      <div class="glass-card" style="text-align: center; padding: 32px 24px; border-radius: 20px; margin-bottom: 28px; position: relative;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 6px; color: var(--text-primary);">
+          ${iconSVG('flame', 28)}
+          <span style="font-family: var(--font-serif); font-size: 42px; font-weight: 400; line-height: 1;">
+            ${habit.streak || 0} Días de Racha
+          </span>
         </div>
-        <div style="font-size: 14px; color: var(--text-muted); font-weight: 500;">
-          Racha Máxima: <strong style="color: #fff;">${habit.maxStreak || 0} días</strong> • Total: <strong style="color: #fff;">${habit.totalCompletions || 0} veces</strong>
+        <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+          Racha Máxima: <strong style="color: var(--text-primary);">${habit.maxStreak || habit.streak || 0} días</strong> • Total: <strong style="color: var(--text-primary);">${habit.totalCompletions || (habit.streak || 0)} repeticiones</strong>
         </div>
       </div>
 
       <div style="margin-bottom: 28px;">
-        <h3 style="font-family: 'Playfair Display', serif; font-size: 20px; color: #fff; margin: 0 0 16px 0;">Historial de Constancia (52 Semanas)</h3>
+        <h3 class="editorial-title" style="font-size: 20px; margin: 0 0 16px 0;">Historial de Constancia (52 Semanas)</h3>
         ${renderHeatmapGrid(habit)}
       </div>
 
       ${habit.reward?.partnerName ? `
-      <div class="glass-card" style="padding: 24px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.08);">
-        <h4 style="margin: 0 0 8px 0; font-size: 16px; color: #fff;">🤝 Socio Corresponsable</h4>
+      <div class="glass-card" style="padding: 24px; border-radius: 18px;">
+        <h4 style="margin: 0 0 6px 0; font-size: 16px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+          ${iconSVG('user', 18)} Socio Corresponsable
+        </h4>
         <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">
           ${habit.reward.partnerName} ${habit.reward.partnerPhone ? `(${habit.reward.partnerPhone})` : ''}
         </div>
-        <button id="btn-notify" class="btn-secondary" style="width: 100%; min-height: 44px; border-radius: 12px; margin: 0;">📱 Notificar Logro por WhatsApp</button>
+        <button id="btn-notify" class="btn-secondary" style="width: 100%;">
+          ${iconSVG('info', 16)} Notificar Logro a mi Socio
+        </button>
       </div>
       ` : ''}
     </div>
@@ -140,7 +164,6 @@ export function render() {
 }
 
 export function mount() {
-  // Menu button sidebar trigger
   const menuBtn = document.getElementById('menu-btn');
   if (menuBtn) {
     menuBtn.addEventListener('click', () => {
@@ -161,24 +184,24 @@ export function mount() {
   if (selector) {
     selector.addEventListener('change', (e) => {
       selectedHabitId = e.target.value;
-      navigate('/chain');
-    });
-  }
-
-  const btnNotify = document.getElementById('btn-notify');
-  if (btnNotify) {
-    btnNotify.addEventListener('click', () => {
-      const state = store.getState();
-      const habits = state.habits || [];
-      const habit = habits.find(h => h.id === selectedHabitId) || habits[0];
-      if (habit?.reward?.partnerPhone) {
-        const message = encodeURIComponent(`¡Hola! Te comparto mi progreso en Habitelia. Llevo una racha de ${habit.streak || 0} días en mi hábito de "${habit.name}" 🔥`);
-        window.open(`https://wa.me/${habit.reward.partnerPhone.replace(/[^0-9]/g, '')}?text=${message}`, '_blank');
-      } else {
-        showToast('Notificación enviada', 'info');
+      const app = document.getElementById('app');
+      if (app) {
+        app.innerHTML = render();
+        mount();
       }
     });
   }
+
+  document.getElementById('btn-notify')?.addEventListener('click', () => {
+    const state = store.getState();
+    const habit = state.habits.find(h => h.id === selectedHabitId);
+    if (habit && habit.reward?.partnerPhone) {
+      const msg = encodeURIComponent(`¡Hola ${habit.reward.partnerName}! Mantuve mi racha de ${habit.streak || 1} días en el hábito "${habit.name}" con Habitelia.`);
+      window.open(`https://wa.me/${habit.reward.partnerPhone.replace(/[^0-9]/g, '')}?text=${msg}`, '_blank');
+    } else {
+      showToast('No hay número cargado para el socio corresponsable', 'info');
+    }
+  });
 }
 
 export function unmount() {
