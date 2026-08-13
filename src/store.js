@@ -171,6 +171,11 @@ export const store = {
         todaySchedule
       });
 
+      // Auto-check driver daily inactivity right after state loads
+      if (driverProfile && driverProfile.active) {
+        store.checkDriverDailyInactivityAndSeason();
+      }
+
       // Auto-push merged data to Firestore if user is authenticated
       if (auth.currentUser) {
         saveDocument(`users/${uid}`, userObj).catch(e => console.error(e));
@@ -339,7 +344,11 @@ export const store = {
     if (!driver || !driver.active) return;
 
     const todayStr = store.getTodayString();
-    const lastActiveDate = driver.lastActiveDate || todayStr;
+    let lastEvaluated = driver.lastEvaluatedDate || driver.lastActiveDate;
+
+    if (!lastEvaluated) {
+      lastEvaluated = todayStr;
+    }
 
     // Year-End Reset Check
     const currentYear = new Date().getFullYear();
@@ -360,35 +369,63 @@ export const store = {
       } else if (prevOvr >= 90) {
         titlesConstructor += 1;
       }
-      // Year-End Reset: OVR resets to 50 for the new season, trophies stay in vitrina
       ovr = 50;
       completedHabitsCounter = 0;
     }
 
-    // Inactivity / Uncompleted Habits Penalty
-    const d1 = new Date(lastActiveDate);
-    const d2 = new Date(todayStr);
-    const diffTime = d2.getTime() - d1.getTime();
-    const missedDays = Math.floor(diffTime / (1000 * 3600 * 24));
+    // Day-by-Day Catchup Loop
+    const addDaysStr = (dateStr, n) => {
+      const parts = dateStr.split('-');
+      const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      d.setDate(d.getDate() + n);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
 
-    let uncompletedCount = 0;
-    if (missedDays > 0) {
-      const yesterday = new Date(d2.getTime() - (1000 * 3600 * 24)).toISOString().split('T')[0];
-      (state.habits || []).forEach(h => {
+    let currEvalDate = lastEvaluated;
+    let totalPenalty = 0;
+    const habitsList = state.habits || [];
+
+    while (currEvalDate < todayStr) {
+      const dParts = currEvalDate.split('-');
+      const dObj = new Date(parseInt(dParts[0], 10), parseInt(dParts[1], 10) - 1, parseInt(dParts[2], 10));
+      const dayIdx = dObj.getDay();
+      const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+      const dayKey = dayKeys[dayIdx];
+
+      const scheduledForDay = habitsList.filter(h => {
+        if (h.frequency) {
+          if (h.frequency.type === 'daily') return true;
+          if (h.frequency.type === 'weekly' && Array.isArray(h.frequency.days)) {
+            return h.frequency.days.includes(dayKey);
+          }
+        }
+        return true;
+      });
+
+      let uncompletedOnDay = 0;
+      scheduledForDay.forEach(h => {
         const comp = h.completions || {};
-        if (!comp[yesterday] || (comp[yesterday] !== 'completed' && comp[yesterday] !== 'completed_2min')) {
-          uncompletedCount++;
+        const status = comp[currEvalDate];
+        if (status !== 'completed' && status !== 'completed_2min' && status !== 'skipped') {
+          uncompletedOnDay++;
         }
       });
-      uncompletedCount = Math.max(missedDays, uncompletedCount);
+
+      if (uncompletedOnDay > 0) {
+        totalPenalty += uncompletedOnDay;
+      } else if (scheduledForDay.length === 0) {
+        totalPenalty += 1;
+      }
+
+      currEvalDate = addDaysStr(currEvalDate, 1);
     }
 
     let ovrReduced = false;
-    let penalty = 0;
-
-    if (uncompletedCount > 0 && !isNewSeason) {
-      penalty = uncompletedCount;
-      ovr = Math.max(10, ovr - penalty);
+    if (totalPenalty > 0 && !isNewSeason) {
+      ovr = Math.max(10, ovr - totalPenalty);
       ovrReduced = true;
     }
 
@@ -406,13 +443,14 @@ export const store = {
       titlesConstructor,
       marketValue,
       teamsHistory,
-      lastActiveDate: todayStr
+      lastActiveDate: todayStr,
+      lastEvaluatedDate: todayStr
     };
 
     await store.saveDriverProfile(updatedProfile);
 
     if (ovrReduced) {
-      showTelemetryRadioPopup(-penalty, ovr, team);
+      showTelemetryRadioPopup(-totalPenalty, ovr, team);
     }
   },
 

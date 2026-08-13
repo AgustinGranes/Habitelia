@@ -128,7 +128,7 @@ export function render() {
           <div style="text-align: center; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 14px;">
             TRAYECTORIA
           </div>
-          <div class="glass-card" style="padding: 20px 16px; min-height: 84px; border-radius: 18px; border: 1px solid var(--border-subtle); background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; gap: 14px; overflow-x: auto; box-sizing: border-box;">
+          <div class="glass-card" style="height: 96px; min-height: 96px; max-height: 96px; padding: 12px 16px; border-radius: 18px; border: 1px solid var(--border-subtle); background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; gap: 14px; overflow-x: auto; box-sizing: border-box;">
             ${trajectoryHtml}
           </div>
         </div>
@@ -138,7 +138,7 @@ export function render() {
           <div style="text-align: center; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 14px;">
             TÍTULOS
           </div>
-          <div class="glass-card" style="padding: 20px 16px; min-height: 84px; border-radius: 18px; border: 1px solid var(--border-subtle); background: rgba(0,0,0,0.3); text-align: center; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+          <div class="glass-card" style="height: 96px; min-height: 96px; max-height: 96px; padding: 12px 16px; border-radius: 18px; border: 1px solid var(--border-subtle); background: rgba(0,0,0,0.3); text-align: center; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
             ${!hasTitles ? `
               <div style="color: var(--text-tertiary); font-size: 13px; font-style: italic;">
                 Vitrina Vacía
