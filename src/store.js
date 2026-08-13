@@ -312,6 +312,68 @@ export const store = {
     }
   },
 
+  checkDriverDailyInactivityAndSeason: async () => {
+    const driver = state.driverProfile;
+    if (!driver || !driver.active) return;
+
+    const todayStr = store.getTodayString();
+    const lastActiveDate = driver.lastActiveDate || todayStr;
+
+    // Calculate seasons based on active calendar years
+    const currentYear = new Date().getFullYear();
+    const driverStartYear = driver.startYear || currentYear;
+    const calculatedSeasons = Math.max(1, currentYear - driverStartYear + 1);
+    
+    let titlesDriver = driver.titlesDriver || 0;
+    let titlesConstructor = driver.titlesConstructor || 0;
+
+    if (calculatedSeasons > (driver.seasons || 1)) {
+      const prevOvr = driver.ovr || 50;
+      if (prevOvr >= 95) {
+        titlesDriver += 1;
+        titlesConstructor += 1;
+      } else if (prevOvr >= 90) {
+        titlesConstructor += 1;
+      }
+    }
+
+    // Inactivity Penalty: -1 OVR per missed day without completing habits
+    const d1 = new Date(lastActiveDate);
+    const d2 = new Date(todayStr);
+    const diffTime = d2.getTime() - d1.getTime();
+    const missedDays = Math.floor(diffTime / (1000 * 3600 * 24));
+
+    let ovr = driver.ovr || 50;
+    let ovrReduced = false;
+
+    if (missedDays > 0) {
+      ovr = Math.max(50, ovr - missedDays);
+      ovrReduced = true;
+    }
+
+    const team = getTeamForOVR(ovr);
+    const teamsHistory = Array.from(new Set([...(driver.teamsHistory || []), team]));
+    const marketValue = calculateMarketValue(ovr, titlesDriver, titlesConstructor);
+
+    const updatedProfile = {
+      ...driver,
+      ovr,
+      seasons: calculatedSeasons,
+      startYear: driverStartYear,
+      titlesDriver,
+      titlesConstructor,
+      marketValue,
+      teamsHistory,
+      lastActiveDate: todayStr
+    };
+
+    await store.saveDriverProfile(updatedProfile);
+
+    if (ovrReduced) {
+      showTelemetryRadioPopup(-missedDays, ovr, team);
+    }
+  },
+
   completeEvent: async (habitId, date, mode = 'completed') => {
     const habit = (state.habits || []).find(h => h.id === habitId);
     if (!habit) return { streakBroken: false, newStreak: 0 };

@@ -3,7 +3,7 @@ import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { iconSVG } from '../components/icons.js';
 import { renderSidebar, mountSidebar } from '../components/sidebar.js';
-import { getTeamForOVR, calculateMarketValue, getOVRColor, computeAccumulatedStats, getTeamLogoSVG, TEAMS_DATA } from '../driverEngine.js';
+import { getTeamForOVR, calculateMarketValue, getOVRColor, computeAccumulatedStats, getCategoryForTeam, TEAMS_DATA } from '../driverEngine.js';
 
 export function render() {
   const state = store.getState();
@@ -34,13 +34,14 @@ export function render() {
   const historyTeams = driver.teamsHistory || ['Apex'];
 
   const trajectoryHtml = historyTeams.map(tKey => {
-    const tData = TEAMS_DATA[tKey] || { name: tKey, logo: 'shield' };
+    const tData = TEAMS_DATA[tKey] || { name: tKey, category: 'F4' };
+    const category = getCategoryForTeam(tKey);
     return `
       <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-width: 64px;">
-        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; color: var(--text-primary);">
-          ${getTeamLogoSVG(tKey, 24)}
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 15px; font-weight: 900; letter-spacing: 0.05em; font-family: var(--font-sans);">
+          ${category}
         </div>
-        <span style="font-size: 11px; font-weight: 500; color: var(--text-secondary); text-align: center; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+        <span style="font-size: 11px; font-weight: 600; color: var(--text-secondary); text-align: center; max-width: 75px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
           ${tData.name.split(' ')[0]}
         </span>
       </div>
@@ -423,6 +424,8 @@ function refreshDriverView() {
 }
 
 export function mount() {
+  store.checkDriverDailyInactivityAndSeason();
+
   let overlay = document.getElementById('sidebar-overlay');
   let panel = document.getElementById('sidebar-panel');
   if (!overlay || !panel) {
