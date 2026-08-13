@@ -1,32 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
-  <!-- Dark Round Rect Background -->
-  <rect width="512" height="512" rx="120" fill="#141418"/>
-  <circle cx="256" cy="256" r="210" fill="#1C1C22"/>
+  <!-- Pure Black Background -->
+  <rect width="512" height="512" rx="120" fill="#0A0A0A"/>
+  <circle cx="256" cy="256" r="210" fill="#171717"/>
 
-  <!-- Alarm Clock Bells -->
-  <path d="M 125 155 A 45 45 0 0 1 190 90 L 140 170 Z" fill="#E5B810"/>
-  <path d="M 387 155 A 45 45 0 0 0 322 90 L 372 170 Z" fill="#E5B810"/>
+  <!-- Alarm Clock Top Bells -->
+  <path d="M 125 155 A 45 45 0 0 1 190 90 L 140 170 Z" fill="#FFFFFF"/>
+  <path d="M 387 155 A 45 45 0 0 0 322 90 L 372 170 Z" fill="#FFFFFF"/>
 
   <!-- Top Handle -->
-  <rect x="236" y="90" width="40" height="25" rx="6" fill="#E5B810"/>
+  <rect x="236" y="90" width="40" height="25" rx="6" fill="#FFFFFF"/>
 
   <!-- Alarm Clock Legs -->
-  <path d="M 140 380 L 105 435 L 135 450 L 175 395 Z" fill="#E5B810"/>
-  <path d="M 372 380 L 407 435 L 377 450 L 337 395 Z" fill="#E5B810"/>
+  <path d="M 140 380 L 105 435 L 135 450 L 175 395 Z" fill="#FFFFFF"/>
+  <path d="M 372 380 L 407 435 L 377 450 L 337 395 Z" fill="#FFFFFF"/>
 
   <!-- Clock Outer Ring -->
-  <circle cx="256" cy="275" r="145" fill="none" stroke="#E5B810" stroke-width="26"/>
+  <circle cx="256" cy="275" r="145" fill="none" stroke="#FFFFFF" stroke-width="26"/>
 
   <!-- Hour Ticks -->
-  <line x1="256" y1="150" x2="256" y2="162" stroke="#E5B810" stroke-width="8" stroke-linecap="round"/>
-  <line x1="256" y1="388" x2="256" y2="400" stroke="#E5B810" stroke-width="8" stroke-linecap="round"/>
-  <line x1="131" y1="275" x2="143" y2="275" stroke="#E5B810" stroke-width="8" stroke-linecap="round"/>
-  <line x1="369" y1="275" x2="381" y2="275" stroke="#E5B810" stroke-width="8" stroke-linecap="round"/>
+  <line x1="256" y1="150" x2="256" y2="162" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round"/>
+  <line x1="256" y1="388" x2="256" y2="400" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round"/>
+  <line x1="131" y1="275" x2="143" y2="275" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round"/>
+  <line x1="369" y1="275" x2="381" y2="275" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round"/>
 
   <!-- Clock Hands (Pointing at 10:10) -->
-  <circle cx="256" cy="275" r="14" fill="#E5B810"/>
+  <circle cx="256" cy="275" r="14" fill="#FFFFFF"/>
   <!-- Hour hand (towards 10) -->
-  <line x1="256" y1="275" x2="185" y2="225" stroke="#E5B810" stroke-width="20" stroke-linecap="round"/>
+  <line x1="256" y1="275" x2="185" y2="225" stroke="#FFFFFF" stroke-width="20" stroke-linecap="round"/>
   <!-- Minute hand (towards 2) -->
-  <line x1="256" y1="275" x2="335" y2="220" stroke="#E5B810" stroke-width="16" stroke-linecap="round"/>
+  <line x1="256" y1="275" x2="335" y2="220" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round"/>
 </svg>

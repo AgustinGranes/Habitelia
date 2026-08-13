@@ -45,10 +45,15 @@ export function render(props = {}) {
         ${renderStep1()}
       </div>
       
-      <div class="form-actions" style="display: flex; gap: 12px; width: 100%;">
-        <button id="btn-back" class="btn-secondary" style="display:none; flex: 1; min-height: 48px; margin: 0; border-radius: 12px;">Atrás</button>
-        <button id="btn-next" class="btn-primary" style="flex: 2; min-height: 48px; margin: 0; border-radius: 12px;">
-          Siguiente ${iconSVG('arrowRight', 16)}
+      <div class="form-actions" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+        <div style="display: flex; gap: 12px; width: 100%;">
+          <button id="btn-back" class="btn-secondary" style="display:none; flex: 1; min-height: 48px; margin: 0; border-radius: 12px;">Atrás</button>
+          <button id="btn-next" class="btn-primary" style="flex: 2; min-height: 48px; margin: 0; border-radius: 12px;">
+            Siguiente ${iconSVG('arrowRight', 16)}
+          </button>
+        </div>
+        <button id="btn-cancel" class="btn-secondary" style="width: 100%; min-height: 44px; margin: 0; border-radius: 12px; color: var(--text-secondary); border: 1px solid var(--border-subtle);">
+          Cancelar
         </button>
       </div>
     </div>
@@ -311,6 +316,10 @@ export function mount() {
       btnNext.innerHTML = `Siguiente ${iconSVG('arrowRight', 16)}`;
       updateStepIndicators();
     }
+  });
+
+  document.getElementById('btn-cancel')?.addEventListener('click', () => {
+    navigate('/home');
   });
 }
 
