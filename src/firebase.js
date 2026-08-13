@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut as fbSignOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail, deleteUser } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut as fbSignOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail, deleteUser, EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, collection, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -147,7 +147,7 @@ export const getFriendsFromCloud = async () => {
   return await getCollection(`users/${uid}/friends`);
 };
 
-export const deleteAccountAndAllData = async () => {
+export const deleteAccountAndAllData = async (password = null) => {
   if (!auth.currentUser) return { success: false, error: 'No hay usuario autenticado' };
   const user = auth.currentUser;
   const uid = user.uid;
@@ -176,16 +176,37 @@ export const deleteAccountAndAllData = async () => {
     await deleteDocument(`users/${uid}/driverProfile/main`).catch(() => {});
     await deleteDocument(`users/${uid}`).catch(() => {});
 
-    await deleteUser(user).catch(async () => {
-      await fbSignOut(auth);
-    });
+    try {
+      await deleteUser(user);
+    } catch (authErr) {
+      if (authErr.code === 'auth/requires-recent-login') {
+        if (password && user.email) {
+          const cred = EmailAuthProvider.credential(user.email, password);
+          await reauthenticateWithCredential(user, cred);
+          await deleteUser(user);
+        } else {
+          const isGoogleUser = user.providerData?.some(p => p.providerId === 'google.com');
+          if (isGoogleUser) {
+            const provider = new GoogleAuthProvider();
+            await reauthenticateWithPopup(user, provider);
+            await deleteUser(user);
+          } else {
+            return {
+              success: false,
+              requiresPassword: true,
+              error: 'Por seguridad de tu cuenta, ingresá tu contraseña para confirmar la eliminación.'
+            };
+          }
+        }
+      } else {
+        throw authErr;
+      }
+    }
 
     await fbSignOut(auth).catch(() => {});
-
     return { success: true };
   } catch (error) {
     console.error('Error deleting account and data:', error);
-    await fbSignOut(auth).catch(() => {});
-    return { success: false, error: error.message };
+    return { success: false, error: getFriendlyAuthErrorMessage(error) };
   }
 };

@@ -113,9 +113,14 @@ export function render(props = {}) {
 
                     <h3 class="editorial-title" style="font-size: 22px; margin-bottom: 8px; color: var(--text-primary);">¿Eliminar Cuenta Definitivamente?</h3>
                     
-                    <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 24px;">
-                        Esta acción eliminará <strong>permanentemente</strong> todos tus hábitos, rutinas, historial, ficha de piloto y tu usuario de la base de datos en la nube. Podrás volver a registrarte en el futuro, pero comenzarás desde cero.
+                    <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px;">
+                        Esta acción eliminará <strong>permanentemente</strong> todos tus hábitos, rutinas, historial, ficha de piloto y tu usuario de la base de datos en la nube.
                     </p>
+
+                    <div id="reauth-password-group" style="margin-bottom: 20px; text-align: left;">
+                        <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">Confirmá tu contraseña para autorizar:</label>
+                        <input type="password" id="delete-confirm-password" class="input" placeholder="Tu contraseña actual..." style="width: 100%; min-height: 42px; font-size: 13px;">
+                    </div>
 
                     <div style="display: flex; gap: 12px;">
                         <button id="cancel-delete-modal-btn" class="btn-secondary" style="flex: 1; min-height: 44px; font-size: 13.5px; margin: 0;">
@@ -227,16 +232,19 @@ export function mount() {
     });
 
     document.getElementById('confirm-delete-modal-btn')?.addEventListener('click', async () => {
-        if (modal) modal.style.display = 'none';
+        const pass = document.getElementById('delete-confirm-password')?.value || '';
         showToast('Eliminando tu cuenta y cerrando sesión...', 'info');
         
-        localStorage.clear();
-        store.setState({ user: null, habits: [], routines: [], driverProfile: null });
-
-        await deleteAccountAndAllData();
-
-        showToast('Cuenta eliminada y sesión cerrada.', 'success');
-        navigate('/login');
+        const res = await deleteAccountAndAllData(pass);
+        if (res.success) {
+            if (modal) modal.style.display = 'none';
+            localStorage.clear();
+            store.setState({ user: null, habits: [], routines: [], driverProfile: null });
+            showToast('Cuenta eliminada y sesión cerrada.', 'success');
+            navigate('/login');
+        } else {
+            showToast(res.error || 'Error al eliminar cuenta.', 'error');
+        }
     });
 }
 
