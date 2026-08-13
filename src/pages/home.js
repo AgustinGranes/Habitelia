@@ -3,6 +3,7 @@ import { navigate } from '../router.js';
 import { getRandomQuote } from '../quotes.js';
 import { showToast } from '../components/toast.js';
 import { iconSVG } from '../components/icons.js';
+import { renderSidebar, mountSidebar } from '../components/sidebar.js';
 
 export function render(props = {}) {
     const state = store.getState();
@@ -20,6 +21,7 @@ export function render(props = {}) {
         const isCompleted = h.completions?.[todayDate] === 'completed';
         const isSkipped = h.completions?.[todayDate] === 'skipped';
         const streak = h.streak || 0;
+        const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
 
         return {
             id: h.id,
@@ -28,6 +30,7 @@ export function render(props = {}) {
             time: h.cue?.time || '08:00',
             duration: h.duration || 15,
             twoMinuteVersion: h.response?.twoMinVersion || '2 minutos',
+            linkedPleasure,
             completed: isCompleted,
             skipped: isSkipped,
             streak
@@ -71,10 +74,22 @@ export function render(props = {}) {
                         <div style="font-weight: 600; font-size: 16px; color: ${ev.completed ? 'var(--text-tertiary)' : 'var(--text-primary)'}; ${ev.completed ? 'text-decoration: line-through;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                             ${ev.name}
                         </div>
-                        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 3px; display: flex; align-items: center; gap: 12px;">
+                        
+                        <!-- Scheduled Time Line -->
+                        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 3px; display: flex; align-items: center; gap: 8px;">
                             <span>${iconSVG('clock', 13)} ${ev.time} (${ev.duration} min)</span>
-                            ${ev.twoMinuteVersion ? `<span style="font-style: italic;">• ${ev.twoMinuteVersion}</span>` : ''}
                         </div>
+
+                        <!-- Ritual Previo Line (DEBAJO DEL HORARIO) -->
+                        ${ev.linkedPleasure ? `
+                        <div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px; display: flex; align-items: center; gap: 4px;">
+                            <span>Ritual previo: ${ev.linkedPleasure}</span>
+                        </div>
+                        ` : (ev.twoMinuteVersion ? `
+                        <div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">
+                            2 min: ${ev.twoMinuteVersion}
+                        </div>
+                        ` : '')}
                     </div>
                 </div>
 
@@ -157,17 +172,37 @@ export function render(props = {}) {
 }
 
 function refreshHomeView() {
-    const app = document.getElementById('app');
-    if (app) {
-        app.innerHTML = render();
+    const pageContent = document.querySelector('.home-page');
+    if (pageContent) {
+        pageContent.outerHTML = render();
         mount();
+    } else {
+        const app = document.getElementById('app');
+        if (app) {
+            app.innerHTML = render();
+            mount();
+            const sidebarHTML = renderSidebar();
+            app.insertAdjacentHTML('beforeend', sidebarHTML);
+            mountSidebar();
+        }
     }
 }
 
 export function mount() {
     let unsubs = [];
     
-    // Menu button sidebar trigger
+    // Ensure sidebar is present and mount sidebar trigger
+    let overlay = document.getElementById('sidebar-overlay');
+    let panel = document.getElementById('sidebar-panel');
+    if (!overlay || !panel) {
+        const appContainer = document.getElementById('app');
+        if (appContainer) {
+            const sidebarHTML = renderSidebar();
+            appContainer.insertAdjacentHTML('beforeend', sidebarHTML);
+            mountSidebar();
+        }
+    }
+
     const menuBtn = document.getElementById('menu-btn');
     if (menuBtn) {
         menuBtn.addEventListener('click', () => {

@@ -16,12 +16,14 @@ export function render() {
   const todayItems = habits.map(h => {
     const isCompleted = h.completions?.[todayDate] === 'completed';
     const isSkipped = h.completions?.[todayDate] === 'skipped';
+    const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
     return {
       id: h.id,
       name: h.name,
       icon: h.icon || '🎯',
       time: h.cue?.time || '08:00',
       duration: h.duration || 15,
+      linkedPleasure,
       completed: isCompleted,
       skipped: isSkipped
     };
@@ -52,6 +54,7 @@ export function render() {
           <div>
             <div style="font-weight: 600; font-size: 15px; color: var(--text-primary); ${item.completed ? 'text-decoration: line-through;' : ''}">${item.name}</div>
             <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${iconSVG('clock', 12)} ${item.time} (${item.duration} min)</div>
+            ${item.linkedPleasure ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">Ritual previo: ${item.linkedPleasure}</div>` : ''}
           </div>
         </div>
         <div style="font-size: 12px; font-weight: 600; color: ${item.completed ? 'var(--text-primary)' : 'var(--text-secondary)'}; background: var(--bg-subtle); padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border-subtle);">
@@ -70,22 +73,26 @@ export function render() {
       </div>
     `;
   } else {
-    allHabitsHtml = habits.map(h => `
-      <div class="glass-card" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; margin-bottom: 10px; border-radius: 14px; border: 1px solid var(--border-subtle);">
-        <div style="display: flex; align-items: center; gap: 14px;">
-          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--bg-subtle); display: flex; align-items: center; justify-content: center; color: var(--text-primary);">
-            ${iconSVG('target', 16)}
+    allHabitsHtml = habits.map(h => {
+      const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
+      return `
+        <div class="glass-card" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; margin-bottom: 10px; border-radius: 14px; border: 1px solid var(--border-subtle);">
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--bg-subtle); display: flex; align-items: center; justify-content: center; color: var(--text-primary);">
+              ${iconSVG('target', 16)}
+            </div>
+            <div>
+              <div style="font-weight: 600; font-size: 15px; color: var(--text-primary);">${h.name}</div>
+              <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Duración: ${h.duration || 15} min ${h.cue?.place ? `• 📍 ${h.cue.place}` : ''}</div>
+              ${linkedPleasure ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">Ritual previo: ${linkedPleasure}</div>` : ''}
+            </div>
           </div>
-          <div>
-            <div style="font-weight: 600; font-size: 15px; color: var(--text-primary);">${h.name}</div>
-            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Duración: ${h.duration || 15} min ${h.cue?.place ? `• 📍 ${h.cue.place}` : ''}</div>
-          </div>
+          <button class="btn-ghost btn-edit-habit-routine" data-id="${h.id}" style="padding: 6px 12px; font-size: 12px; border: 1px solid var(--border-subtle); color: var(--text-primary); border-radius: 8px; cursor: pointer; display: flex; align-items: gap: 6px;">
+            ${iconSVG('edit', 14)} Editar
+          </button>
         </div>
-        <button class="btn-ghost btn-edit-habit-routine" data-id="${h.id}" style="padding: 6px 12px; font-size: 12px; border: 1px solid var(--border-subtle); color: var(--text-primary); border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-          ${iconSVG('edit', 14)} Editar
-        </button>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
   // 3. Saved Routines
