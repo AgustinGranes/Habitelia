@@ -114,7 +114,7 @@ export function mount() {
         if (mode === 'register') {
             const res = await signUp(email, password, name || 'Usuario');
             if (res.user) {
-                store.saveUserProfile({ email, name: name || 'Usuario' });
+                await store.saveUserProfile({ email, name: name || 'Usuario', onboardingCompleted: false });
                 showToast('Cuenta creada con éxito', 'success');
                 navigate('/onboarding');
             } else {
@@ -125,7 +125,9 @@ export function mount() {
             if (res.user) {
                 await store.loadUserData();
                 showToast('¡Bienvenido de nuevo!', 'success');
-                navigate('/home');
+                const state = store.getState();
+                const isObs = state.user?.onboardingCompleted === true;
+                navigate(isObs ? '/home' : '/onboarding');
             } else {
                 showToast(res.error || 'Error al iniciar sesión', 'error');
             }
@@ -137,7 +139,9 @@ export function mount() {
         if (res.user) {
             await store.loadUserData();
             showToast('Sesión iniciada con Google', 'success');
-            navigate('/home');
+            const state = store.getState();
+            const isObs = state.user?.onboardingCompleted === true;
+            navigate(isObs ? '/home' : '/onboarding');
         } else {
             showToast(res.error || 'Error con Google', 'error');
         }

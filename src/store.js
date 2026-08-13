@@ -122,22 +122,22 @@ export const store = {
       (remoteRoutines || []).forEach(r => routineMap.set(r.id, r));
       const mergedRoutines = Array.from(routineMap.values());
 
-      const localOnboarded = localStorage.getItem(`onboardingCompleted_${uid}`) === 'true' || localStorage.getItem('onboardingCompleted_guest') === 'true';
-      const localIdentity = localStorage.getItem('user_identity_v1');
-      const localName = localStorage.getItem('user_name_v1');
-      const localEmail = localStorage.getItem('user_email_v1');
+      const localOnboarded = uid !== 'guest' ? localStorage.getItem(`onboardingCompleted_${uid}`) === 'true' : localStorage.getItem('onboardingCompleted_guest') === 'true';
+      const localIdentity = uid !== 'guest' ? localStorage.getItem(`user_identity_${uid}`) : localStorage.getItem('user_identity_v1');
 
       const userObj = {
         ...(state.user || {}),
         ...(userDoc || {}),
         uid,
-        email: auth.currentUser?.email || userDoc?.email || state.user?.email || localEmail || '',
-        name: auth.currentUser?.displayName || userDoc?.name || state.user?.name || localName || 'Viajero',
-        identity: userDoc?.identity || state.user?.identity || localIdentity || 'una persona disciplinada'
+        email: auth.currentUser?.email || userDoc?.email || state.user?.email || '',
+        name: auth.currentUser?.displayName || userDoc?.name || state.user?.name || 'Viajero',
+        identity: userDoc?.identity || state.user?.identity || localIdentity || ''
       };
 
-      if (localOnboarded || userDoc?.onboardingCompleted || userDoc?.identity || mergedHabits.length > 0) {
+      if (userDoc?.onboardingCompleted === true || localOnboarded === true) {
         userObj.onboardingCompleted = true;
+      } else {
+        userObj.onboardingCompleted = false;
       }
       
       const remoteDriverDoc = auth.currentUser ? await getDocument(`users/${uid}/driverProfile/main`) : null;
@@ -153,9 +153,7 @@ export const store = {
         if (userObj.onboardingCompleted) {
           localStorage.setItem(`onboardingCompleted_${uid}`, 'true');
         }
-        if (userObj.identity) localStorage.setItem('user_identity_v1', userObj.identity);
-        if (userObj.name) localStorage.setItem('user_name_v1', userObj.name);
-        if (userObj.email) localStorage.setItem('user_email_v1', userObj.email);
+        if (userObj.identity) localStorage.setItem(`user_identity_${uid}`, userObj.identity);
         localStorage.setItem('habits_v1', JSON.stringify(mergedHabits));
         localStorage.setItem(`habits_${uid}`, JSON.stringify(mergedHabits));
         localStorage.setItem('routines_v1', JSON.stringify(mergedRoutines));
@@ -196,28 +194,29 @@ export const store = {
   
   saveUserProfile: async (data) => {
     const uid = auth.currentUser?.uid || 'guest';
-    const email = data.email || auth.currentUser?.email || state.user?.email || localStorage.getItem('user_email_v1') || '';
-    const name = data.name || auth.currentUser?.displayName || state.user?.name || localStorage.getItem('user_name_v1') || 'Viajero';
-    const identity = data.identity || state.user?.identity || localStorage.getItem('user_identity_v1') || 'una persona disciplinada';
+    const email = data.email || auth.currentUser?.email || state.user?.email || '';
+    const name = data.name || auth.currentUser?.displayName || state.user?.name || 'Viajero';
+    const identity = data.identity !== undefined ? data.identity : (state.user?.identity || '');
 
     const updatedUser = {
       ...(state.user || {}),
       ...data,
       email,
       name,
-      identity,
-      onboardingCompleted: true
+      identity
     };
-    
+
+    if (data.onboardingCompleted !== undefined) {
+      updatedUser.onboardingCompleted = !!data.onboardingCompleted;
+    }
+
     try {
       localStorage.setItem('user_profile_v1', JSON.stringify(updatedUser));
       localStorage.setItem(`user_profile_${uid}`, JSON.stringify(updatedUser));
-      localStorage.setItem(`onboardingCompleted_${uid}`, 'true');
-      localStorage.setItem('onboardingCompleted_guest', 'true');
-
-      if (updatedUser.identity) localStorage.setItem('user_identity_v1', updatedUser.identity);
-      if (updatedUser.name) localStorage.setItem('user_name_v1', updatedUser.name);
-      if (updatedUser.email) localStorage.setItem('user_email_v1', updatedUser.email);
+      if (updatedUser.onboardingCompleted) {
+        localStorage.setItem(`onboardingCompleted_${uid}`, 'true');
+      }
+      if (updatedUser.identity) localStorage.setItem(`user_identity_${uid}`, updatedUser.identity);
     } catch (e) {}
 
     store.setState({ user: updatedUser });
