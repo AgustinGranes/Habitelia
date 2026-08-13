@@ -372,6 +372,105 @@ export function mount() {
         openFabChoiceModal();
     });
 
+    document.querySelectorAll('.habit-bubble').forEach(bubble => {
+        const habitId = bubble.dataset.id;
+        const fillOverlay = bubble.querySelector('.fill-overlay');
+        let isPressing = false;
+        let pressTimer = null;
+
+        const completeAction = async () => {
+            const habit = store.getState().habits?.find(h => h.id === habitId);
+            openCompletionModeModal(habitId, habit?.name || 'Hábito', async (mode) => {
+                const res = await store.completeEvent(habitId, store.getTodayString(), mode) || {};
+                const streak = res.newStreak || 1;
+                const modeText = mode === 'completed_2min' ? ' (2 minutos)' : ' (Completo)';
+                showToast(`¡Excelente! Racha: ${streak} días${modeText}`, 'success');
+                refreshHomeView();
+            });
+        };
+
+        const onPointerDown = (e) => {
+            isPressing = true;
+            if (fillOverlay) {
+                fillOverlay.style.transition = 'width 0.8s linear';
+                fillOverlay.style.width = '100%';
+            }
+            
+            pressTimer = setTimeout(() => {
+                if (isPressing) {
+                    completeAction();
+                }
+            }, 800);
+        };
+
+        const onPointerUp = (e) => {
+            isPressing = false;
+            clearTimeout(pressTimer);
+            if (fillOverlay) {
+                fillOverlay.style.transition = 'width 0.2s ease-out';
+                fillOverlay.style.width = '0%';
+            }
+        };
+
+        const skipAction = async () => {
+            bubble.style.transform = 'translateX(-100%)';
+            bubble.style.opacity = '0';
+            setTimeout(async () => {
+                await store.skipEvent(habitId, store.getTodayString());
+                showToast('Hábito omitido', 'info');
+                refreshHomeView();
+            }, 300);
+        };
+
+        let startX = 0;
+        let startY = 0;
+        let currentX = 0;
+
+        const onTouchStart = (e) => {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            bubble.style.transition = 'none';
+        };
+
+        const onTouchMove = (e) => {
+            if (!startX || !startY) return;
+            currentX = e.touches[0].clientX;
+            const diffX = startX - currentX;
+            const diffY = startY - e.touches[0].clientY;
+
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                e.preventDefault(); 
+                if (diffX > 0) {
+                    const translateX = Math.min(diffX, 150);
+                    bubble.style.transform = `translateX(-${translateX}px)`;
+                    bubble.style.backgroundColor = `rgba(244, 67, 54, ${Math.min(diffX/150, 0.4)})`;
+                }
+            }
+        };
+
+        const onTouchEnd = (e) => {
+            bubble.style.transition = 'transform 0.3s ease, background-color 0.3s ease, opacity 0.3s ease';
+            const diffX = startX - currentX;
+            if (startX > 0 && currentX > 0 && diffX > 100) { 
+                skipAction();
+            } else {
+                bubble.style.transform = 'translateX(0) scale(1)';
+                bubble.style.backgroundColor = '';
+            }
+            startX = 0;
+            currentX = 0;
+            onPointerUp(e);
+        };
+
+        bubble.addEventListener('pointerdown', onPointerDown);
+        bubble.addEventListener('pointerup', onPointerUp);
+        bubble.addEventListener('pointerleave', onPointerUp);
+        
+        bubble.addEventListener('touchstart', onTouchStart, { passive: false });
+        bubble.addEventListener('touchmove', onTouchMove, { passive: false });
+        bubble.addEventListener('touchend', onTouchEnd);
+    });
+
     document.getElementById('btn-empty-create')?.addEventListener('click', () => {
         openFabChoiceModal();
     });

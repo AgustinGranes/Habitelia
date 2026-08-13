@@ -35,6 +35,9 @@ export function renderSidebar() {
                 <div class="sidebar-nav-item ${isActive('/chain')}" data-path="/chain" style="padding: 12px 16px; border-radius: 10px; margin-bottom: 4px; display: flex; align-items: center; gap: 14px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease;">
                     ${iconSVG('chain', 18)} <span style="font-size: 14px;">Mi Cadena</span>
                 </div>
+                <div class="sidebar-nav-item ${isActive('/driver')}" data-path="/driver" style="padding: 12px 16px; border-radius: 10px; margin-bottom: 4px; display: flex; align-items: center; gap: 14px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease;">
+                    ${iconSVG('helmet', 18)} <span style="font-size: 14px;">Tu Piloto</span>
+                </div>
                 <div class="sidebar-nav-item ${isActive('/friends')}" data-path="/friends" style="padding: 12px 16px; border-radius: 10px; margin-bottom: 4px; display: flex; align-items: center; gap: 14px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease;">
                     ${iconSVG('users', 18)} <span style="font-size: 14px;">Amigos</span>
                 </div>
@@ -62,7 +65,24 @@ export function renderSidebar() {
     `;
 }
 
+let currentSidebarUnsub = null;
+
 export function mountSidebar() {
+    if (currentSidebarUnsub) {
+        currentSidebarUnsub();
+        currentSidebarUnsub = null;
+    }
+
+    // Clean up duplicate sidebars if any
+    const overlays = document.querySelectorAll('#sidebar-overlay');
+    const panels = document.querySelectorAll('#sidebar-panel');
+    if (overlays.length > 1) {
+        for (let i = 0; i < overlays.length - 1; i++) overlays[i].remove();
+    }
+    if (panels.length > 1) {
+        for (let i = 0; i < panels.length - 1; i++) panels[i].remove();
+    }
+
     const overlay = document.getElementById('sidebar-overlay');
     const panel = document.getElementById('sidebar-panel');
     
@@ -72,26 +92,27 @@ export function mountSidebar() {
         store.setState({ sidebarOpen: false });
     };
 
-    overlay.addEventListener('click', closeSidebar);
+    overlay.onclick = closeSidebar;
 
-    document.querySelectorAll('.sidebar-nav-item').forEach(item => {
-        item.addEventListener('click', async (e) => {
-            if (e.currentTarget.id === 'sidebar-logout') {
+    panel.querySelectorAll('.sidebar-nav-item').forEach(item => {
+        item.onclick = async (e) => {
+            const currentItem = e.currentTarget;
+            if (currentItem.id === 'sidebar-logout') {
                 closeSidebar();
                 await logOut();
                 navigate('/login');
                 return;
             }
             
-            const path = e.currentTarget.dataset.path;
+            const path = currentItem.dataset.path;
             if (path) {
                 closeSidebar();
                 navigate(path);
             }
-        });
+        };
     });
 
-    const unsub = store.subscribe(() => {
+    currentSidebarUnsub = store.subscribe(() => {
         const isOpen = store.getState().sidebarOpen;
         if (isOpen) {
             overlay.style.display = 'block';
@@ -103,10 +124,10 @@ export function mountSidebar() {
             panel.classList.remove('open');
             overlay.classList.remove('show');
             setTimeout(() => {
-                if(!store.getState().sidebarOpen) overlay.style.display = 'none';
+                if (!store.getState().sidebarOpen && overlay) overlay.style.display = 'none';
             }, 250);
         }
     });
     
-    return unsub;
+    return currentSidebarUnsub;
 }

@@ -29,17 +29,8 @@ export function render() {
         const converted = convertToARSWithCommissionSync(price, cur, commission);
         totalARS += converted;
         
-        let billingHTML = '';
-        if (billingDay) {
-          const hasPassed = currentDay >= billingDay;
-          const billingIcon = hasPassed ? iconSVG('check', 14) : iconSVG('clock', 14);
-          const billingColor = hasPassed ? 'var(--text-tertiary)' : 'var(--text-secondary)';
-          billingHTML = `
-            <div style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: ${billingColor}; margin-top: 4px;">
-              ${billingIcon} Día ${billingDay}
-            </div>
-          `;
-        }
+        const hasPassed = billingDay ? currentDay >= billingDay : false;
+        const billingIcon = billingDay ? (hasPassed ? iconSVG('check', 14) : iconSVG('clock', 14)) : '';
 
         return `
           <div class="glass-card expense-item-card" data-id="${id}" style="padding: 18px 20px; margin-bottom: 12px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; transition: transform 0.15s ease;">
@@ -80,7 +71,6 @@ export function render() {
     `;
 
   return `
-    ${renderSidebar()}
     <div class="page page-content calculator-page" style="padding: 24px 20px 100px 20px; max-width: 620px; margin: 0 auto; width: 100%; box-sizing: border-box;">
       
       <header style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px;">
