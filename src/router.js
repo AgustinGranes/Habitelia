@@ -30,6 +30,7 @@ const parseHash = () => {
   if (rawPath === '/calendar') return { path: '/calendar', params };
   if (rawPath === '/chain') return { path: '/chain', params };
   if (rawPath === '/driver') return { path: '/driver', params };
+  if (rawPath === '/friends') return { path: '/friends', params };
   if (rawPath === '/settings') return { path: '/settings', params };
   
   return { path: '/login', params: {} };

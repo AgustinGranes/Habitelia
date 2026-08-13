@@ -76,3 +76,40 @@ export const getUserPath = () => {
   if (!auth.currentUser) throw new Error('User not authenticated');
   return `users/${auth.currentUser.uid}`;
 };
+
+export const getPublicUserData = async (targetUid) => {
+  try {
+    const userDoc = await getDocument(`users/${targetUid}`);
+    const driverProfile = await getDocument(`users/${targetUid}/driverProfile/main`);
+    const habits = await getCollection(`users/${targetUid}/habits`);
+    const incidents = await getCollection(`users/${targetUid}/incidents`);
+    return {
+      uid: targetUid,
+      user: userDoc,
+      driverProfile,
+      habits,
+      incidents: incidents || []
+    };
+  } catch (e) {
+    console.error('Error getting public user data:', e);
+    return null;
+  }
+};
+
+export const addFriendToCloud = async (friendUid) => {
+  if (!auth.currentUser) return;
+  const uid = auth.currentUser.uid;
+  await saveDocument(`users/${uid}/friends/${friendUid}`, { addedAt: new Date().toISOString() });
+};
+
+export const removeFriendFromCloud = async (friendUid) => {
+  if (!auth.currentUser) return;
+  const uid = auth.currentUser.uid;
+  await deleteDocument(`users/${uid}/friends/${friendUid}`);
+};
+
+export const getFriendsFromCloud = async () => {
+  if (!auth.currentUser) return [];
+  const uid = auth.currentUser.uid;
+  return await getCollection(`users/${uid}/friends`);
+};

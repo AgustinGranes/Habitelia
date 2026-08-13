@@ -411,6 +411,18 @@ export const store = {
         const status = comp[currEvalDate];
         if (status !== 'completed' && status !== 'completed_2min' && status !== 'skipped') {
           uncompletedOnDay++;
+          const incidentId = `${h.id}_${currEvalDate}`;
+          const incidentObj = {
+            id: incidentId,
+            date: currEvalDate,
+            habitId: h.id,
+            habitName: h.name,
+            status: 'uncompleted',
+            createdAt: new Date().toISOString()
+          };
+          if (auth.currentUser) {
+            saveDocument(`users/${auth.currentUser.uid}/incidents/${incidentId}`, incidentObj).catch(e => console.error(e));
+          }
         }
       });
 
