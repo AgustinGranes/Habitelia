@@ -82,10 +82,13 @@ export function render(props = {}) {
             </div>
 
             <div class="glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 18px;">
-                <h3 class="editorial-title" style="font-size: 20px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">Datos & Privacidad</h3>
-                <div>
+                <h3 class="editorial-title" style="font-size: 20px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">Sincronización & Nube</h3>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button id="sync-cloud-btn" class="btn-primary" style="width: 100%; font-size: 14px; padding: 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        ${iconSVG('check', 16)} Sincronizar Todos Mis Datos en la Nube
+                    </button>
                     <button id="delete-data-btn" class="btn-danger" style="width: 100%; font-size: 14px; padding: 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        ${iconSVG('trash', 16)} Borrar Todos Mis Datos
+                        ${iconSVG('trash', 16)} Borrar Todos Mis Datos Locales
                     </button>
                 </div>
             </div>
@@ -159,6 +162,16 @@ export function mount() {
             partner: { enabled: partnerToggle?.checked ?? true, name, phone, contract }
         });
         showToast('Socio Corresponsable guardado', 'success');
+    });
+
+    document.getElementById('sync-cloud-btn')?.addEventListener('click', async () => {
+        showToast('Sincronizando todos tus hábitos y tu piloto con la nube...', 'info');
+        const success = await store.syncAllDataToCloud();
+        if (success) {
+            showToast('¡Todos tus datos se guardaron en la nube correctamente!', 'success');
+        } else {
+            showToast('Error al conectar con Firestore. Verifica tu conexión.', 'error');
+        }
     });
 
     document.getElementById('delete-data-btn')?.addEventListener('click', () => {

@@ -136,7 +136,7 @@ export const store = {
         identity: userDoc?.identity || state.user?.identity || localIdentity || 'una persona disciplinada'
       };
 
-      if (localOnboarded || userDoc?.onboardingCompleted || userDoc?.identity) {
+      if (localOnboarded || userDoc?.onboardingCompleted || userDoc?.identity || mergedHabits.length > 0) {
         userObj.onboardingCompleted = true;
       }
       
@@ -170,6 +170,20 @@ export const store = {
         driverProfile,
         todaySchedule
       });
+
+      // Auto-push merged data to Firestore if user is authenticated
+      if (auth.currentUser) {
+        saveDocument(`users/${uid}`, userObj).catch(e => console.error(e));
+        if (driverProfile && driverProfile.active) {
+          saveDocument(`users/${uid}/driverProfile/main`, driverProfile).catch(e => console.error(e));
+        }
+        mergedHabits.forEach(h => {
+          saveDocument(`users/${uid}/habits/${h.id}`, h).catch(e => console.error(e));
+        });
+        mergedRoutines.forEach(r => {
+          saveDocument(`users/${uid}/routines/${r.id}`, r).catch(e => console.error(e));
+        });
+      }
     } catch (error) {
       console.error('Error loading user data:', error);
     }
@@ -503,5 +517,30 @@ export const store = {
     };
     
     await store.saveHabit(updatedHabit);
+  },
+
+  syncAllDataToCloud: async () => {
+    if (!auth.currentUser) return false;
+    const uid = auth.currentUser.uid;
+    const currentState = store.getState();
+
+    try {
+      if (currentState.user) {
+        await saveDocument(`users/${uid}`, { ...currentState.user, onboardingCompleted: true });
+      }
+      if (currentState.driverProfile) {
+        await saveDocument(`users/${uid}/driverProfile/main`, currentState.driverProfile);
+      }
+      for (const h of (currentState.habits || [])) {
+        await saveDocument(`users/${uid}/habits/${h.id}`, h);
+      }
+      for (const r of (currentState.routines || [])) {
+        await saveDocument(`users/${uid}/routines/${r.id}`, r);
+      }
+      return true;
+    } catch (e) {
+      console.error('Error syncing all data to cloud:', e);
+      return false;
+    }
   }
 };
