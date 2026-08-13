@@ -42,7 +42,7 @@ export function render() {
         }
 
         return `
-          <div class="glass-card" style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: transform 0.2s; position: relative;" data-id="${id}" class="expense-card">
+          <div class="glass-card" style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: transform 0.2s; position: relative;" data-id="${id}">
             <div style="flex: 1;" class="expense-info" data-id="${id}">
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                 <span style="font-size: 0.7rem; padding: 2px 6px; background: var(--bg-subtle); border-radius: 4px; color: var(--text-secondary); border: 1px solid var(--border-subtle);">${cur}</span>
@@ -57,7 +57,7 @@ export function render() {
               <div style="font-family: var(--font-serif); font-size: 1.1rem; color: var(--text-primary);">
                 ${formatPrice(converted, 'ARS')}
               </div>
-              <button class="btn-ghost delete-expense-btn" data-id="${id}" style="padding: 4px; border-radius: 50%; opacity: 0.6; hover: opacity: 1;">
+              <button class="btn-ghost delete-expense-btn" data-id="${id}" style="padding: 4px; border-radius: 50%; opacity: 0.6;">
                 ${iconSVG('x', 16)}
               </button>
             </div>
@@ -79,11 +79,11 @@ export function render() {
       
       <header style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px;">
         <div>
-          <h1 class="editorial-title" style="font-size: 2rem; margin: 0 0 8px 0; color: var(--text-primary);">Gastos</h1>
+          <h1 class="editorial-title" style="font-size: 2rem; margin: 0 0 8px 0; color: var(--text-primary);">Calculadora de Gastos</h1>
           <div id="rate-summary-el" style="font-family: var(--font-ui); font-size: 0.85rem; color: var(--text-tertiary);">${rateSummary}</div>
         </div>
-        <button id="menu-btn" class="btn-ghost" style="padding: 8px; margin-right: -8px;">
-          ${iconSVG('menu', 24)}
+        <button id="menu-btn" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-primary); width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-sizing: border-box;">
+          ${iconSVG('menu', 20)}
         </button>
       </header>
 
@@ -112,52 +112,32 @@ export function render() {
           </button>
           
           <h2 class="editorial-title" id="modal-title" style="font-size: 1.5rem; margin: 0 0 20px 0; color: var(--text-primary);">Agregar Gasto</h2>
-          
-          <div style="display: flex; border-bottom: 1px solid var(--border-subtle); margin-bottom: 20px;">
-            <button class="modal-tab active" data-tab="custom" style="flex: 1; padding: 12px; background: none; border: none; color: var(--text-primary); border-bottom: 2px solid var(--accent-primary); font-family: var(--font-ui); cursor: pointer; transition: 0.2s;">Personalizado</button>
-            <button class="modal-tab" data-tab="subscription" style="flex: 1; padding: 12px; background: none; border: none; color: var(--text-tertiary); border-bottom: 2px solid transparent; font-family: var(--font-ui); cursor: pointer; transition: 0.2s;">Suscripción</button>
-          </div>
 
           <form id="expense-form">
             <input type="hidden" id="expense-id">
             
-            <!-- Custom Tab -->
-            <div id="tab-custom" class="tab-content" style="display: block;">
-              <div style="margin-bottom: 16px;">
-                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Nombre</label>
-                <input type="text" id="expense-name" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="Ej: Internet">
-              </div>
-              
-              <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-                <div style="flex: 1;">
-                  <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Precio</label>
-                  <input type="number" id="expense-price" step="0.01" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="0.00">
-                </div>
-                <div style="width: 100px;">
-                  <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Moneda</label>
-                  <select id="expense-cur" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box; appearance: none;">
-                    <option value="ARS">ARS</option>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="GBP">GBP</option>
-                    <option value="JPY">JPY</option>
-                  </select>
-                </div>
-              </div>
+            <div style="margin-bottom: 16px;">
+              <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Nombre del gasto</label>
+              <input type="text" id="expense-name" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="Ej: Netflix, Cable, Gimnasio...">
             </div>
-
-            <!-- Subscription Tab -->
-            <div id="tab-subscription" class="tab-content" style="display: none;">
-              <div style="margin-bottom: 16px;">
-                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Plataforma</label>
-                <select id="expense-preset" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box; appearance: none;">
-                  <option value="">Selecciona una opción...</option>
-                  ${PRESET_PLATFORMS ? PRESET_PLATFORMS.map((p, i) => `<option value="${i}">${p.name} - ${p.cur} ${p.price}</option>`).join('') : ''}
+            
+            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+              <div style="flex: 1;">
+                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Precio base</label>
+                <input type="number" id="expense-price" step="0.01" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="0.00">
+              </div>
+              <div style="width: 100px;">
+                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Moneda</label>
+                <select id="expense-cur" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box; appearance: none;">
+                  <option value="ARS">ARS</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="GBP">GBP</option>
+                  <option value="JPY">JPY</option>
                 </select>
               </div>
             </div>
 
-            <!-- Shared Fields -->
             <div style="margin-bottom: 16px;">
               <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Impuestos / Comisión (%)</label>
               <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
@@ -191,9 +171,15 @@ export function mount() {
   const menuBtn = document.getElementById('menu-btn');
   if (menuBtn) {
     menuBtn.addEventListener('click', () => {
-      const sidebar = document.getElementById('sidebar');
-      if (sidebar) {
-        sidebar.classList.add('open');
+      store.setState({ sidebarOpen: true });
+      const overlay = document.getElementById('sidebar-overlay');
+      const panel = document.getElementById('sidebar-panel');
+      if (overlay && panel) {
+        overlay.style.display = 'block';
+        requestAnimationFrame(() => {
+          panel.classList.add('open');
+          overlay.classList.add('show');
+        });
       }
     });
   }
@@ -202,8 +188,6 @@ export function mount() {
   const modal = document.getElementById('expense-modal');
   const closeModalBtn = document.getElementById('close-modal-btn');
   const form = document.getElementById('expense-form');
-  const tabs = document.querySelectorAll('.modal-tab');
-  const tabContents = document.querySelectorAll('.tab-content');
   const commissionPresets = document.querySelectorAll('.commission-preset');
   
   const state = store.getState();
@@ -216,7 +200,6 @@ export function mount() {
       saveDocument(`users/${auth.currentUser.uid}/calculator/main`, { expenses: newList })
         .catch(err => console.error('Error saving expenses to firebase', err));
     }
-    // Re-render
     navigate('/calculator');
   }
 
@@ -227,18 +210,14 @@ export function mount() {
       document.getElementById('expense-name').value = editExpense.name || '';
       document.getElementById('expense-price').value = editExpense.price || '';
       document.getElementById('expense-cur').value = editExpense.cur || 'ARS';
-      document.getElementById('expense-commission').value = editExpense.commission * 100 || 0;
+      document.getElementById('expense-commission').value = editExpense.commission ? (editExpense.commission * 100) : 0;
       document.getElementById('expense-billing-day').value = editExpense.billingDay || '';
-      
-      // Auto-switch to custom tab for editing (simplification)
-      switchTab('custom');
     } else {
       document.getElementById('modal-title').innerText = 'Agregar Gasto';
       form.reset();
       document.getElementById('expense-id').value = '';
       document.getElementById('expense-cur').value = 'ARS';
       document.getElementById('expense-commission').value = '0';
-      switchTab('custom');
     }
     modal.style.display = 'flex';
   }
@@ -247,32 +226,8 @@ export function mount() {
     modal.style.display = 'none';
   }
 
-  function switchTab(tabId) {
-    tabs.forEach(t => {
-      if (t.dataset.tab === tabId) {
-        t.classList.add('active');
-        t.style.borderBottomColor = 'var(--accent-primary)';
-        t.style.color = 'var(--text-primary)';
-      } else {
-        t.classList.remove('active');
-        t.style.borderBottomColor = 'transparent';
-        t.style.color = 'var(--text-tertiary)';
-      }
-    });
-    tabContents.forEach(tc => {
-      tc.style.display = tc.id === `tab-${tabId}` ? 'block' : 'none';
-    });
-  }
-
   if (fab) fab.addEventListener('click', () => openModal());
   if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
-
-  tabs.forEach(tab => {
-    tab.addEventListener('click', (e) => {
-      e.preventDefault();
-      switchTab(tab.dataset.tab);
-    });
-  });
 
   commissionPresets.forEach(preset => {
     preset.addEventListener('click', (e) => {
@@ -281,45 +236,15 @@ export function mount() {
     });
   });
 
-  // Handle Preset selection
-  const presetSelect = document.getElementById('expense-preset');
-  if (presetSelect) {
-    presetSelect.addEventListener('change', (e) => {
-      const idx = e.target.value;
-      if (idx !== '' && PRESET_PLATFORMS && PRESET_PLATFORMS[idx]) {
-        const p = PRESET_PLATFORMS[idx];
-        document.getElementById('expense-name').value = p.name;
-        document.getElementById('expense-price').value = p.price;
-        document.getElementById('expense-cur').value = p.cur;
-        document.getElementById('expense-commission').value = (p.defaultCommission * 100).toString();
-      }
-    });
-  }
-
   if (form) {
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       
-      const isSubscriptionTab = document.getElementById('tab-subscription').style.display === 'block';
-      let name, price, cur;
+      const name = document.getElementById('expense-name').value.trim();
+      const price = parseFloat(document.getElementById('expense-price').value);
+      const cur = document.getElementById('expense-cur').value;
 
-      if (isSubscriptionTab) {
-        const idx = presetSelect.value;
-        if (idx === '') {
-          showToast('Selecciona una plataforma');
-          return;
-        }
-        const p = PRESET_PLATFORMS[idx];
-        name = p.name;
-        price = p.price;
-        cur = p.cur;
-      } else {
-        name = document.getElementById('expense-name').value.trim();
-        price = parseFloat(document.getElementById('expense-price').value);
-        cur = document.getElementById('expense-cur').value;
-      }
-
-      if (!name || isNaN(price)) {
+      if (!name || isNaN(price) || price <= 0) {
         showToast('Completa nombre y precio correctamente');
         return;
       }
@@ -355,7 +280,7 @@ export function mount() {
   const deleteBtns = document.querySelectorAll('.delete-expense-btn');
   deleteBtns.forEach(btn => {
     btn.addEventListener('click', (e) => {
-      e.stopPropagation(); // prevent edit trigger
+      e.stopPropagation();
       const id = btn.dataset.id;
       if (confirm('¿Eliminar este gasto?')) {
         currentExpenses = currentExpenses.filter(ex => ex.id !== id);
