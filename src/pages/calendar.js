@@ -187,23 +187,23 @@ function openDayActionModal(dateStr, dayNum) {
         </div>
 
         <!-- Routine Preset Assignment -->
-        <div style="margin-bottom: 24px; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
-          <label class="form-label" style="display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; font-size: 13px;">Asignar Rutina Preset a este día</label>
-          <select id="day-routine-select" class="input" style="width: 100%; min-height: 44px; margin-bottom: 10px;">
+        <div style="margin-bottom: 20px; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
+          <label class="form-label" style="display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; font-size: 13px;">Asignar Rutina Preset a este día</label>
+          <select id="day-routine-select" class="input" style="width: 100%; min-height: 44px;">
             <option value="">Sin rutina fija preset</option>
             ${routineOptsHtml}
           </select>
-          <button id="btn-save-day-routine" class="btn-secondary" style="width: 100%; min-height: 42px; font-size: 13px;">
-            Guardar Rutina para esta Fecha
-          </button>
         </div>
 
-        <!-- Create New Habit Shortcut -->
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-          <button id="btn-create-habit-for-day" class="btn-primary" style="width: 100%; min-height: 46px; border-radius: 12px; font-size: 14px;">
+        <!-- Action Buttons Container -->
+        <div style="display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
+          <button id="btn-create-habit-for-day" class="btn-secondary" style="width: 100%; min-height: 44px; border-radius: 12px; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px;">
             ${iconSVG('plus', 16)} Crear Hábito para este día
           </button>
-          <button id="btn-cancel-day-modal" class="btn-secondary" style="width: 100%; min-height: 44px; border-radius: 12px; font-size: 13.5px;">
+          <button id="btn-save-day-routine" class="btn-primary" style="width: 100%; min-height: 46px; border-radius: 12px; font-size: 14px; font-weight: 600;">
+            Guardar Rutina para esta Fecha
+          </button>
+          <button id="btn-cancel-day-modal" class="btn-secondary" style="width: 100%; min-height: 44px; border-radius: 12px; font-size: 13.5px; color: var(--text-secondary);">
             Cancelar
           </button>
         </div>
