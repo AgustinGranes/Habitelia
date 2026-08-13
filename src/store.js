@@ -140,6 +140,12 @@ export const store = {
         userObj.onboardingCompleted = true;
       }
       
+      const remoteDriverDoc = auth.currentUser ? await getDocument(`users/${uid}/driverProfile/main`) : null;
+      const driverProfile = {
+        ...(state.driverProfile || {}),
+        ...(remoteDriverDoc || {})
+      };
+
       // Persist merged to localStorage
       try {
         localStorage.setItem('user_profile_v1', JSON.stringify(userObj));
@@ -154,12 +160,14 @@ export const store = {
         localStorage.setItem(`habits_${uid}`, JSON.stringify(mergedHabits));
         localStorage.setItem('routines_v1', JSON.stringify(mergedRoutines));
         localStorage.setItem(`routines_${uid}`, JSON.stringify(mergedRoutines));
+        localStorage.setItem('driver_profile_v1', JSON.stringify(driverProfile));
       } catch (e) {}
 
       store.setState({
         user: userObj,
         habits: mergedHabits,
         routines: mergedRoutines,
+        driverProfile,
         todaySchedule
       });
     } catch (error) {
@@ -319,15 +327,18 @@ export const store = {
     const todayStr = store.getTodayString();
     const lastActiveDate = driver.lastActiveDate || todayStr;
 
-    // Calculate seasons based on active calendar years
+    // Year-End Reset Check
     const currentYear = new Date().getFullYear();
     const driverStartYear = driver.startYear || currentYear;
     const calculatedSeasons = Math.max(1, currentYear - driverStartYear + 1);
     
     let titlesDriver = driver.titlesDriver || 0;
     let titlesConstructor = driver.titlesConstructor || 0;
+    let isNewSeason = calculatedSeasons > (driver.seasons || 1);
+    let ovr = driver.ovr || 50;
+    let completedHabitsCounter = driver.completedHabitsCounter || 0;
 
-    if (calculatedSeasons > (driver.seasons || 1)) {
+    if (isNewSeason) {
       const prevOvr = driver.ovr || 50;
       if (prevOvr >= 95) {
         titlesDriver += 1;
@@ -335,19 +346,35 @@ export const store = {
       } else if (prevOvr >= 90) {
         titlesConstructor += 1;
       }
+      // Year-End Reset: OVR resets to 50 for the new season, trophies stay in vitrina
+      ovr = 50;
+      completedHabitsCounter = 0;
     }
 
-    // Inactivity Penalty: -1 OVR per missed day without completing habits
+    // Inactivity / Uncompleted Habits Penalty
     const d1 = new Date(lastActiveDate);
     const d2 = new Date(todayStr);
     const diffTime = d2.getTime() - d1.getTime();
     const missedDays = Math.floor(diffTime / (1000 * 3600 * 24));
 
-    let ovr = driver.ovr || 50;
-    let ovrReduced = false;
-
+    let uncompletedCount = 0;
     if (missedDays > 0) {
-      ovr = Math.max(50, ovr - missedDays);
+      const yesterday = new Date(d2.getTime() - (1000 * 3600 * 24)).toISOString().split('T')[0];
+      (state.habits || []).forEach(h => {
+        const comp = h.completions || {};
+        if (!comp[yesterday] || (comp[yesterday] !== 'completed' && comp[yesterday] !== 'completed_2min')) {
+          uncompletedCount++;
+        }
+      });
+      uncompletedCount = Math.max(missedDays, uncompletedCount);
+    }
+
+    let ovrReduced = false;
+    let penalty = 0;
+
+    if (uncompletedCount > 0 && !isNewSeason) {
+      penalty = uncompletedCount;
+      ovr = Math.max(10, ovr - penalty);
       ovrReduced = true;
     }
 
@@ -358,6 +385,7 @@ export const store = {
     const updatedProfile = {
       ...driver,
       ovr,
+      completedHabitsCounter,
       seasons: calculatedSeasons,
       startYear: driverStartYear,
       titlesDriver,
@@ -370,7 +398,7 @@ export const store = {
     await store.saveDriverProfile(updatedProfile);
 
     if (ovrReduced) {
-      showTelemetryRadioPopup(-missedDays, ovr, team);
+      showTelemetryRadioPopup(-penalty, ovr, team);
     }
   },
 
@@ -440,7 +468,7 @@ export const store = {
 
     // Driver OVR Penalty (-1 OVR)
     if (state.driverProfile && state.driverProfile.active) {
-      let ovr = Math.max(50, (state.driverProfile.ovr || 50) - 1);
+      let ovr = Math.max(10, (state.driverProfile.ovr || 50) - 1);
       const team = getTeamForOVR(ovr);
       const teamsHistory = Array.from(new Set([...(state.driverProfile.teamsHistory || []), team]));
       const marketValue = calculateMarketValue(ovr, state.driverProfile.titlesDriver || 0, state.driverProfile.titlesConstructor || 0);
@@ -475,23 +503,5 @@ export const store = {
     };
     
     await store.saveHabit(updatedHabit);
-
-    // Driver OVR Penalty (-1 OVR on uncomplete)
-    if (state.driverProfile && state.driverProfile.active) {
-      let ovr = Math.max(50, (state.driverProfile.ovr || 50) - 1);
-      const team = getTeamForOVR(ovr);
-      const teamsHistory = Array.from(new Set([...(state.driverProfile.teamsHistory || []), team]));
-      const marketValue = calculateMarketValue(ovr, state.driverProfile.titlesDriver || 0, state.driverProfile.titlesConstructor || 0);
-
-      const newDriverProfile = {
-        ...state.driverProfile,
-        ovr,
-        marketValue,
-        teamsHistory
-      };
-
-      await store.saveDriverProfile(newDriverProfile);
-      showTelemetryRadioPopup(-1, ovr, team);
-    }
   }
 };

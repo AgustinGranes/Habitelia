@@ -128,7 +128,7 @@ export function render() {
           <div style="text-align: center; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 14px;">
             TRAYECTORIA
           </div>
-          <div class="glass-card" style="padding: 16px 14px; border-radius: 18px; border: 1px solid var(--border-subtle); background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; gap: 14px; overflow-x: auto;">
+          <div class="glass-card" style="padding: 20px 16px; min-height: 84px; border-radius: 18px; border: 1px solid var(--border-subtle); background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; gap: 14px; overflow-x: auto; box-sizing: border-box;">
             ${trajectoryHtml}
           </div>
         </div>
@@ -138,26 +138,26 @@ export function render() {
           <div style="text-align: center; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 14px;">
             TÍTULOS
           </div>
-          <div class="glass-card" style="padding: 22px; border-radius: 18px; border: 1px solid var(--border-subtle); background: rgba(0,0,0,0.3); text-align: center;">
+          <div class="glass-card" style="padding: 20px 16px; min-height: 84px; border-radius: 18px; border: 1px solid var(--border-subtle); background: rgba(0,0,0,0.3); text-align: center; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
             ${!hasTitles ? `
               <div style="color: var(--text-tertiary); font-size: 13px; font-style: italic;">
                 Vitrina Vacía
               </div>
             ` : `
-              <div style="display: flex; align-items: center; justify-content: space-around;">
+              <div style="display: flex; align-items: center; justify-content: space-around; width: 100%;">
                 <div>
-                  <div style="color: #D69E2E; margin-bottom: 6px; display: flex; justify-content: center;">
-                    ${iconSVG('trophy', 32)}
+                  <div style="color: #D69E2E; margin-bottom: 4px; display: flex; justify-content: center;">
+                    ${iconSVG('trophy', 26)}
                   </div>
                   <div style="font-size: 11px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em;">PILOTO</div>
-                  <div style="font-size: 18px; font-weight: 900; color: #D69E2E; margin-top: 2px;">x${driver.titlesDriver || 0}</div>
+                  <div style="font-size: 16px; font-weight: 900; color: #D69E2E; margin-top: 2px;">x${driver.titlesDriver || 0}</div>
                 </div>
                 <div>
-                  <div style="color: #7CDEDC; margin-bottom: 6px; display: flex; justify-content: center;">
-                    ${iconSVG('trophy', 32)}
+                  <div style="color: #7CDEDC; margin-bottom: 4px; display: flex; justify-content: center;">
+                    ${iconSVG('trophy', 26)}
                   </div>
                   <div style="font-size: 11px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em;">CONSTRUCTOR</div>
-                  <div style="font-size: 18px; font-weight: 900; color: #7CDEDC; margin-top: 2px;">x${driver.titlesConstructor || 0}</div>
+                  <div style="font-size: 16px; font-weight: 900; color: #7CDEDC; margin-top: 2px;">x${driver.titlesConstructor || 0}</div>
                 </div>
               </div>
             `}
