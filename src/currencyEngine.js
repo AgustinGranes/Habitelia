@@ -72,12 +72,33 @@ export function formatPrice(ars) {
 
 export async function getRateSummary() {
   await fetchRealRates();
-  const eur = _fxRates?.EUR ? ((1 / _fxRates.EUR) * _usdArs).toFixed(0) : '—';
-  const gbp = _fxRates?.GBP ? ((1 / _fxRates.GBP) * _usdArs).toFixed(0) : '—';
-  const jpy = _fxRates?.JPY ? ((1 / _fxRates.JPY) * _usdArs).toFixed(2) : '—';
-  const aud = _fxRates?.AUD ? ((1 / _fxRates.AUD) * _usdArs).toFixed(0) : '—';
-  return `USD: $${_usdArs?.toFixed(0)} · EUR: $${eur} · GBP: $${gbp} · AUD: $${aud} · JPY: $${jpy}`;
+  return getRateSummarySync();
 }
+
+export function convertToARSWithCommissionSync(amount, currency, commission = 0) {
+  if (!amount || amount === 0) return 0;
+  const usdArs = _usdArs || FALLBACK_USD_ARS;
+  const fxRates = _fxRates || FALLBACK_FX;
+  const factor = 1 + (commission || 0);
+
+  if (currency === 'ARS') return amount * factor;
+  if (currency === 'USD') return amount * usdArs * factor;
+
+  const rateVsUsd = fxRates[currency] ?? FALLBACK_FX[currency] ?? 1;
+  const arsPerUnit = (1 / rateVsUsd) * usdArs;
+  return amount * arsPerUnit * factor;
+}
+
+export function getRateSummarySync() {
+  const usdArs = _usdArs || FALLBACK_USD_ARS;
+  const fxRates = _fxRates || FALLBACK_FX;
+  const eur = fxRates?.EUR ? ((1 / fxRates.EUR) * usdArs).toFixed(0) : '—';
+  const gbp = fxRates?.GBP ? ((1 / fxRates.GBP) * usdArs).toFixed(0) : '—';
+  const jpy = fxRates?.JPY ? ((1 / fxRates.JPY) * usdArs).toFixed(2) : '—';
+  const aud = fxRates?.AUD ? ((1 / fxRates.AUD) * usdArs).toFixed(0) : '—';
+  return `USD: $${usdArs.toFixed(0)} · EUR: $${eur} · GBP: $${gbp} · AUD: $${aud} · JPY: $${jpy}`;
+}
+
 
 export const PRESET_PLATFORMS = [
   { name: 'F1 TV Pro', price: 6.99, cur: 'USD', defaultCommission: 0.08 },

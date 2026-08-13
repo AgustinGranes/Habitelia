@@ -14,6 +14,7 @@ import { render as renderChain, mount as mountChain } from './pages/habitChain.j
 import { render as renderDriver, mount as mountDriver } from './pages/driver.js';
 import { render as renderFriends, mount as mountFriends } from './pages/friends.js';
 import { render as renderSettings, mount as mountSettings } from './pages/settings.js';
+import { render as renderCalculator, mount as mountCalculator } from './pages/calculator.js';
 import { renderSidebar, mountSidebar } from './components/sidebar.js';
 
 const routesMap = {
@@ -28,6 +29,7 @@ const routesMap = {
   '/driver': { render: renderDriver, mount: mountDriver },
   '/friends': { render: renderFriends, mount: mountFriends },
   '/settings': { render: renderSettings, mount: mountSettings },
+  '/calculator': { render: renderCalculator, mount: mountCalculator },
 };
 
 const appContainer = document.getElementById('app') || document.body;
