@@ -55,7 +55,7 @@ export function mount() {
         document.getElementById('next-btn-1').addEventListener('click', () => {
             const identity = textarea.value.trim();
             if (identity) {
-                store.saveUserProfile({ identity, onboardingCompleted: true });
+                store.saveUserProfile({ identity, onboardingCompleted: false });
                 currentStep = 2;
                 updateWizard();
             }
@@ -136,7 +136,7 @@ export function mount() {
 
             store.saveUserProfile({
                 partner: { enabled, name, phone, contract },
-                onboardingCompleted: true
+                onboardingCompleted: false
             });
             currentStep = 4;
             updateWizard();
@@ -163,8 +163,8 @@ export function mount() {
             </div>
         `;
 
-        document.getElementById('finish-btn').addEventListener('click', () => {
-            store.saveUserProfile({ onboardingCompleted: true });
+        document.getElementById('finish-btn').addEventListener('click', async () => {
+            await store.saveUserProfile({ onboardingCompleted: true });
             navigate('/home');
         });
     }
