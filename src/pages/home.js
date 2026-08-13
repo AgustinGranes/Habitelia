@@ -15,7 +15,21 @@ export function render(props = {}) {
     const todayLongDate = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
     const formattedDate = todayLongDate.charAt(0).toUpperCase() + todayLongDate.slice(1);
 
-    const todayEvents = habits.map(h => {
+    const habits = state.habits || [];
+
+    // Filter habits for today's day of week
+    const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    const todayDayKey = dayKeys[new Date().getDay()];
+    const todayHabits = habits.filter(h => {
+        if (!h.frequency) return true;
+        if (h.frequency.type === 'daily') return true;
+        if (h.frequency.type === 'weekly' && Array.isArray(h.frequency.days)) {
+            return h.frequency.days.includes(todayDayKey);
+        }
+        return true;
+    });
+
+    const todayEvents = todayHabits.map(h => {
         const isCompleted = h.completions?.[todayDate] === 'completed';
         const isSkipped = h.completions?.[todayDate] === 'skipped';
         const streak = h.streak || 0;
