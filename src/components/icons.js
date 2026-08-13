@@ -27,7 +27,8 @@ export const iconSVG = (name, size = 20, className = '') => {
     arrowLeft: `<svg ${commonAttrs}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>`,
     arrowRight: `<svg ${commonAttrs}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
     undo: `<svg ${commonAttrs}><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>`,
-    alert: `<svg ${commonAttrs}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`
+    alert: `<svg ${commonAttrs}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+    helmet: `<svg ${commonAttrs}><path d="M12 3a9 9 0 0 0-9 9v4a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3v-4a9 9 0 0 0-9-9z"/><path d="M3 12h18"/><path d="M7 16h10"/></svg>`
   };
 
   return icons[name] || icons.target;

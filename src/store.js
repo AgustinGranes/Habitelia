@@ -1,10 +1,13 @@
 import { auth, saveDocument, getDocument, getCollection, deleteDocument, getUserPath } from './firebase.js';
+import { getTeamForOVR, calculateMarketValue } from './driverEngine.js';
+import { showTelemetryRadioPopup } from './components/driverTelemetryPopup.js';
 
 // Synchronous initial load from localStorage
 function getInitialLocalData() {
   let user = null;
   let habits = [];
   let routines = [];
+  let driverProfile = null;
 
   try {
     const rawUser = localStorage.getItem('user_profile_v1') || localStorage.getItem('user_profile_guest');
@@ -24,14 +27,38 @@ function getInitialLocalData() {
 
     const rawRoutines = localStorage.getItem('routines_v1') || localStorage.getItem('routines_guest');
     if (rawRoutines) routines = JSON.parse(rawRoutines);
+
+    const rawDriver = localStorage.getItem('driver_profile_v1');
+    if (rawDriver) driverProfile = JSON.parse(rawDriver);
   } catch (e) {
     console.error('Error loading initial local storage:', e);
+  }
+
+  if (!driverProfile) {
+    driverProfile = {
+      active: false,
+      ovr: 50,
+      number: '86',
+      initials: 'AGR',
+      lastName: 'GRANES',
+      countryFlag: '🇦🇷',
+      seasons: 1,
+      wins: 0,
+      podiums: 0,
+      points: 0,
+      marketValue: '2.5',
+      titlesDriver: 0,
+      titlesConstructor: 0,
+      teamsHistory: ['Apex'],
+      completedHabitsCounter: 0
+    };
   }
 
   return {
     user: user || { uid: 'guest', name: 'Viajero', identity: 'una persona disciplinada' },
     habits: Array.isArray(habits) ? habits : [],
-    routines: Array.isArray(routines) ? routines : []
+    routines: Array.isArray(routines) ? routines : [],
+    driverProfile
   };
 }
 
@@ -41,6 +68,7 @@ const initialState = {
   user: initialData.user,
   habits: initialData.habits,
   routines: initialData.routines,
+  driverProfile: initialData.driverProfile,
   todaySchedule: null,
   currentRoute: '/login',
   loading: false,
@@ -272,6 +300,18 @@ export const store = {
     return await getDocument(`users/${uid}/schedules/${date}`);
   },
   
+  saveDriverProfile: async (profile) => {
+    const uid = auth.currentUser?.uid || 'guest';
+    const updated = { ...(state.driverProfile || {}), ...profile };
+    try {
+      localStorage.setItem('driver_profile_v1', JSON.stringify(updated));
+    } catch (e) {}
+    store.setState({ driverProfile: updated });
+    if (auth.currentUser) {
+      saveDocument(`users/${uid}/driverProfile/main`, updated).catch(e => console.error(e));
+    }
+  },
+
   completeEvent: async (habitId, date, mode = 'completed') => {
     const habit = (state.habits || []).find(h => h.id === habitId);
     if (!habit) return { streakBroken: false, newStreak: 0 };
@@ -292,6 +332,38 @@ export const store = {
     };
     
     await store.saveHabit(updatedHabit);
+
+    // Driver OVR Progression (+1 OVR every 10 habits)
+    if (state.driverProfile && state.driverProfile.active) {
+      let counter = (state.driverProfile.completedHabitsCounter || 0) + 1;
+      let ovr = state.driverProfile.ovr || 50;
+      let ovrChanged = false;
+
+      if (counter >= 10) {
+        counter = 0;
+        ovr = Math.min(99, ovr + 1);
+        ovrChanged = true;
+      }
+
+      const team = getTeamForOVR(ovr);
+      const teamsHistory = Array.from(new Set([...(state.driverProfile.teamsHistory || []), team]));
+      const marketValue = calculateMarketValue(ovr, state.driverProfile.titlesDriver || 0, state.driverProfile.titlesConstructor || 0);
+
+      const newDriverProfile = {
+        ...state.driverProfile,
+        completedHabitsCounter: counter,
+        ovr,
+        marketValue,
+        teamsHistory
+      };
+
+      await store.saveDriverProfile(newDriverProfile);
+
+      if (ovrChanged) {
+        showTelemetryRadioPopup(1, ovr, team);
+      }
+    }
+
     return { streakBroken: false, newStreak: streak };
   },
   
@@ -303,6 +375,24 @@ export const store = {
     const updatedHabit = { ...habit, completions, streak: 0 };
     
     await store.saveHabit(updatedHabit);
+
+    // Driver OVR Penalty (-1 OVR)
+    if (state.driverProfile && state.driverProfile.active) {
+      let ovr = Math.max(50, (state.driverProfile.ovr || 50) - 1);
+      const team = getTeamForOVR(ovr);
+      const teamsHistory = Array.from(new Set([...(state.driverProfile.teamsHistory || []), team]));
+      const marketValue = calculateMarketValue(ovr, state.driverProfile.titlesDriver || 0, state.driverProfile.titlesConstructor || 0);
+
+      const newDriverProfile = {
+        ...state.driverProfile,
+        ovr,
+        marketValue,
+        teamsHistory
+      };
+
+      await store.saveDriverProfile(newDriverProfile);
+      showTelemetryRadioPopup(-1, ovr, team);
+    }
   },
 
   uncompleteEvent: async (habitId, date) => {
@@ -323,5 +413,23 @@ export const store = {
     };
     
     await store.saveHabit(updatedHabit);
+
+    // Driver OVR Penalty (-1 OVR on uncomplete)
+    if (state.driverProfile && state.driverProfile.active) {
+      let ovr = Math.max(50, (state.driverProfile.ovr || 50) - 1);
+      const team = getTeamForOVR(ovr);
+      const teamsHistory = Array.from(new Set([...(state.driverProfile.teamsHistory || []), team]));
+      const marketValue = calculateMarketValue(ovr, state.driverProfile.titlesDriver || 0, state.driverProfile.titlesConstructor || 0);
+
+      const newDriverProfile = {
+        ...state.driverProfile,
+        ovr,
+        marketValue,
+        teamsHistory
+      };
+
+      await store.saveDriverProfile(newDriverProfile);
+      showTelemetryRadioPopup(-1, ovr, team);
+    }
   }
 };

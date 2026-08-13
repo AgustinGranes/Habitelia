@@ -11,6 +11,7 @@ import { render as renderRoutine, mount as mountRoutine } from './pages/routine.
 import { render as renderCalendar, mount as mountCalendar } from './pages/calendar.js';
 import { render as renderHabitForm, mount as mountHabitForm } from './pages/habitForm.js';
 import { render as renderChain, mount as mountChain } from './pages/habitChain.js';
+import { render as renderDriver, mount as mountDriver } from './pages/driver.js';
 import { render as renderSettings, mount as mountSettings } from './pages/settings.js';
 import { renderSidebar, mountSidebar } from './components/sidebar.js';
 
@@ -23,6 +24,7 @@ const routesMap = {
   '/habit/new': { render: renderHabitForm, mount: mountHabitForm },
   '/habit/edit': { render: renderHabitForm, mount: mountHabitForm },
   '/chain': { render: renderChain, mount: mountChain },
+  '/driver': { render: renderDriver, mount: mountDriver },
   '/settings': { render: renderSettings, mount: mountSettings },
 };
 
