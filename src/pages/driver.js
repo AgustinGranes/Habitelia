@@ -3,7 +3,7 @@ import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { iconSVG } from '../components/icons.js';
 import { renderSidebar, mountSidebar } from '../components/sidebar.js';
-import { getTeamForOVR, calculateMarketValue, getOVRColor, computeAccumulatedStats, TEAMS_DATA } from '../driverEngine.js';
+import { getTeamForOVR, calculateMarketValue, getOVRColor, computeAccumulatedStats, getTeamLogoSVG, TEAMS_DATA } from '../driverEngine.js';
 
 export function render() {
   const state = store.getState();
@@ -16,7 +16,7 @@ export function render() {
   // Active Driver Card Dashboard
   const ovr = driver.ovr || 50;
   const ovrBgColor = getOVRColor(ovr);
-  const isDarkOvrText = ovr >= 90; // For neon teal background, use dark text like in the image
+  const isDarkOvrText = ovr >= 90; // Neon teal background uses dark text like reference image
 
   const marketValue = driver.marketValue || calculateMarketValue(ovr, driver.titlesDriver || 0, driver.titlesConstructor || 0);
   const stats = computeAccumulatedStats(ovr, driver.seasons || 1, driver.completedHabitsCounter || 0);
@@ -37,8 +37,8 @@ export function render() {
     const tData = TEAMS_DATA[tKey] || { name: tKey, logo: 'shield' };
     return `
       <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-width: 64px;">
-        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; color: var(--text-primary);">
-          ${getSvgTeamLogo(tKey)}
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; color: var(--text-primary);">
+          ${getTeamLogoSVG(tKey, 24)}
         </div>
         <span style="font-size: 11px; font-weight: 500; color: var(--text-secondary); text-align: center; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
           ${tData.name.split(' ')[0]}
@@ -50,7 +50,7 @@ export function render() {
   const hasTitles = (driver.titlesDriver || 0) > 0 || (driver.titlesConstructor || 0) > 0;
 
   return `
-    <div class="page driver-page" style="padding: 24px 20px 100px 20px; max-width: 580px; margin: 0 auto; width: 100%; box-sizing: border-box;">
+    <div class="page driver-page" style="padding: 24px 20px 100px 20px; max-width: 520px; margin: 0 auto; width: 100%; box-sizing: border-box;">
       <header style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; width: 100%;">
         <div>
           <h1 class="editorial-title" style="margin: 0; font-size: 32px;">Tu Piloto<span style="color: var(--text-secondary);">.</span></h1>
@@ -62,53 +62,53 @@ export function render() {
       </header>
 
       <!-- Main Driver FIFA/F1 Card (Matching reference image) -->
-      <div class="glass-card" style="padding: 28px 24px; border-radius: 28px; border: 1px solid var(--border-subtle); background: #0F0F0F; box-shadow: 0 20px 50px rgba(0,0,0,0.9); position: relative;">
+      <div class="glass-card" style="padding: 28px 24px; border-radius: 28px; border: 1px solid var(--border-subtle); background: #0A0A0A; box-shadow: 0 20px 50px rgba(0,0,0,0.9); position: relative; margin-bottom: 20px;">
         
         <!-- Header Row: OVR Box Left + Info/Stats Right -->
-        <div style="display: flex; gap: 16px; margin-bottom: 24px; align-items: stretch;">
+        <div style="display: flex; gap: 14px; margin-bottom: 24px; align-items: stretch;">
           
           <!-- OVR Square (Left) -->
-          <div style="width: 105px; border-radius: 20px; background: ${ovrBgColor}; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px 8px; flex-shrink: 0; transition: background 0.3s ease;">
+          <div style="width: 100px; border-radius: 20px; background: ${ovrBgColor}; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px 8px; flex-shrink: 0; transition: background 0.3s ease;">
             <span style="font-size: 13px; font-weight: 800; letter-spacing: 0.05em; color: ${isDarkOvrText ? '#0F172A' : '#FFFFFF'};">OVR</span>
-            <span style="font-size: 52px; font-weight: 900; line-height: 1; margin-top: 2px; color: ${isDarkOvrText ? '#0F172A' : '#FFFFFF'}; font-family: var(--font-sans);">${ovr}</span>
+            <span style="font-size: 50px; font-weight: 900; line-height: 1; margin-top: 2px; color: ${isDarkOvrText ? '#0F172A' : '#FFFFFF'}; font-family: var(--font-sans);">${ovr}</span>
           </div>
 
           <!-- Top & Stats Column (Right) -->
           <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
             
             <!-- Pills Row -->
-            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              <div style="padding: 6px 12px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); font-size: 16px;">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <div style="padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); font-size: 14px; display: flex; align-items: center;">
                 ${flag}
               </div>
-              <div style="padding: 6px 12px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); font-size: 12px; font-weight: 600; color: var(--text-primary);">
+              <div style="padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); font-size: 12px; font-weight: 600; color: var(--text-primary);">
                 Valor <span style="color: var(--text-secondary);">€${marketValue}M</span>
               </div>
-              <div style="padding: 6px 12px; border-radius: 12px; background: #FFFFFF; color: #000000; font-size: 13px; font-weight: 800;">
+              <div style="padding: 6px 12px; border-radius: 10px; background: #FFFFFF; color: #000000; font-size: 13px; font-weight: 800;">
                 #${number}
               </div>
-              <div style="padding: 6px 12px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); font-size: 12px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.05em;">
+              <div style="padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); font-size: 12px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.05em;">
                 ${initials}
               </div>
             </div>
 
             <!-- Stats Bar Row -->
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 10px 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 14px; text-align: center;">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 10px 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 14px; text-align: center; margin-top: 8px;">
               <div>
                 <div style="font-size: 10px; font-weight: 700; color: var(--text-tertiary);">TEMP</div>
-                <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin-top: 2px;">${seasons}</div>
+                <div style="font-size: 15px; font-weight: 800; color: var(--text-primary); margin-top: 2px;">${seasons}</div>
               </div>
               <div>
                 <div style="font-size: 10px; font-weight: 700; color: var(--text-tertiary);">VCT</div>
-                <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin-top: 2px;">${wins}</div>
+                <div style="font-size: 15px; font-weight: 800; color: var(--text-primary); margin-top: 2px;">${wins}</div>
               </div>
               <div>
                 <div style="font-size: 10px; font-weight: 700; color: var(--text-tertiary);">POD</div>
-                <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin-top: 2px;">${podiums}</div>
+                <div style="font-size: 15px; font-weight: 800; color: var(--text-primary); margin-top: 2px;">${podiums}</div>
               </div>
               <div>
                 <div style="font-size: 10px; font-weight: 700; color: var(--text-tertiary);">PTS</div>
-                <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin-top: 2px;">${points}</div>
+                <div style="font-size: 15px; font-weight: 800; color: var(--text-primary); margin-top: 2px;">${points}</div>
               </div>
             </div>
 
@@ -116,26 +116,28 @@ export function render() {
         </div>
 
         <!-- Driver Name Prominent Center -->
-        <div style="text-align: center; margin-bottom: 28px;">
+        <div style="text-align: center; margin-bottom: 24px;">
           <h2 style="font-size: 32px; font-weight: 900; letter-spacing: 0.06em; margin: 0; color: #FFFFFF; font-family: var(--font-sans); text-transform: uppercase;">
             ${lastName}
           </h2>
         </div>
 
         <!-- TRAYECTORIA Section -->
-        <div style="margin-bottom: 28px;">
-          <div style="text-align: center; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 16px;">
+        <div style="margin-bottom: 24px;">
+          <div style="text-align: center; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 14px;">
             TRAYECTORIA
           </div>
-          <div class="glass-card" style="padding: 18px 14px; border-radius: 18px; border: 1px solid var(--border-subtle); background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; gap: 14px; overflow-x: auto;">
+          <div class="glass-card" style="padding: 16px 14px; border-radius: 18px; border: 1px solid var(--border-subtle); background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; gap: 14px; overflow-x: auto;">
             ${trajectoryHtml}
           </div>
-                <!-- TÍTULOS Section -->
+        </div>
+
+        <!-- TÍTULOS Section -->
         <div style="margin-bottom: 20px;">
-          <div style="text-align: center; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 16px;">
+          <div style="text-align: center; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 14px;">
             TÍTULOS
           </div>
-          <div class="glass-card" style="padding: 24px; border-radius: 18px; border: 1px solid var(--border-subtle); background: rgba(0,0,0,0.3); text-align: center;">
+          <div class="glass-card" style="padding: 22px; border-radius: 18px; border: 1px solid var(--border-subtle); background: rgba(0,0,0,0.3); text-align: center;">
             ${!hasTitles ? `
               <div style="color: var(--text-tertiary); font-size: 13px; font-style: italic;">
                 Vitrina Vacía
@@ -162,22 +164,16 @@ export function render() {
         </div>
 
         <!-- Footer Watermark -->
-        <div style="text-align: center; font-size: 11px; font-weight: 800; letter-spacing: 0.15em; color: rgba(255,255,255,0.2); text-transform: uppercase; margin-top: 24px;">
+        <div style="text-align: center; font-size: 11px; font-weight: 800; letter-spacing: 0.15em; color: rgba(255,255,255,0.2); text-transform: uppercase; margin-top: 20px;">
           FORMULETRY.COM / HABITELIA RACING
         </div>
 
       </div>
 
-      <!-- Action Buttons below Main Card -->
-      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 24px;">
-        <button id="btn-driver-rules" class="btn-secondary" style="min-height: 48px; border-radius: 14px; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-          ${iconSVG('info', 16)} Reglas y Sistema de Puntuación
-        </button>
-
-        <button id="btn-end-season" class="btn-primary" style="min-height: 48px; border-radius: 14px; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-          ${iconSVG('star', 16)} Finalizar Temporada Año
-        </button>
-      </div>
+      <!-- Action Button below Main Card -->
+      <button id="btn-driver-rules" class="btn-secondary" style="width: 100%; min-height: 48px; border-radius: 14px; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        ${iconSVG('info', 16)} Reglas y Sistema de Puntuación
+      </button>
 
     </div>
   `;
@@ -185,7 +181,7 @@ export function render() {
 
 function renderOnboardingSummaryCard() {
   return `
-    <div class="page driver-page" style="padding: 24px 20px 100px 20px; max-width: 580px; margin: 0 auto; width: 100%; box-sizing: border-box;">
+    <div class="page driver-page" style="padding: 24px 20px 100px 20px; max-width: 520px; margin: 0 auto; width: 100%; box-sizing: border-box;">
       <header style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; width: 100%;">
         <div>
           <h1 class="editorial-title" style="margin: 0; font-size: 32px;">Tu Piloto<span style="color: var(--text-secondary);">.</span></h1>
@@ -385,6 +381,7 @@ function openDriverRulesModal() {
             <h4 style="color: var(--text-primary); margin: 0 0 6px 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
               ${iconSVG('trophy', 16)} Campeonatos a Fin de Año
             </h4>
+            <div>• Al terminar el ciclo anual de carrera:</div>
             <div>• <strong>OVR ≥ 95:</strong> Campeón de Pilotos Y Campeón de Constructores (+1 a Piloto, +1 a Constructor).</div>
             <div>• <strong>OVR 90 a 94:</strong> Campeón de Constructores (+1 a Constructor).</div>
           </div>
@@ -460,73 +457,6 @@ export function mount() {
   document.getElementById('btn-driver-rules')?.addEventListener('click', () => {
     openDriverRulesModal();
   });
-
-  document.getElementById('btn-end-season')?.addEventListener('click', async () => {
-    const state = store.getState();
-    const driver = state.driverProfile || {};
-    const ovr = driver.ovr || 50;
-
-    let driverWon = false;
-    let constrWon = false;
-
-    let tDriver = driver.titlesDriver || 0;
-    let tConstr = driver.titlesConstructor || 0;
-
-    if (ovr >= 95) {
-      tDriver++;
-      tConstr++;
-      driverWon = true;
-      constrWon = true;
-    } else if (ovr >= 90) {
-      tConstr++;
-      constrWon = true;
-    }
-
-    const newDriver = {
-      ...driver,
-      seasons: (driver.seasons || 1) + 1,
-      titlesDriver: tDriver,
-      titlesConstructor: tConstr
-    };
-
-    await store.saveDriverProfile(newDriver);
-
-    if (driverWon) {
-      showToast('🏆 ¡CAMPEÓN DEL MUNDO DE PILOTOS Y CONSTRUCTORES!', 'success');
-    } else if (constrWon) {
-      showToast('🏆 ¡CAMPEÓN DEL CAMPEONATO DE CONSTRUCTORES!', 'success');
-    } else {
-      showToast(`Temporada ${driver.seasons || 1} finalizada. ¡A darlo todo la próxima!`, 'info');
-    }
-
-    refreshDriverView();
-  });
-}
-
-function getSvgTeamLogo(teamKey) {
-  const commonAttrs = `width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"`;
-  switch (teamKey) {
-    case 'Mercedes':
-      return `<svg ${commonAttrs}><circle cx="12" cy="12" r="9"/><line x1="12" y1="12" x2="12" y2="3"/><line x1="12" y1="12" x2="4.2" y2="16.5"/><line x1="12" y1="12" x2="19.8" y2="16.5"/></svg>`;
-    case 'Ferrari':
-      return `<svg ${commonAttrs}><path d="M12 2v20M5 7l14 10M19 7L5 17"/></svg>`;
-    case 'RedBull':
-      return `<svg ${commonAttrs}><circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16"/></svg>`;
-    case 'Alpine':
-      return `<svg ${commonAttrs}><path d="M14 4L6 20h4l4-8 4 8h4L14 4z"/></svg>`;
-    case 'Racing':
-      return `<svg ${commonAttrs}><path d="M4 16l8-12 8 12H4z"/><path d="M8 12h8"/></svg>`;
-    case 'McLaren':
-      return `<svg ${commonAttrs}><path d="M20 12c-4 0-7 3-7 7M4 12c4 0 7 3 7 7"/></svg>`;
-    case 'Campos':
-      return `<svg ${commonAttrs}><path d="M4 6h16v12H4z"/><path d="M4 12h16"/></svg>`;
-    case 'Hitech':
-      return `<svg ${commonAttrs}><path d="M6 4v16M18 4v16M6 12h12"/></svg>`;
-    case 'Van':
-      return `<svg ${commonAttrs}><path d="M4 6l8 12 8-12"/></svg>`;
-    default:
-      return `<svg ${commonAttrs}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`;
-  }
 }
 
 export function unmount() {
