@@ -28,7 +28,8 @@ export const iconSVG = (name, size = 20, className = '') => {
     arrowRight: `<svg ${commonAttrs}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
     undo: `<svg ${commonAttrs}><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>`,
     alert: `<svg ${commonAttrs}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
-    helmet: `<svg ${commonAttrs}><path d="M12 3a9 9 0 0 0-9 9v4a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3v-4a9 9 0 0 0-9-9z"/><path d="M3 12h18"/><path d="M7 16h10"/></svg>`
+    helmet: `<svg ${commonAttrs}><path d="M12 3a9 9 0 0 0-9 9v4a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3v-4a9 9 0 0 0-9-9z"/><path d="M3 12h18"/><path d="M7 16h10"/></svg>`,
+    trophy: `<svg ${commonAttrs}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H8v4h8v-4h-1c-.55 0-1-.45-1-1v-2.34"/><path d="M18 4H6v7a6 6 0 0 0 12 0V4z"/></svg>`
   };
 
   return icons[name] || icons.target;

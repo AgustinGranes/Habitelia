@@ -130,9 +130,7 @@ export function render() {
           <div class="glass-card" style="padding: 18px 14px; border-radius: 18px; border: 1px solid var(--border-subtle); background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; gap: 14px; overflow-x: auto;">
             ${trajectoryHtml}
           </div>
-        </div>
-
-        <!-- TÍTULOS Section -->
+                <!-- TÍTULOS Section -->
         <div style="margin-bottom: 20px;">
           <div style="text-align: center; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 16px;">
             TÍTULOS
@@ -143,14 +141,18 @@ export function render() {
                 Vitrina Vacía
               </div>
             ` : `
-              <div style="display: flex; items-center; justify-content: space-around;">
+              <div style="display: flex; align-items: center; justify-content: space-around;">
                 <div>
-                  <div style="font-size: 28px; margin-bottom: 4px;">🏆</div>
+                  <div style="color: #D69E2E; margin-bottom: 6px; display: flex; justify-content: center;">
+                    ${iconSVG('trophy', 32)}
+                  </div>
                   <div style="font-size: 11px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em;">PILOTO</div>
                   <div style="font-size: 18px; font-weight: 900; color: #D69E2E; margin-top: 2px;">x${driver.titlesDriver || 0}</div>
                 </div>
                 <div>
-                  <div style="font-size: 28px; margin-bottom: 4px;">🏆</div>
+                  <div style="color: #7CDEDC; margin-bottom: 6px; display: flex; justify-content: center;">
+                    ${iconSVG('trophy', 32)}
+                  </div>
                   <div style="font-size: 11px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em;">CONSTRUCTOR</div>
                   <div style="font-size: 18px; font-weight: 900; color: #7CDEDC; margin-top: 2px;">x${driver.titlesConstructor || 0}</div>
                 </div>
@@ -169,11 +171,11 @@ export function render() {
       <!-- Action Buttons below Main Card -->
       <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 24px;">
         <button id="btn-driver-rules" class="btn-secondary" style="min-height: 48px; border-radius: 14px; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-          ${iconSVG('info', 16)} ⓘ Reglas y Sistema de Puntuación
+          ${iconSVG('info', 16)} Reglas y Sistema de Puntuación
         </button>
 
         <button id="btn-end-season" class="btn-primary" style="min-height: 48px; border-radius: 14px; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-          ${iconSVG('star', 16)} 🏁 Finalizar Temporada Año
+          ${iconSVG('star', 16)} Finalizar Temporada Año
         </button>
       </div>
 
@@ -201,19 +203,47 @@ function renderOnboardingSummaryCard() {
 
         <h2 class="editorial-title" style="font-size: 26px; margin: 0 0 10px 0;">Modo Carrera: Tu Piloto</h2>
         <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.5; margin-bottom: 24px; max-width: 460px; margin-left: auto; margin-right: auto;">
-          Convierte la disciplina de tus hábitos diarios en rendimiento en pista. Comienza en la Fórmula 4 y escala categorías hasta convertirte en Campeón Mundial de Fórmula 1.
+          Transforma la constancia de tus hábitos diarios en rendimiento profesional sobre el asfalto. Inicia tu trayectoria en la Fórmula 4 y escala categorías hasta consagrarte Campeón Mundial de Fórmula 1.
         </p>
 
-        <div style="display: flex; flex-direction: column; gap: 10px; text-align: left; background: var(--bg-primary); padding: 18px 20px; border-radius: 16px; border: 1px solid var(--border-subtle); margin-bottom: 28px; font-size: 13px; color: var(--text-secondary);">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="color: var(--text-primary); font-weight: 700;">🏎️ OVR:</span> Cada 10 hábitos completados = <strong>+1 OVR</strong>.
+        <div style="display: flex; flex-direction: column; gap: 16px; text-align: left; background: var(--bg-primary); padding: 20px; border-radius: 18px; border: 1px solid var(--border-subtle); margin-bottom: 28px;">
+          
+          <div style="display: flex; align-items: flex-start; gap: 14px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--bg-subtle); display: flex; align-items: center; justify-content: center; color: var(--text-primary); flex-shrink: 0; margin-top: 2px;">
+              ${iconSVG('flame', 16)}
+            </div>
+            <div>
+              <div style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Evaluación de Rendimiento (OVR)</div>
+              <div style="font-size: 13px; color: var(--text-secondary); margin-top: 3px; line-height: 1.45;">
+                Cada 10 hábitos completados incrementan +1 punto tu OVR general. A mayor disciplina diaria, mayor rendimiento de telemetría y mejor posición en grilla.
+              </div>
+            </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="color: var(--text-primary); font-weight: 700;">⚠️ Sanción:</span> Hábitos sin cumplir o racha rota = <strong>-1 OVR</strong>.
+
+          <div style="display: flex; align-items: flex-start; gap: 14px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--bg-subtle); display: flex; align-items: center; justify-content: center; color: var(--text-primary); flex-shrink: 0; margin-top: 2px;">
+              ${iconSVG('alert', 16)}
+            </div>
+            <div>
+              <div style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Penalizaciones e Incidentes de Carrera</div>
+              <div style="font-size: 13px; color: var(--text-secondary); margin-top: 3px; line-height: 1.45;">
+                Dejar hábitos sin cumplir o romper la racha genera una sanción inmediata de -1 OVR con reporte por radio de boxes en vivo.
+              </div>
+            </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="color: var(--text-primary); font-weight: 700;">🏆 Ascensos:</span> Progresa de F4 → F3 → F2 → F1 (Apex, Alpine, Ferrari, Mercedes).
+
+          <div style="display: flex; align-items: flex-start; gap: 14px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--bg-subtle); display: flex; align-items: center; justify-content: center; color: var(--text-primary); flex-shrink: 0; margin-top: 2px;">
+              ${iconSVG('star', 16)}
+            </div>
+            <div>
+              <div style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Ascenso de Categorías y Escuderías</div>
+              <div style="font-size: 13px; color: var(--text-secondary); margin-top: 3px; line-height: 1.45;">
+                Avanza a través de F4, F3, F2 y F1 firmando contrato con escuderías legendarias como Apex, Van Amersfoort, Campos, Hitech, Alpine, Racing Bulls, Ferrari y Mercedes-AMG.
+              </div>
+            </div>
           </div>
+
         </div>
 
         <button id="btn-start-driver-onboarding" class="btn-primary" style="width: 100%; min-height: 52px; font-size: 15px; border-radius: 14px;">
@@ -229,7 +259,6 @@ function openDriverOnboardingModal() {
 
   const user = store.getState().user || {};
   const defaultLastName = (user.name || 'GRANES').split(' ').pop().toUpperCase();
-  const defaultInitials = defaultLastName.substring(0, 3).toUpperCase();
 
   const modalHtml = `
     <div id="driver-onboarding-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1500; display: flex; align-items: center; justify-content: center; padding: 20px;">
@@ -326,7 +355,9 @@ function openDriverRulesModal() {
 
         <div style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; display: flex; flex-direction: column; gap: 16px;">
           <div>
-            <h4 style="color: var(--text-primary); margin: 0 0 4px 0; font-size: 15px;">🏎️ Puntuación de OVR</h4>
+            <h4 style="color: var(--text-primary); margin: 0 0 6px 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+              ${iconSVG('flame', 16)} Puntuación de OVR
+            </h4>
             <div>• Arrancas con <strong>50 OVR</strong> en Fórmula 4 (Escudería Apex).</div>
             <div>• Cada <strong>10 hábitos completados</strong> = <strong>+1 OVR</strong>.</div>
             <div>• Cada hábito no cumplido / racha rota = <strong>-1 OVR</strong>.</div>
@@ -335,7 +366,9 @@ function openDriverRulesModal() {
           <div style="height: 1px; background: var(--border-subtle);"></div>
 
           <div>
-            <h4 style="color: var(--text-primary); margin: 0 0 4px 0; font-size: 15px;">🚦 Escuderías y Categorías por OVR</h4>
+            <h4 style="color: var(--text-primary); margin: 0 0 6px 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+              ${iconSVG('star', 16)} Escuderías y Categorías por OVR
+            </h4>
             <div>• <strong>50-59 (F4):</strong> Apex, Rodin, Jenzer</div>
             <div>• <strong>60-69 (F3):</strong> Van Amersfoort (VAR), Trident, MP</div>
             <div>• <strong>70-79 (F2):</strong> Campos, Hitech, DAMS</div>
@@ -349,7 +382,9 @@ function openDriverRulesModal() {
           <div style="height: 1px; background: var(--border-subtle);"></div>
 
           <div>
-            <h4 style="color: var(--text-primary); margin: 0 0 4px 0; font-size: 15px;">🏆 Campeonatos a Fin de Año</h4>
+            <h4 style="color: var(--text-primary); margin: 0 0 6px 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+              ${iconSVG('trophy', 16)} Campeonatos a Fin de Año
+            </h4>
             <div>• <strong>OVR ≥ 95:</strong> Campeón de Pilotos Y Campeón de Constructores (+1 a Piloto, +1 a Constructor).</div>
             <div>• <strong>OVR 90 a 94:</strong> Campeón de Constructores (+1 a Constructor).</div>
           </div>
