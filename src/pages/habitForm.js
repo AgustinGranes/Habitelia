@@ -12,14 +12,18 @@ export function render(props = {}) {
   const hashId = new URLSearchParams(window.location.hash.split('?')[1] || '').get('id');
   const targetId = props?.id || hashId;
 
+  const defaultFreq = { type: 'daily', days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] };
+
   if (targetId) {
     const state = store.getState();
     const existing = (state.habits || []).find(h => h.id === targetId);
     if (existing) {
       habitData = JSON.parse(JSON.stringify(existing));
+      if (!habitData.frequency) habitData.frequency = defaultFreq;
     } else {
       habitData = {
         name: '', icon: '🎯', duration: 15, cue: { time: '08:00', place: '' },
+        frequency: defaultFreq,
         craving: { linkedPleasure: 'Tomar un té caliente' },
         response: { twoMinVersion: '' }
       };
@@ -27,13 +31,14 @@ export function render(props = {}) {
   } else {
     habitData = {
       name: '', icon: '🎯', duration: 15, cue: { time: '08:00', place: '' },
+      frequency: defaultFreq,
       craving: { linkedPleasure: 'Tomar un té caliente' },
       response: { twoMinVersion: '' }
     };
   }
 
   return `
-    <div class="page habit-form-page" style="padding: 24px 16px 80px 16px; max-width: 540px; margin: 0 auto;">
+    <div class="page habit-form-page" style="padding: 24px 16px 80px 16px; max-width: 540px; margin: 0 auto; box-sizing: border-box;">
       <!-- Monochromatic Progress Bar -->
       <div class="wizard-progress" style="display: flex; align-items: center; justify-content: center; margin-bottom: 28px; gap: 12px;">
         <div class="wizard-step-indicator active" data-step="1" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; background: var(--accent-primary); color: var(--accent-inverted); font-size: 13px;">1</div>
@@ -61,32 +66,62 @@ export function render(props = {}) {
 }
 
 function renderStep1() {
+  const freq = habitData.frequency || { type: 'daily', days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] };
+  const freqType = freq.type || 'daily';
+  const selectedDays = freq.days || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
   return `
     <div style="margin-bottom: 24px;">
       <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 4px;">Paso 1 de 2</div>
       <h2 class="editorial-title" style="font-size: 26px; margin: 0 0 6px 0;">Horario y Detalle.</h2>
-      <p style="color: var(--text-secondary); font-size: 14px; margin: 0;">Ingresá el nombre, la hora y la duración de tu hábito.</p>
+      <p style="color: var(--text-secondary); font-size: 14px; margin: 0;">Ingresá el nombre, la hora, la duración y la frecuencia de tu hábito.</p>
     </div>
 
     <div class="form-group" style="margin-bottom: 20px;">
       <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Nombre del Hábito</label>
-      <input type="text" id="habit-name" class="input" value="${habitData.name || ''}" placeholder="Ej. Meditar, Correr, Leer..." style="width:100%; min-height:46px;">
+      <input type="text" id="habit-name" class="input" value="${habitData.name || ''}" placeholder="Ej. Meditar, Correr, Leer..." style="width:100%; box-sizing: border-box; min-height:46px;">
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-      <div class="form-group" style="margin: 0;">
+    <!-- Responsive Grid for Time & Duration to prevent mobile overlap -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 20px;">
+      <div class="form-group" style="margin: 0; min-width: 0;">
         <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Hora de Inicio</label>
-        <input type="time" id="habit-time" class="input" value="${habitData.cue?.time || '08:00'}" style="width:100%; min-height:46px;">
+        <input type="time" id="habit-time" class="input" value="${habitData.cue?.time || '08:00'}" style="width:100%; box-sizing: border-box; min-height:46px;">
       </div>
-      <div class="form-group" style="margin: 0;">
-        <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Duración (min)</label>
-        <input type="number" id="habit-duration" class="input" value="${habitData.duration || 15}" min="1" max="180" style="width:100%; min-height:46px;">
+      <div class="form-group" style="margin: 0; min-width: 0;">
+        <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Duración (minutos)</label>
+        <input type="number" id="habit-duration" class="input" value="${habitData.duration || 15}" min="1" max="180" style="width:100%; box-sizing: border-box; min-height:46px;">
+      </div>
+    </div>
+
+    <!-- Repetition / Frequency Selector Section -->
+    <div class="form-group" style="margin-bottom: 20px;">
+      <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Frecuencia y Repetición</label>
+      <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+        <button type="button" id="freq-daily-btn" style="flex: 1; min-height: 42px; border-radius: 12px; font-size: 13px; font-weight: 600; border: 1px solid var(--border-subtle); background: ${freqType === 'daily' ? 'var(--text-primary)' : 'var(--bg-primary)'}; color: ${freqType === 'daily' ? 'var(--bg-primary)' : 'var(--text-primary)'}; cursor: pointer;">
+          Todos los Días
+        </button>
+        <button type="button" id="freq-weekly-btn" style="flex: 1; min-height: 42px; border-radius: 12px; font-size: 13px; font-weight: 600; border: 1px solid var(--border-subtle); background: ${freqType === 'weekly' ? 'var(--text-primary)' : 'var(--bg-primary)'}; color: ${freqType === 'weekly' ? 'var(--bg-primary)' : 'var(--text-primary)'}; cursor: pointer;">
+          Días Específicos
+        </button>
+      </div>
+
+      <div id="weekday-pills-container" style="display: ${freqType === 'weekly' ? 'flex' : 'none'}; justify-content: space-between; gap: 6px; flex-wrap: wrap;">
+        ${['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((dayName, idx) => {
+          const dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+          const isSelected = selectedDays.includes(dayName);
+          return `
+            <button type="button" class="day-pill-btn" data-day="${dayName}" style="flex: 1; min-width: 38px; height: 38px; border-radius: 10px; font-size: 12px; font-weight: 700; border: 1px solid var(--border-subtle); background: ${isSelected ? 'var(--text-primary)' : 'var(--bg-subtle)'}; color: ${isSelected ? 'var(--bg-primary)' : 'var(--text-secondary)'}; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+              ${dayLabels[idx]}
+            </button>
+          `;
+        }).join('')}
       </div>
     </div>
 
     <div class="form-group" style="margin-bottom: 8px;">
       <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Lugar (Opcional)</label>
-      <input type="text" id="habit-place" class="input" value="${habitData.cue?.place || ''}" placeholder="Ej. En mi escritorio, parque..." style="width:100%; min-height:46px;">
+      <input type="text" id="habit-place" class="input" value="${habitData.cue?.place || ''}" placeholder="Ej. En mi escritorio, parque..." style="width:100%; box-sizing: border-box; min-height:46px;">
     </div>
   `;
 }
@@ -122,14 +157,71 @@ function renderStep2() {
 
     <div class="form-group" style="margin-bottom: 20px;">
       <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Versión de 2 minutos</label>
-      <input type="text" id="habit-twomin" class="input" value="${defaultTwoMin}" placeholder="Ej. Leer 1 página / Ponerte las zapatillas" style="width:100%; min-height:46px;">
+      <input type="text" id="habit-twomin" class="input" value="${defaultTwoMin}" placeholder="Ej. Leer 1 página / Ponerte las zapatillas" style="width:100%; box-sizing: border-box; min-height:46px;">
     </div>
 
     <div class="form-group" style="margin-bottom: 8px;">
       <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Placer vinculado / Ritual previo</label>
-      <input type="text" id="habit-pleasure" class="input" value="${defaultPleasure}" placeholder="Ej. Tomar un té mientras lo realizo" style="width:100%; min-height:46px;">
+      <input type="text" id="habit-pleasure" class="input" value="${defaultPleasure}" placeholder="Ej. Tomar un té mientras lo realizo" style="width:100%; box-sizing: border-box; min-height:46px;">
     </div>
   `;
+}
+
+function bindFrequencyEvents() {
+  const dailyBtn = document.getElementById('freq-daily-btn');
+  const weeklyBtn = document.getElementById('freq-weekly-btn');
+  const container = document.getElementById('weekday-pills-container');
+
+  if (!habitData.frequency) {
+    habitData.frequency = { type: 'daily', days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] };
+  }
+
+  const updateFreqUI = () => {
+    const isDaily = habitData.frequency.type === 'daily';
+    if (dailyBtn) {
+      dailyBtn.style.background = isDaily ? 'var(--text-primary)' : 'var(--bg-primary)';
+      dailyBtn.style.color = isDaily ? 'var(--bg-primary)' : 'var(--text-primary)';
+    }
+    if (weeklyBtn) {
+      weeklyBtn.style.background = !isDaily ? 'var(--text-primary)' : 'var(--bg-primary)';
+      weeklyBtn.style.color = !isDaily ? 'var(--bg-primary)' : 'var(--text-primary)';
+    }
+    if (container) {
+      container.style.display = !isDaily ? 'flex' : 'none';
+    }
+  };
+
+  dailyBtn?.addEventListener('click', () => {
+    habitData.frequency = { type: 'daily', days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] };
+    updateFreqUI();
+  });
+
+  weeklyBtn?.addEventListener('click', () => {
+    habitData.frequency.type = 'weekly';
+    if (!habitData.frequency.days || habitData.frequency.days.length === 0) {
+      habitData.frequency.days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+    }
+    updateFreqUI();
+  });
+
+  document.querySelectorAll('.day-pill-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const day = e.currentTarget.dataset.day;
+      let days = habitData.frequency.days || [];
+      if (days.includes(day)) {
+        if (days.length > 1) {
+          days = days.filter(d => d !== day);
+        }
+      } else {
+        days.push(day);
+      }
+      habitData.frequency.days = days;
+      
+      const isSelected = days.includes(day);
+      e.currentTarget.style.background = isSelected ? 'var(--text-primary)' : 'var(--bg-subtle)';
+      e.currentTarget.style.color = isSelected ? 'var(--bg-primary)' : 'var(--text-secondary)';
+    });
+  });
 }
 
 function checkAndShowCollisions(newHabit, onConfirmed) {
@@ -141,16 +233,12 @@ function checkAndShowCollisions(newHabit, onConfirmed) {
     return;
   }
 
-  // COLLISION DETECTED -> Open Multi-Suggestion Assistant Modal Monochromatic
   const conflict = conflictingHabits[0];
-  
   const newStartMin = parseTime(newHabit.cue.time);
-  const newEndMin = newStartMin + parseInt(newHabit.duration || 15);
-  
   const confStartMin = parseTime(conflict.cue.time);
   const confEndMin = confStartMin + parseInt(conflict.duration || 15);
+  const newEndMin = newStartMin + parseInt(newHabit.duration || 15);
 
-  // Compute suggestions
   const sugg1NewTime = minutesToTime(Math.max(0, confStartMin - newHabit.duration));
   const sugg2NewTime = minutesToTime(confEndMin);
   const sugg3ConfTime = minutesToTime(Math.max(0, newStartMin - conflict.duration));
@@ -265,6 +353,8 @@ export function mount() {
   const btnBack = document.getElementById('btn-back');
   const btnNext = document.getElementById('btn-next');
 
+  bindFrequencyEvents();
+
   const saveCurrentStepData = () => {
     if (currentStep === 1) {
       const name = document.getElementById('habit-name')?.value.trim();
@@ -298,7 +388,6 @@ export function mount() {
       btnNext.innerHTML = `Guardar Hábito ${iconSVG('check', 16)}`;
       updateStepIndicators();
     } else if (currentStep === 2) {
-      // Confirm Habit Save with Collision Assistant
       checkAndShowCollisions(habitData, async (finalHabit) => {
         await store.saveHabit(finalHabit);
         showToast('¡Hábito guardado con éxito!', 'success');
@@ -312,6 +401,7 @@ export function mount() {
     if (currentStep === 2) {
       currentStep = 1;
       container.innerHTML = renderStep1();
+      bindFrequencyEvents();
       btnBack.style.display = 'none';
       btnNext.innerHTML = `Siguiente ${iconSVG('arrowRight', 16)}`;
       updateStepIndicators();

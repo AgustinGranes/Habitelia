@@ -41,7 +41,7 @@ export function render(props = {}) {
             </div>
 
             <div class="glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 18px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
+                <div id="partner-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: ${partner.enabled ? '16px' : '0'}; ${partner.enabled ? 'border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;' : ''}">
                     <h3 class="editorial-title" style="font-size: 20px; margin: 0;">Socio Corresponsable</h3>
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-primary);">
                         <input type="checkbox" id="partner-toggle" ${partner.enabled ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: var(--text-primary);">
@@ -146,7 +146,13 @@ export function mount() {
 
     partnerToggle?.addEventListener('change', (e) => {
         const enabled = e.target.checked;
+        const partnerHeader = document.getElementById('partner-header');
         if (partnerFields) partnerFields.style.display = enabled ? 'block' : 'none';
+        if (partnerHeader) {
+            partnerHeader.style.marginBottom = enabled ? '16px' : '0';
+            partnerHeader.style.borderBottom = enabled ? '1px solid var(--border-subtle)' : 'none';
+            partnerHeader.style.paddingBottom = enabled ? '10px' : '0';
+        }
         store.saveUserProfile({
             partner: { ...(store.getState().user?.partner || {}), enabled }
         });
