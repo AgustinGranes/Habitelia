@@ -215,6 +215,8 @@ h1, h2, h3, h4 {
 
 .input {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   min-height: 46px;
   padding: 12px 16px;
   background: var(--bg-primary);
@@ -222,7 +224,7 @@ h1, h2, h3, h4 {
   border-radius: 10px;
   color: var(--text-primary);
   font-family: var(--font-ui);
-  font-size: 14px;
+  font-size: 16px;
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -233,6 +235,26 @@ h1, h2, h3, h4 {
 
 .input::placeholder {
   color: var(--text-tertiary);
+}
+
+/* WebKit Input Overflow & Styling Fix for iOS Safari */
+input[type="time"].input,
+input[type="date"].input,
+input[type="datetime-local"].input,
+input[type="number"].input {
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  display: block !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+  opacity: 0.8;
 }
 
 /* SVG Icon Helper Alignment */

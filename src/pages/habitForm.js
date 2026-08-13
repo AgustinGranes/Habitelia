@@ -82,16 +82,17 @@ function renderStep1() {
       <input type="text" id="habit-name" class="input" value="${habitData.name || ''}" placeholder="Ej. Meditar, Correr, Leer..." style="width:100%; box-sizing: border-box; min-height:46px;">
     </div>
 
-    <!-- Responsive Grid for Time & Duration to prevent mobile overlap -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 20px;">
-      <div class="form-group" style="margin: 0; min-width: 0;">
-        <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Hora de Inicio</label>
-        <input type="time" id="habit-time" class="input" value="${habitData.cue?.time || '08:00'}" style="width:100%; box-sizing: border-box; min-height:46px;">
+    <!-- Time & Duration Form Groups (Strictly bounded for iOS Safari) -->
+    <div class="form-group" style="margin-bottom: 20px; width: 100%; max-width: 100%; box-sizing: border-box;">
+      <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Hora de Inicio</label>
+      <div style="width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; border-radius: 10px;">
+        <input type="time" id="habit-time" class="input" value="${habitData.cue?.time || '08:00'}" style="width: 100%; max-width: 100%; box-sizing: border-box; min-height: 46px; font-size: 16px; text-align: center; display: block;">
       </div>
-      <div class="form-group" style="margin: 0; min-width: 0;">
-        <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Duración (minutos)</label>
-        <input type="number" id="habit-duration" class="input" value="${habitData.duration || 15}" min="1" max="180" style="width:100%; box-sizing: border-box; min-height:46px;">
-      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom: 20px; width: 100%; max-width: 100%; box-sizing: border-box;">
+      <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Duración (minutos)</label>
+      <input type="number" id="habit-duration" class="input" value="${habitData.duration || 15}" min="1" max="180" style="width: 100%; max-width: 100%; box-sizing: border-box; min-height: 46px;">
     </div>
 
     <!-- Repetition / Frequency Selector Section -->
