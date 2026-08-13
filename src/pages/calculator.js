@@ -199,6 +199,20 @@ export function mount() {
   const state = store.getState();
   let currentExpenses = state.calcExpenses || [];
 
+  function refreshCalculatorView() {
+    const pageContent = document.querySelector('.calculator-page');
+    if (pageContent) {
+      pageContent.outerHTML = render();
+      mount();
+    } else {
+      const app = document.getElementById('app');
+      if (app) {
+        app.innerHTML = render();
+        mount();
+      }
+    }
+  }
+
   function saveExpenses(newList) {
     store.setState({ calcExpenses: newList });
     localStorage.setItem('calc_expenses_v1', JSON.stringify(newList));
@@ -206,7 +220,7 @@ export function mount() {
       saveDocument(`users/${auth.currentUser.uid}/calculator/main`, { expenses: newList })
         .catch(err => console.error('Error saving expenses to firebase', err));
     }
-    navigate('/calculator');
+    refreshCalculatorView();
   }
 
   function openModal(editExpense = null) {
