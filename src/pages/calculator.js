@@ -42,23 +42,29 @@ export function render() {
         }
 
         return `
-          <div class="glass-card" style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: transform 0.2s; position: relative;" data-id="${id}">
-            <div style="flex: 1;" class="expense-info" data-id="${id}">
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                <span style="font-size: 0.7rem; padding: 2px 6px; background: var(--bg-subtle); border-radius: 4px; color: var(--text-secondary); border: 1px solid var(--border-subtle);">${cur}</span>
-                <strong style="font-family: var(--font-ui); font-size: 1rem; color: var(--text-primary); font-weight: 500;">${name}</strong>
+          <div class="glass-card expense-item-card" data-id="${id}" style="padding: 18px 20px; margin-bottom: 12px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; transition: transform 0.15s ease;">
+            <div class="expense-info" data-id="${id}" style="flex: 1; min-width: 0; cursor: pointer;">
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 6px; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-secondary); flex-shrink: 0;">${cur}</span>
+                <div style="font-weight: 600; font-size: 16px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${name}</div>
               </div>
-              <div style="color: var(--text-secondary); font-size: 0.85rem; font-family: var(--font-ui);">
-                Orig: ${cur} ${price} <span style="color: var(--text-tertiary); font-size: 0.75rem;">(+${(commission * 100).toFixed(0)}%)</span>
+              
+              <div style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <span>Base: ${cur} ${price}${commission > 0 ? ` (+${Math.round(commission * 100)}%)` : ''}</span>
+                ${billingDay ? `
+                  <span style="display: inline-flex; align-items: center; gap: 4px; color: ${hasPassed ? 'var(--text-tertiary)' : 'var(--text-secondary)'};">
+                    ${billingIcon} Día ${billingDay}
+                  </span>
+                ` : ''}
               </div>
-              ${billingHTML}
             </div>
-            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
-              <div style="font-family: var(--font-serif); font-size: 1.1rem; color: var(--text-primary);">
-                ${formatPrice(converted, 'ARS')}
+
+            <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+              <div style="font-weight: 700; font-size: 17px; color: var(--text-primary); font-family: var(--font-ui); text-align: right;">
+                ${formatPrice(converted)}
               </div>
-              <button class="btn-ghost delete-expense-btn" data-id="${id}" style="padding: 4px; border-radius: 50%; opacity: 0.6;">
-                ${iconSVG('x', 16)}
+              <button class="btn-ghost delete-expense-btn" data-id="${id}" title="Eliminar" style="padding: 8px; border-radius: 8px; color: var(--text-tertiary); display: flex; align-items: center; justify-content: center;">
+                ${iconSVG('trash', 16)}
               </button>
             </div>
           </div>
