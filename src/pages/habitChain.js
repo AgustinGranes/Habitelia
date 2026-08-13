@@ -2,6 +2,7 @@ import { store } from '../store.js';
 import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { iconSVG } from '../components/icons.js';
+import { renderSidebar, mountSidebar } from '../components/sidebar.js';
 
 let selectedHabitId = null;
 let currentMonth = new Date().getMonth();
@@ -173,6 +174,17 @@ export function render() {
 }
 
 export function mount() {
+  let overlay = document.getElementById('sidebar-overlay');
+  let panel = document.getElementById('sidebar-panel');
+  if (!overlay || !panel) {
+    const appContainer = document.getElementById('app');
+    if (appContainer) {
+      const sidebarHTML = renderSidebar();
+      appContainer.insertAdjacentHTML('beforeend', sidebarHTML);
+      mountSidebar();
+    }
+  }
+
   const menuBtn = document.getElementById('menu-btn');
   if (menuBtn) {
     menuBtn.addEventListener('click', () => {
@@ -228,10 +240,19 @@ export function mount() {
 }
 
 function refreshView() {
-  const app = document.getElementById('app');
-  if (app) {
-    app.innerHTML = render();
+  const pageContent = document.querySelector('.habit-chain-page');
+  if (pageContent) {
+    pageContent.outerHTML = render();
     mount();
+  } else {
+    const app = document.getElementById('app');
+    if (app) {
+      app.innerHTML = render();
+      mount();
+      const sidebarHTML = renderSidebar();
+      app.insertAdjacentHTML('beforeend', sidebarHTML);
+      mountSidebar();
+    }
   }
 }
 

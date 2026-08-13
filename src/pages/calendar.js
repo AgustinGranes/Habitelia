@@ -2,6 +2,7 @@ import { store } from '../store.js';
 import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { iconSVG } from '../components/icons.js';
+import { renderSidebar, mountSidebar } from '../components/sidebar.js';
 
 let currentDate = new Date();
 
@@ -73,7 +74,35 @@ export function render() {
   `;
 }
 
+function refreshCalendarView() {
+  const pageContent = document.querySelector('.calendar-page');
+  if (pageContent) {
+    pageContent.outerHTML = render();
+    mount();
+  } else {
+    const app = document.getElementById('app');
+    if (app) {
+      app.innerHTML = render();
+      mount();
+      const sidebarHTML = renderSidebar();
+      app.insertAdjacentHTML('beforeend', sidebarHTML);
+      mountSidebar();
+    }
+  }
+}
+
 export function mount() {
+  let overlay = document.getElementById('sidebar-overlay');
+  let panel = document.getElementById('sidebar-panel');
+  if (!overlay || !panel) {
+    const appContainer = document.getElementById('app');
+    if (appContainer) {
+      const sidebarHTML = renderSidebar();
+      appContainer.insertAdjacentHTML('beforeend', sidebarHTML);
+      mountSidebar();
+    }
+  }
+
   const menuBtn = document.getElementById('menu-btn');
   if (menuBtn) {
     menuBtn.addEventListener('click', () => {
@@ -92,14 +121,12 @@ export function mount() {
 
   document.getElementById('prev-month')?.addEventListener('click', () => {
     currentDate.setMonth(currentDate.getMonth() - 1);
-    const app = document.getElementById('app');
-    if (app) { app.innerHTML = render(); mount(); }
+    refreshCalendarView();
   });
 
   document.getElementById('next-month')?.addEventListener('click', () => {
     currentDate.setMonth(currentDate.getMonth() + 1);
-    const app = document.getElementById('app');
-    if (app) { app.innerHTML = render(); mount(); }
+    refreshCalendarView();
   });
 
   document.querySelectorAll('.calendar-day').forEach(dayEl => {
@@ -117,8 +144,7 @@ export function mount() {
         if (routines[idx]) {
           localStorage.setItem(`assigned_routine_${dateStr}`, routines[idx].id);
           showToast(`Rutina "${routines[idx].name}" asignada a ${dateStr}`, 'success');
-          const app = document.getElementById('app');
-          if (app) { app.innerHTML = render(); mount(); }
+          refreshCalendarView();
         }
       }
     });
