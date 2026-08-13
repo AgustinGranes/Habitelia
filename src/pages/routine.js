@@ -77,15 +77,10 @@ export function render() {
       const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
       return `
         <div class="glass-card" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; margin-bottom: 10px; border-radius: 14px; border: 1px solid var(--border-subtle);">
-          <div style="display: flex; align-items: center; gap: 14px;">
-            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--bg-subtle); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--text-primary);"></div>
-            </div>
-            <div>
-              <div style="font-weight: 600; font-size: 15px; color: var(--text-primary);">${h.name}</div>
-              <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Duración: ${h.duration || 15} min ${h.cue?.place ? `• ${h.cue.place}` : ''}</div>
-              ${linkedPleasure ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">Ritual previo: ${linkedPleasure}</div>` : ''}
-            </div>
+          <div>
+            <div style="font-weight: 600; font-size: 15px; color: var(--text-primary);">${h.name}</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Duración: ${h.duration || 15} min ${h.cue?.place ? `• ${h.cue.place}` : ''}</div>
+            ${linkedPleasure ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">Ritual previo: ${linkedPleasure}</div>` : ''}
           </div>
           <button class="btn-ghost btn-edit-habit-routine" data-id="${h.id}" style="padding: 6px 12px; font-size: 12px; border: 1px solid var(--border-subtle); color: var(--text-primary); border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
             ${iconSVG('edit', 14)} Editar

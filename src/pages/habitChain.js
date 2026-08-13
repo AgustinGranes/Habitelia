@@ -4,65 +4,74 @@ import { showToast } from '../components/toast.js';
 import { iconSVG } from '../components/icons.js';
 
 let selectedHabitId = null;
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
 
-function renderHeatmapGrid(habit) {
-  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-  const dayLabels = ['', 'Lun', '', 'Mié', '', 'Vie', ''];
+function renderMonthlyGrid(habit, year, month) {
+  const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  const dayNamesShort = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   
-  const today = new Date();
-  const days = [];
-  
-  // Build 364 days ending today
-  for (let i = 363; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0];
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const daysData = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(year, month, d);
+    const dayOfWeek = dayNamesShort[dateObj.getDay()];
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const isCompleted = habit?.completions?.[dateStr] === 'completed';
-    days.push({ dateStr, isCompleted });
+    daysData.push({ dayNumber: d, dayOfWeek, dateStr, isCompleted });
   }
 
-  const weeks = [];
-  for (let w = 0; w < 52; w++) {
-    weeks.push(days.slice(w * 7, (w + 1) * 7));
-  }
-
-  const monthsHeader = `
-    <div style="display: flex; justify-content: space-between; margin-left: 36px; margin-bottom: 10px; font-size: 11px; color: var(--text-tertiary); font-weight: 500;">
-      ${months.map(m => `<span>${m}</span>`).join('')}
-    </div>
-  `;
-
-  const gridRows = dayLabels.map((label, dayIdx) => {
-    const cells = weeks.map(week => {
-      const dayData = week[dayIdx] || {};
-      const color = dayData.isCompleted ? 'var(--text-primary)' : 'var(--bg-subtle)';
-      const border = dayData.isCompleted ? '1px solid var(--text-primary)' : '1px solid var(--border-subtle)';
-      return `<div title="${dayData.dateStr || ''}" style="width: 10px; height: 10px; border-radius: 2px; background: ${color}; border: ${border}; flex-shrink: 0; transition: background 0.2s;"></div>`;
-    }).join('');
-
+  const columnsHtml = daysData.map(item => {
+    const isCompleted = item.isCompleted;
     return `
-      <div style="display: flex; align-items: center; gap: 4px;">
-        <span style="width: 30px; font-size: 10px; color: var(--text-tertiary); text-align: right; margin-right: 6px;">${label}</span>
-        <div style="display: flex; gap: 3px;">${cells}</div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 32px;">
+        <!-- Diagonal Day & Date Header -->
+        <div style="height: 48px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 4px;">
+          <span style="font-size: 11px; font-weight: 500; color: var(--text-secondary); display: inline-block; transform: rotate(-45deg); transform-origin: center center; white-space: nowrap;">
+            ${item.dayOfWeek} ${item.dayNumber}
+          </span>
+        </div>
+        
+        <!-- Binary Cell (0 = Empty, 1 = Solid White) -->
+        <div title="${item.dateStr}: ${isCompleted ? 'Completado' : 'No completado'}" 
+             style="width: 26px; height: 26px; border-radius: 6px; background: ${isCompleted ? 'var(--text-primary)' : 'var(--bg-primary)'}; border: 1px solid ${isCompleted ? 'var(--text-primary)' : 'var(--border-subtle)'}; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">
+          ${isCompleted ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--bg-primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+        </div>
       </div>
     `;
   }).join('');
 
   return `
-    <div class="heatmap-container glass-card" style="padding: 24px; border-radius: 18px; overflow-x: auto;">
-      <div style="min-width: 600px;">
-        ${monthsHeader}
-        <div style="display: flex; flex-direction: column; gap: 3px;">
-          ${gridRows}
-        </div>
+    <div class="glass-card" style="padding: 24px 20px; border-radius: 18px; overflow-x: auto;">
+      <!-- Month Navigation Header -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+        <button id="chain-prev-month" class="btn-secondary" style="width: 36px; height: 36px; min-height: 36px; padding: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+          ${iconSVG('arrowLeft', 16)}
+        </button>
+        <h4 class="editorial-title" style="font-size: 20px; margin: 0; color: var(--text-primary);">
+          ${monthNames[month]} ${year}
+        </h4>
+        <button id="chain-next-month" class="btn-secondary" style="width: 36px; height: 36px; min-height: 36px; padding: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+          ${iconSVG('arrowRight', 16)}
+        </button>
       </div>
-      <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 16px; font-size: 11px; color: var(--text-secondary);">
-        <span>Menos</span>
-        <div style="width: 10px; height: 10px; border-radius: 2px; background: var(--bg-subtle); border: 1px solid var(--border-subtle);"></div>
-        <div style="width: 10px; height: 10px; border-radius: 2px; background: var(--text-tertiary);"></div>
-        <div style="width: 10px; height: 10px; border-radius: 2px; background: var(--text-secondary);"></div>
-        <div style="width: 10px; height: 10px; border-radius: 2px; background: var(--text-primary);"></div>
-        <span>Más</span>
+
+      <!-- Scrollable Horizontal Grid of All Days -->
+      <div style="display: flex; gap: 6px; min-width: max-content; padding-top: 10px; padding-bottom: 12px;">
+        ${columnsHtml}
+      </div>
+
+      <!-- Binary Legend -->
+      <div style="display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-top: 16px; font-size: 12px; color: var(--text-secondary);">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <div style="width: 14px; height: 14px; border-radius: 4px; background: var(--bg-primary); border: 1px solid var(--border-subtle);"></div>
+          <span>No completado</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <div style="width: 14px; height: 14px; border-radius: 4px; background: var(--text-primary); border: 1px solid var(--text-primary);"></div>
+          <span>Completado</span>
+        </div>
       </div>
     </div>
   `;
@@ -77,7 +86,7 @@ export function render() {
       <div class="page habit-chain-page" style="padding: 24px 20px 100px 20px; max-width: 720px; margin: 0 auto; width: 100%; box-sizing: border-box;">
         <header style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; width: 100%;">
           <div>
-            <h1 class="editorial-title" style="margin: 0; font-size: 32px;">Mi Cadena.</h1>
+            <h1 class="editorial-title" style="margin: 0; font-size: 32px;">Mi Cadena<span style="color: var(--text-secondary);">.</span></h1>
             <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Nunca rompas la cadena</div>
           </div>
           <button id="menu-btn" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-primary); width: 44px; height: 44px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
@@ -114,7 +123,7 @@ export function render() {
       <header style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; width: 100%;">
         <div>
           <h1 class="editorial-title" style="margin: 0; font-size: 32px;">Mi Cadena<span style="color: var(--text-secondary);">.</span></h1>
-          <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Visualización de constancia de alto rendimiento</div>
+          <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Visualización mensual de constancia</div>
         </div>
         <button id="menu-btn" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-primary); width: 44px; height: 44px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
           ${iconSVG('menu', 20)}
@@ -142,8 +151,8 @@ export function render() {
       </div>
 
       <div style="margin-bottom: 28px;">
-        <h3 class="editorial-title" style="font-size: 20px; margin: 0 0 16px 0;">Historial de Constancia (52 Semanas)</h3>
-        ${renderHeatmapGrid(habit)}
+        <h3 class="editorial-title" style="font-size: 20px; margin: 0 0 16px 0;">Historial Mensual de Constancia</h3>
+        ${renderMonthlyGrid(habit, currentYear, currentMonth)}
       </div>
 
       ${habit.reward?.partnerName ? `
@@ -184,13 +193,27 @@ export function mount() {
   if (selector) {
     selector.addEventListener('change', (e) => {
       selectedHabitId = e.target.value;
-      const app = document.getElementById('app');
-      if (app) {
-        app.innerHTML = render();
-        mount();
-      }
+      refreshView();
     });
   }
+
+  document.getElementById('chain-prev-month')?.addEventListener('click', () => {
+    currentMonth--;
+    if (currentMonth < 0) {
+      currentMonth = 11;
+      currentYear--;
+    }
+    refreshView();
+  });
+
+  document.getElementById('chain-next-month')?.addEventListener('click', () => {
+    currentMonth++;
+    if (currentMonth > 11) {
+      currentMonth = 0;
+      currentYear++;
+    }
+    refreshView();
+  });
 
   document.getElementById('btn-notify')?.addEventListener('click', () => {
     const state = store.getState();
@@ -202,6 +225,14 @@ export function mount() {
       showToast('No hay número cargado para el socio corresponsable', 'info');
     }
   });
+}
+
+function refreshView() {
+  const app = document.getElementById('app');
+  if (app) {
+    app.innerHTML = render();
+    mount();
+  }
 }
 
 export function unmount() {
