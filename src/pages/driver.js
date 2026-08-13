@@ -219,9 +219,9 @@ function renderOnboardingSummaryCard() {
             <div>
               <div style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Victorias (VCT), Podios (POD) y Puntos (PTS)</div>
               <div style="font-size: 13px; color: var(--text-secondary); margin-top: 3px; line-height: 1.45;">
-                • <strong>VCT:</strong> Se consiguen al sostener rachas activas estando en categorías F1 (OVR ≥ 80).<br>
-                • <strong>POD:</strong> Se acumulan desde OVR ≥ 70 mediante el cumplimiento diario.<br>
-                • <strong>PTS:</strong> Obtienes 6 PTS por hábito completado, +25 PTS por victoria y +15 PTS por podio.
+                • <strong>VCT (Victorias):</strong> Se obtienen al completar el 100% de tus hábitos del día en Fórmula 1 (OVR ≥ 80). Un día perfecto equivale a 1 Victoria de Gran Premio.<br>
+                • <strong>POD (Podios):</strong> Se ganan al cumplir la mayoría de tus hábitos diarios (o en categorías F3/F2 con OVR ≥ 70).<br>
+                • <strong>PTS (Puntos):</strong> Sumas 6 PTS directos por cada hábito completado, +25 PTS por Victoria y +15 PTS por Podio.
               </div>
             </div>
           </div>
@@ -375,9 +375,9 @@ function openDriverRulesModal() {
             <h4 style="color: var(--text-primary); margin: 0 0 6px 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
               ${iconSVG('target', 16)} Victorias (VCT), Podios (POD) y Puntos (PTS)
             </h4>
-            <div>• <strong>VCT (Victorias):</strong> Se consiguen al sostener constancia de hábitos en categorías de Fórmula 1 (OVR ≥ 80).</div>
-            <div>• <strong>POD (Podios):</strong> Se obtienen desde categorías F3/F2 (OVR ≥ 70) al completar tus rutinas diarias.</div>
-            <div>• <strong>PTS (Puntos):</strong> Sumas 6 PTS por cada hábito completado, +25 PTS por Victoria y +15 PTS por Podio.</div>
+            <div>• <strong>VCT (Victorias):</strong> Se gana 1 Victoria al completar el 100% de tus hábitos programados del día (Día Perfecto) estando en Fórmula 1 (OVR ≥ 80).</div>
+            <div>• <strong>POD (Podios):</strong> Se obtiene 1 Podio al cumplir la mayoría de tus hábitos en el día (o en categorías F3/F2 con OVR ≥ 70).</div>
+            <div>• <strong>PTS (Puntos):</strong> Acumulas 6 PTS por hábito individual completado, +25 PTS por Victoria (Día Perfecto) y +15 PTS por Podio.</div>
           </div>
 
           <div style="height: 1px; background: var(--border-subtle);"></div>
