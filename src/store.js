@@ -587,6 +587,21 @@ export const store = {
     await store.saveHabit(updatedHabit);
   },
 
+  saveCalcExpenses: async (newList) => {
+    const uid = auth.currentUser?.uid || 'guest';
+    try {
+      localStorage.setItem('calc_expenses_v1', JSON.stringify(newList));
+      localStorage.setItem(`calc_expenses_${uid}`, JSON.stringify(newList));
+      localStorage.setItem('calc_expenses_guest', JSON.stringify(newList));
+    } catch (e) {}
+
+    store.setState({ calcExpenses: newList });
+
+    if (auth.currentUser) {
+      saveDocument(`users/${uid}/calculator/main`, { expenses: newList }).catch(e => console.error('Error saving expenses doc to cloud:', e));
+    }
+  },
+
   syncAllDataToCloud: async () => {
     if (!auth.currentUser) return false;
     const uid = auth.currentUser.uid;
@@ -598,6 +613,9 @@ export const store = {
       }
       if (currentState.driverProfile) {
         await saveDocument(`users/${uid}/driverProfile/main`, currentState.driverProfile);
+      }
+      if (currentState.calcExpenses) {
+        await saveDocument(`users/${uid}/calculator/main`, { expenses: currentState.calcExpenses });
       }
       for (const h of (currentState.habits || [])) {
         await saveDocument(`users/${uid}/habits/${h.id}`, h);

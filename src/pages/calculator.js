@@ -213,13 +213,8 @@ export function mount() {
     }
   }
 
-  function saveExpenses(newList) {
-    store.setState({ calcExpenses: newList });
-    localStorage.setItem('calc_expenses_v1', JSON.stringify(newList));
-    if (auth.currentUser) {
-      saveDocument(`users/${auth.currentUser.uid}/calculator/main`, { expenses: newList })
-        .catch(err => console.error('Error saving expenses to firebase', err));
-    }
+  async function saveExpenses(newList) {
+    await store.saveCalcExpenses(newList);
     refreshCalculatorView();
   }
 
