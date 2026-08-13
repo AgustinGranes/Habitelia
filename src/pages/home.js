@@ -250,6 +250,55 @@ function openFabChoiceModal() {
   });
 }
 
+function openCompletionModeModal(habitId, habitName, onSelectMode) {
+  document.getElementById('completion-mode-modal')?.remove();
+
+  const modalHtml = `
+    <div id="completion-mode-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px;">
+      <div class="glass-card" style="width: 100%; max-width: 440px; padding: 28px; border-radius: 20px; border: 1px solid var(--border-subtle); background: var(--bg-surface); text-align: center;">
+        
+        <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--bg-subtle); color: var(--text-primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+          ${iconSVG('check', 22)}
+        </div>
+
+        <h3 class="editorial-title" style="font-size: 24px; margin: 0 0 6px 0;">¡Excelente trabajo!</h3>
+        <p style="color: var(--text-secondary); font-size: 14px; margin: 0 0 24px 0;">¿Qué versión completaste de "${habitName}"?</p>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+          <button id="btn-mode-full" class="btn-primary" style="min-height: 50px; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            ${iconSVG('star', 18)} Versión Completa (Normal)
+          </button>
+
+          <button id="btn-mode-2min" class="btn-secondary" style="min-height: 50px; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            ${iconSVG('clock', 18)} Versión 2 Minutos
+          </button>
+        </div>
+
+        <button id="btn-cancel-mode" class="btn-secondary" style="width: 100%; min-height: 44px; color: var(--text-secondary);">
+          Cancelar
+        </button>
+
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  document.getElementById('btn-cancel-mode')?.addEventListener('click', () => {
+    document.getElementById('completion-mode-modal')?.remove();
+  });
+
+  document.getElementById('btn-mode-full')?.addEventListener('click', () => {
+    document.getElementById('completion-mode-modal')?.remove();
+    onSelectMode('completed');
+  });
+
+  document.getElementById('btn-mode-2min')?.addEventListener('click', () => {
+    document.getElementById('completion-mode-modal')?.remove();
+    onSelectMode('completed_2min');
+  });
+}
+
 function refreshHomeView() {
     const pageContent = document.querySelector('.home-page');
     if (pageContent) {
@@ -316,13 +365,17 @@ export function mount() {
             if (isCompleted) {
                 await store.uncompleteEvent(habitId, store.getTodayString());
                 showToast('Hábito marcado como pendiente', 'info');
+                refreshHomeView();
             } else {
-                const res = await store.completeEvent(habitId, store.getTodayString()) || {};
-                const streak = res.newStreak || 1;
-                showToast(`Un paso más hacia tu identidad. Racha: ${streak} días`, 'success');
+                const habit = store.getState().habits?.find(h => h.id === habitId);
+                openCompletionModeModal(habitId, habit?.name || 'Hábito', async (mode) => {
+                    const res = await store.completeEvent(habitId, store.getTodayString(), mode) || {};
+                    const streak = res.newStreak || 1;
+                    const modeText = mode === 'completed_2min' ? ' (2 minutos)' : ' (Completo)';
+                    showToast(`¡Excelente! Racha: ${streak} días${modeText}`, 'success');
+                    refreshHomeView();
+                });
             }
-
-            refreshHomeView();
         });
     });
 

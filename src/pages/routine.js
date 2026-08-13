@@ -2,6 +2,7 @@ import { store } from '../store.js';
 import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { iconSVG } from '../components/icons.js';
+import { renderSidebar, mountSidebar } from '../components/sidebar.js';
 
 let cleanup = [];
 
@@ -14,8 +15,10 @@ export function render() {
 
   // 1. Today's Items
   const todayItems = habits.map(h => {
-    const isCompleted = h.completions?.[todayDate] === 'completed';
-    const isSkipped = h.completions?.[todayDate] === 'skipped';
+    const status = h.completions?.[todayDate];
+    const isCompleted = status === 'completed' || status === 'completed_2min';
+    const isTwoMin = status === 'completed_2min';
+    const isSkipped = status === 'skipped';
     const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
     return {
       id: h.id,
@@ -25,6 +28,7 @@ export function render() {
       duration: h.duration || 15,
       linkedPleasure,
       completed: isCompleted,
+      isTwoMin,
       skipped: isSkipped
     };
   });
@@ -46,9 +50,9 @@ export function render() {
     `;
   } else {
     todayListHtml = todayItems.map(item => `
-      <div class="glass-card" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; margin-bottom: 10px; border-radius: 14px; border: 1px solid var(--border-subtle); opacity: ${item.completed ? '0.65' : '1'};">
+      <div class="glass-card btn-toggle-routine-today" data-id="${item.id}" data-completed="${item.completed}" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; margin-bottom: 10px; border-radius: 14px; border: 1px solid var(--border-subtle); cursor: pointer; opacity: ${item.completed ? '0.75' : '1'}; transition: all 0.2s ease;">
         <div style="display: flex; align-items: center; gap: 14px;">
-          <div style="width: 26px; height: 26px; border-radius: 50%; border: 1.75px solid ${item.completed ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${item.completed ? 'var(--text-primary)' : 'transparent'}; color: ${item.completed ? 'var(--bg-primary)' : 'transparent'}; display: flex; align-items: center; justify-content: center;">
+          <div style="width: 26px; height: 26px; border-radius: 50%; border: 1.75px solid ${item.completed ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${item.completed ? (item.isTwoMin ? 'rgba(255,255,255,0.45)' : 'var(--text-primary)') : 'transparent'}; color: ${item.completed ? 'var(--bg-primary)' : 'transparent'}; display: flex; align-items: center; justify-content: center;">
             ${iconSVG('check', 13)}
           </div>
           <div>
@@ -58,7 +62,7 @@ export function render() {
           </div>
         </div>
         <div style="font-size: 12px; font-weight: 600; color: ${item.completed ? 'var(--text-primary)' : 'var(--text-secondary)'}; background: var(--bg-subtle); padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border-subtle);">
-          ${item.completed ? '✓ Completado' : 'Pendiente'}
+          ${item.completed ? (item.isTwoMin ? '✓ 2 Minutos' : '✓ Completado') : 'Pendiente'}
         </div>
       </div>
     `).join('');
@@ -175,6 +179,55 @@ export function render() {
   `;
 }
 
+function openCompletionModeModal(habitId, habitName, onSelectMode) {
+  document.getElementById('completion-mode-modal')?.remove();
+
+  const modalHtml = `
+    <div id="completion-mode-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px;">
+      <div class="glass-card" style="width: 100%; max-width: 440px; padding: 28px; border-radius: 20px; border: 1px solid var(--border-subtle); background: var(--bg-surface); text-align: center;">
+        
+        <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--bg-subtle); color: var(--text-primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+          ${iconSVG('check', 22)}
+        </div>
+
+        <h3 class="editorial-title" style="font-size: 24px; margin: 0 0 6px 0;">¡Excelente trabajo!</h3>
+        <p style="color: var(--text-secondary); font-size: 14px; margin: 0 0 24px 0;">¿Qué versión completaste de "${habitName}"?</p>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+          <button id="btn-mode-full" class="btn-primary" style="min-height: 50px; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            ${iconSVG('star', 18)} Versión Completa (Normal)
+          </button>
+
+          <button id="btn-mode-2min" class="btn-secondary" style="min-height: 50px; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            ${iconSVG('clock', 18)} Versión 2 Minutos
+          </button>
+        </div>
+
+        <button id="btn-cancel-mode" class="btn-secondary" style="width: 100%; min-height: 44px; color: var(--text-secondary);">
+          Cancelar
+        </button>
+
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  document.getElementById('btn-cancel-mode')?.addEventListener('click', () => {
+    document.getElementById('completion-mode-modal')?.remove();
+  });
+
+  document.getElementById('btn-mode-full')?.addEventListener('click', () => {
+    document.getElementById('completion-mode-modal')?.remove();
+    onSelectMode('completed');
+  });
+
+  document.getElementById('btn-mode-2min')?.addEventListener('click', () => {
+    document.getElementById('completion-mode-modal')?.remove();
+    onSelectMode('completed_2min');
+  });
+}
+
 function openCreateRoutineModal() {
   document.getElementById('create-routine-modal')?.remove();
   const habits = store.getState().habits || [];
@@ -245,12 +298,40 @@ function openCreateRoutineModal() {
     store.saveRoutine(routine);
     showToast(`Rutina "${name}" guardada con éxito`, 'success');
     document.getElementById('create-routine-modal')?.remove();
-    navigate('/routine');
+    refreshRoutineView();
   });
+}
+
+function refreshRoutineView() {
+  const pageContent = document.querySelector('.routine-page');
+  if (pageContent) {
+    pageContent.outerHTML = render();
+    mount();
+  } else {
+    const app = document.getElementById('app');
+    if (app) {
+      app.innerHTML = render();
+      mount();
+      const sidebarHTML = renderSidebar();
+      app.insertAdjacentHTML('beforeend', sidebarHTML);
+      mountSidebar();
+    }
+  }
 }
 
 export function mount() {
   cleanup = [];
+
+  let overlay = document.getElementById('sidebar-overlay');
+  let panel = document.getElementById('sidebar-panel');
+  if (!overlay || !panel) {
+    const appContainer = document.getElementById('app');
+    if (appContainer) {
+      const sidebarHTML = renderSidebar();
+      appContainer.insertAdjacentHTML('beforeend', sidebarHTML);
+      mountSidebar();
+    }
+  }
 
   const menuBtn = document.getElementById('menu-btn');
   if (menuBtn) {
@@ -267,6 +348,31 @@ export function mount() {
       }
     });
   }
+
+  // Toggle/uncomplete habit from Today's Routine
+  document.querySelectorAll('.btn-toggle-routine-today').forEach(card => {
+    card.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const habitId = e.currentTarget.dataset.id;
+      const isCompleted = e.currentTarget.dataset.completed === 'true';
+      const todayDate = store.getTodayString();
+
+      if (isCompleted) {
+        await store.uncompleteEvent(habitId, todayDate);
+        showToast('Hábito desmarcado como pendiente', 'info');
+        refreshRoutineView();
+      } else {
+        const habit = store.getState().habits?.find(h => h.id === habitId);
+        openCompletionModeModal(habitId, habit?.name || 'Hábito', async (mode) => {
+          const res = await store.completeEvent(habitId, todayDate, mode) || {};
+          const streak = res.newStreak || 1;
+          const modeText = mode === 'completed_2min' ? ' (2 minutos)' : ' (Completo)';
+          showToast(`¡Excelente! Racha: ${streak} días${modeText}`, 'success');
+          refreshRoutineView();
+        });
+      }
+    });
+  });
 
   document.getElementById('btn-create-custom-routine')?.addEventListener('click', () => {
     openCreateRoutineModal();
@@ -299,7 +405,7 @@ export function mount() {
       };
       store.saveRoutine(routine);
       showToast(`Rutina "${name}" guardada con éxito`, 'success');
-      navigate('/routine');
+      refreshRoutineView();
     }
   });
 
@@ -322,7 +428,7 @@ export function mount() {
         });
         store.saveTodaySchedule(newSchedule);
         showToast(`Rutina "${routine.name}" cargada para hoy`, 'success');
-        navigate('/routine');
+        refreshRoutineView();
       }
     };
     btn.addEventListener('click', loadHandler);
@@ -333,7 +439,7 @@ export function mount() {
     const delHandler = (e) => {
       if(confirm('¿Seguro que querés eliminar esta rutina?')) {
         store.deleteRoutine(e.currentTarget.dataset.id);
-        navigate('/routine');
+        refreshRoutineView();
       }
     };
     btn.addEventListener('click', delHandler);

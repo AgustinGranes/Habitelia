@@ -19,12 +19,28 @@ function renderMonthlyGrid(habit, year, month) {
     const dateObj = new Date(year, month, d);
     const dayOfWeek = dayNamesShort[dateObj.getDay()];
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const isCompleted = habit?.completions?.[dateStr] === 'completed';
-    daysData.push({ dayNumber: d, dayOfWeek, dateStr, isCompleted });
+    const status = habit?.completions?.[dateStr];
+    const isCompletedFull = status === 'completed';
+    const isCompleted2Min = status === 'completed_2min';
+    daysData.push({ dayNumber: d, dayOfWeek, dateStr, isCompletedFull, isCompleted2Min });
   }
 
   const columnsHtml = daysData.map(item => {
-    const isCompleted = item.isCompleted;
+    const isCompleted = item.isCompletedFull || item.isCompleted2Min;
+    let cellBg = 'var(--bg-primary)';
+    let cellBorder = '1px solid var(--border-subtle)';
+    let checkColor = 'var(--bg-primary)';
+
+    if (item.isCompletedFull) {
+      cellBg = 'var(--text-primary)';
+      cellBorder = '1px solid var(--text-primary)';
+      checkColor = 'var(--bg-primary)';
+    } else if (item.isCompleted2Min) {
+      cellBg = 'rgba(255, 255, 255, 0.45)';
+      cellBorder = '1px solid var(--text-secondary)';
+      checkColor = 'var(--text-primary)';
+    }
+
     return `
       <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 32px;">
         <!-- Diagonal Day & Date Header -->
@@ -34,10 +50,10 @@ function renderMonthlyGrid(habit, year, month) {
           </span>
         </div>
         
-        <!-- Binary Cell (0 = Empty, 1 = Solid White) -->
-        <div title="${item.dateStr}: ${isCompleted ? 'Completado' : 'No completado'}" 
-             style="width: 26px; height: 26px; border-radius: 6px; background: ${isCompleted ? 'var(--text-primary)' : 'var(--bg-primary)'}; border: 1px solid ${isCompleted ? 'var(--text-primary)' : 'var(--border-subtle)'}; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">
-          ${isCompleted ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--bg-primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+        <!-- Cell (Empty, 2-Min Dimmed, or Solid White Full) -->
+        <div title="${item.dateStr}: ${item.isCompletedFull ? 'Completado (Completo)' : item.isCompleted2Min ? 'Completado (2 Minutos)' : 'No completado'}" 
+             style="width: 26px; height: 26px; border-radius: 6px; background: ${cellBg}; border: ${cellBorder}; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">
+          ${isCompleted ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${checkColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
         </div>
       </div>
     `;
@@ -63,11 +79,15 @@ function renderMonthlyGrid(habit, year, month) {
         ${columnsHtml}
       </div>
 
-      <!-- Binary Legend -->
-      <div style="display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-top: 16px; font-size: 12px; color: var(--text-secondary);">
+      <!-- Legend -->
+      <div style="display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-top: 16px; font-size: 11px; color: var(--text-secondary);">
         <div style="display: flex; align-items: center; gap: 6px;">
           <div style="width: 14px; height: 14px; border-radius: 4px; background: var(--bg-primary); border: 1px solid var(--border-subtle);"></div>
           <span>No completado</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <div style="width: 14px; height: 14px; border-radius: 4px; background: rgba(255,255,255,0.45); border: 1px solid var(--text-secondary);"></div>
+          <span>2 minutos</span>
         </div>
         <div style="display: flex; align-items: center; gap: 6px;">
           <div style="width: 14px; height: 14px; border-radius: 4px; background: var(--text-primary); border: 1px solid var(--text-primary);"></div>

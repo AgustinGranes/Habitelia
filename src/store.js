@@ -272,11 +272,12 @@ export const store = {
     return await getDocument(`users/${uid}/schedules/${date}`);
   },
   
-  completeEvent: async (habitId, date) => {
+  completeEvent: async (habitId, date, mode = 'completed') => {
     const habit = (state.habits || []).find(h => h.id === habitId);
     if (!habit) return { streakBroken: false, newStreak: 0 };
     
-    const completions = { ...(habit.completions || {}), [date]: 'completed' };
+    const statusVal = mode === 'completed_2min' ? 'completed_2min' : 'completed';
+    const completions = { ...(habit.completions || {}), [date]: statusVal };
     
     let streak = (habit.streak || 0) + 1;
     let maxStreak = Math.max(habit.maxStreak || 0, streak);
