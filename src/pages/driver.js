@@ -164,11 +164,6 @@ export function render() {
           </div>
         </div>
 
-        <!-- Footer Watermark -->
-        <div style="text-align: center; font-size: 11px; font-weight: 800; letter-spacing: 0.15em; color: rgba(255,255,255,0.2); text-transform: uppercase; margin-top: 20px;">
-          FORMULETRY.COM / HABITELIA RACING
-        </div>
-
       </div>
 
       <!-- Action Button below Main Card -->
@@ -219,12 +214,26 @@ function renderOnboardingSummaryCard() {
 
           <div style="display: flex; align-items: flex-start; gap: 14px;">
             <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--bg-subtle); display: flex; align-items: center; justify-content: center; color: var(--text-primary); flex-shrink: 0; margin-top: 2px;">
+              ${iconSVG('target', 16)}
+            </div>
+            <div>
+              <div style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Victorias (VCT), Podios (POD) y Puntos (PTS)</div>
+              <div style="font-size: 13px; color: var(--text-secondary); margin-top: 3px; line-height: 1.45;">
+                • <strong>VCT:</strong> Se consiguen al sostener rachas activas estando en categorías F1 (OVR ≥ 80).<br>
+                • <strong>POD:</strong> Se acumulan desde OVR ≥ 70 mediante el cumplimiento diario.<br>
+                • <strong>PTS:</strong> Obtienes 6 PTS por hábito completado, +25 PTS por victoria y +15 PTS por podio.
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: flex-start; gap: 14px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--bg-subtle); display: flex; align-items: center; justify-content: center; color: var(--text-primary); flex-shrink: 0; margin-top: 2px;">
               ${iconSVG('alert', 16)}
             </div>
             <div>
               <div style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Penalizaciones e Incidentes de Carrera</div>
               <div style="font-size: 13px; color: var(--text-secondary); margin-top: 3px; line-height: 1.45;">
-                Dejar hábitos sin cumplir o romper la racha genera una sanción inmediata de -1 OVR con reporte por radio de boxes en vivo.
+                Dejar hábitos sin cumplir o pasar días sin registrar actividad descuenta -1 OVR por día no registrado con reporte de radio de boxes en vivo.
               </div>
             </div>
           </div>
@@ -357,7 +366,18 @@ function openDriverRulesModal() {
             </h4>
             <div>• Arrancas con <strong>50 OVR</strong> en Fórmula 4 (Escudería Apex).</div>
             <div>• Cada <strong>10 hábitos completados</strong> = <strong>+1 OVR</strong>.</div>
-            <div>• Cada hábito no cumplido / racha rota = <strong>-1 OVR</strong>.</div>
+            <div>• Cada día de inactividad o hábito no cumplido = <strong>-1 OVR</strong>.</div>
+          </div>
+
+          <div style="height: 1px; background: var(--border-subtle);"></div>
+
+          <div>
+            <h4 style="color: var(--text-primary); margin: 0 0 6px 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+              ${iconSVG('target', 16)} Victorias (VCT), Podios (POD) y Puntos (PTS)
+            </h4>
+            <div>• <strong>VCT (Victorias):</strong> Se consiguen al sostener constancia de hábitos en categorías de Fórmula 1 (OVR ≥ 80).</div>
+            <div>• <strong>POD (Podios):</strong> Se obtienen desde categorías F3/F2 (OVR ≥ 70) al completar tus rutinas diarias.</div>
+            <div>• <strong>PTS (Puntos):</strong> Sumas 6 PTS por cada hábito completado, +25 PTS por Victoria y +15 PTS por Podio.</div>
           </div>
 
           <div style="height: 1px; background: var(--border-subtle);"></div>
@@ -382,7 +402,7 @@ function openDriverRulesModal() {
             <h4 style="color: var(--text-primary); margin: 0 0 6px 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
               ${iconSVG('trophy', 16)} Campeonatos a Fin de Año
             </h4>
-            <div>• Al terminar el ciclo anual de carrera:</div>
+            <div>• Al terminar el año calendario:</div>
             <div>• <strong>OVR ≥ 95:</strong> Campeón de Pilotos Y Campeón de Constructores (+1 a Piloto, +1 a Constructor).</div>
             <div>• <strong>OVR 90 a 94:</strong> Campeón de Constructores (+1 a Constructor).</div>
           </div>
