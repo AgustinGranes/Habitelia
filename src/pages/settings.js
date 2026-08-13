@@ -102,6 +102,32 @@ export function render(props = {}) {
                     </button>
                 </div>
             </div>
+
+            <!-- Delete Account In-App Modal Popup -->
+            <div id="delete-account-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;">
+                <div class="glass-card" style="background: #0D0D0D; border: 1px solid var(--border-subtle); border-radius: 24px; padding: 28px 24px; max-width: 400px; width: 100%; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.9); box-sizing: border-box;">
+                    
+                    <div style="width: 48px; height: 48px; border-radius: 50%; background: rgba(229, 62, 62, 0.15); color: #E53E3E; border: 1px solid rgba(229, 62, 62, 0.3); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+                        ${iconSVG('alert', 24)}
+                    </div>
+
+                    <h3 class="editorial-title" style="font-size: 22px; margin-bottom: 8px; color: var(--text-primary);">¿Eliminar Cuenta Definitivamente?</h3>
+                    
+                    <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 24px;">
+                        Esta acción eliminará <strong>permanentemente</strong> todos tus hábitos, rutinas, historial, ficha de piloto y tu usuario de la base de datos en la nube. Podrás volver a registrarte en el futuro, pero comenzarás desde cero.
+                    </p>
+
+                    <div style="display: flex; gap: 12px;">
+                        <button id="cancel-delete-modal-btn" class="btn-secondary" style="flex: 1; min-height: 44px; font-size: 13.5px; margin: 0;">
+                            Cancelar
+                        </button>
+                        <button id="confirm-delete-modal-btn" style="flex: 1; min-height: 44px; font-size: 13.5px; background: #E53E3E; color: #FFFFFF; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; margin: 0;">
+                            Sí, Eliminar
+                        </button>
+                    </div>
+
+                </div>
+            </div>
         </div>
     `;
 }
@@ -190,20 +216,27 @@ export function mount() {
         }
     });
 
-    document.getElementById('delete-account-btn')?.addEventListener('click', async () => {
-        const confirmMsg = "⚠️ ¿ESTÁS ABSOLUTAMENTE SEGURO DE QUE QUERÉS ELIMINAR TU CUENTA?\n\nEsta acción ELIMINARÁ PERMANENTEMENTE todos tus hábitos, rutinas, historial, ficha de piloto y tu usuario de la base de datos en la nube. Podrás volver a registrarte en el futuro pero tus datos actuales se perderán para siempre.";
-        if (confirm(confirmMsg)) {
-            showToast('Eliminando tu cuenta y cerrando sesión...', 'info');
-            
-            // Clear localStorage & store state immediately
-            localStorage.clear();
-            store.setState({ user: null, habits: [], routines: [], driverProfile: null });
+    const modal = document.getElementById('delete-account-modal');
 
-            await deleteAccountAndAllData();
+    document.getElementById('delete-account-btn')?.addEventListener('click', () => {
+        if (modal) modal.style.display = 'flex';
+    });
 
-            showToast('Cuenta eliminada y sesión cerrada.', 'success');
-            navigate('/login');
-        }
+    document.getElementById('cancel-delete-modal-btn')?.addEventListener('click', () => {
+        if (modal) modal.style.display = 'none';
+    });
+
+    document.getElementById('confirm-delete-modal-btn')?.addEventListener('click', async () => {
+        if (modal) modal.style.display = 'none';
+        showToast('Eliminando tu cuenta y cerrando sesión...', 'info');
+        
+        localStorage.clear();
+        store.setState({ user: null, habits: [], routines: [], driverProfile: null });
+
+        await deleteAccountAndAllData();
+
+        showToast('Cuenta eliminada y sesión cerrada.', 'success');
+        navigate('/login');
     });
 }
 
