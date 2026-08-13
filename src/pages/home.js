@@ -85,11 +85,14 @@ export function render(props = {}) {
                         <div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px; display: flex; align-items: center; gap: 4px;">
                             <span>Ritual previo: ${ev.linkedPleasure}</span>
                         </div>
-                        ` : (ev.twoMinuteVersion ? `
+                        ` : ''}
+
+                        <!-- Versión de 2 Minutos Line (DEBAJO DEL RITUAL PREVIO) -->
+                        ${ev.twoMinuteVersion ? `
                         <div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">
                             2 min: ${ev.twoMinuteVersion}
                         </div>
-                        ` : '')}
+                        ` : ''}
                     </div>
                 </div>
 

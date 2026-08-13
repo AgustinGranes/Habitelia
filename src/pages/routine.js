@@ -20,6 +20,7 @@ export function render() {
     const isTwoMin = status === 'completed_2min';
     const isSkipped = status === 'skipped';
     const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
+    const twoMinuteVersion = h.response?.twoMinVersion || '';
     return {
       id: h.id,
       name: h.name,
@@ -27,6 +28,7 @@ export function render() {
       time: h.cue?.time || '08:00',
       duration: h.duration || 15,
       linkedPleasure,
+      twoMinuteVersion,
       completed: isCompleted,
       isTwoMin,
       skipped: isSkipped
@@ -59,6 +61,7 @@ export function render() {
             <div style="font-weight: 600; font-size: 15px; color: var(--text-primary); ${item.completed ? 'text-decoration: line-through;' : ''}">${item.name}</div>
             <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${iconSVG('clock', 12)} ${item.time} (${item.duration} min)</div>
             ${item.linkedPleasure ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">Ritual previo: ${item.linkedPleasure}</div>` : ''}
+            ${item.twoMinuteVersion ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">2 min: ${item.twoMinuteVersion}</div>` : ''}
           </div>
         </div>
         <div style="font-size: 12px; font-weight: 600; color: ${item.completed ? 'var(--text-primary)' : 'var(--text-secondary)'}; background: var(--bg-subtle); padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border-subtle);">
@@ -79,12 +82,14 @@ export function render() {
   } else {
     allHabitsHtml = habits.map(h => {
       const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
+      const twoMin = h.response?.twoMinVersion || '';
       return `
         <div class="glass-card" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; margin-bottom: 10px; border-radius: 14px; border: 1px solid var(--border-subtle);">
           <div>
             <div style="font-weight: 600; font-size: 15px; color: var(--text-primary);">${h.name}</div>
             <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Duración: ${h.duration || 15} min ${h.cue?.place ? `• ${h.cue.place}` : ''}</div>
             ${linkedPleasure ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">Ritual previo: ${linkedPleasure}</div>` : ''}
+            ${twoMin ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">2 min: ${twoMin}</div>` : ''}
           </div>
           <button class="btn-ghost btn-edit-habit-routine" data-id="${h.id}" style="padding: 6px 12px; font-size: 12px; border: 1px solid var(--border-subtle); color: var(--text-primary); border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
             ${iconSVG('edit', 14)} Editar
