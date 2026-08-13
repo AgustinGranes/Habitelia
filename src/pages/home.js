@@ -15,8 +15,6 @@ export function render(props = {}) {
     const todayLongDate = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
     const formattedDate = todayLongDate.charAt(0).toUpperCase() + todayLongDate.slice(1);
 
-    // Map habits from store state into today's events list
-    const habits = state.habits || [];
     const todayEvents = habits.map(h => {
         const isCompleted = h.completions?.[todayDate] === 'completed';
         const isSkipped = h.completions?.[todayDate] === 'skipped';
@@ -27,7 +25,7 @@ export function render(props = {}) {
             id: h.id,
             name: h.name,
             icon: h.icon || '🎯',
-            time: h.cue?.time || '08:00',
+            time: h.cue?.time || null,
             duration: h.duration || 15,
             twoMinuteVersion: h.response?.twoMinVersion || '2 minutos',
             linkedPleasure,
@@ -37,8 +35,13 @@ export function render(props = {}) {
         };
     });
 
-    todayEvents.sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
-
+    // Sort: timed events first by time, then unscheduled at end
+    todayEvents.sort((a, b) => {
+        if (a.time && b.time) return a.time.localeCompare(b.time);
+        if (a.time && !b.time) return -1; // a comes first
+        if (!a.time && b.time) return 1;  // b comes first
+        return 0;
+    });
     const remainingEvents = todayEvents.filter(e => !e.completed && !e.skipped);
     const completedEvents = todayEvents.filter(e => e.completed);
     const totalCount = todayEvents.length;
@@ -76,9 +79,10 @@ export function render(props = {}) {
                         </div>
                         
                         <!-- Scheduled Time Line -->
-                        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 3px; display: flex; align-items: center; gap: 8px;">
-                            <span>${iconSVG('clock', 13)} ${ev.time} (${ev.duration} min)</span>
-                        </div>
+                         ${ev.time ? `
+                         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 3px; display: flex; align-items: center; gap: 8px;">
+                             <span>${iconSVG('clock', 13)} ${ev.time} (${ev.duration} min)</span>
+                         </div>` : ''}
 
                         <!-- Ritual Previo Line (DEBAJO DEL HORARIO) -->
                         ${ev.linkedPleasure ? `

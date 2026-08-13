@@ -35,11 +35,11 @@ export function renderSidebar() {
                 <div class="sidebar-nav-item ${isActive('/chain')}" data-path="/chain" style="padding: 12px 16px; border-radius: 10px; margin-bottom: 4px; display: flex; align-items: center; gap: 14px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease;">
                     ${iconSVG('chain', 18)} <span style="font-size: 14px;">Mi Cadena</span>
                 </div>
-                <div class="sidebar-nav-item ${isActive('/driver')}" data-path="/driver" style="padding: 12px 16px; border-radius: 10px; margin-bottom: 4px; display: flex; align-items: center; gap: 14px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease;">
-                    ${iconSVG('helmet', 18)} <span style="font-size: 14px;">Tu Piloto</span>
-                </div>
                 <div class="sidebar-nav-item ${isActive('/friends')}" data-path="/friends" style="padding: 12px 16px; border-radius: 10px; margin-bottom: 4px; display: flex; align-items: center; gap: 14px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease;">
                     ${iconSVG('users', 18)} <span style="font-size: 14px;">Amigos</span>
+                </div>
+                <div class="sidebar-nav-item ${isActive('/calculator')}" data-path="/calculator" style="padding: 12px 16px; border-radius: 10px; margin-bottom: 4px; display: flex; align-items: center; gap: 14px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease;">
+                    ${iconSVG('calculator', 18)} <span style="font-size: 14px;">Calculadora</span>
                 </div>
                 <div class="sidebar-nav-item ${isActive('/settings')}" data-path="/settings" style="padding: 12px 16px; border-radius: 10px; margin-bottom: 4px; display: flex; align-items: center; gap: 14px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease;">
                     ${iconSVG('settings', 18)} <span style="font-size: 14px;">Configuración</span>

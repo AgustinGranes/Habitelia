@@ -86,7 +86,10 @@ function renderStep1() {
     <div class="form-group" style="margin-bottom: 20px; width: 100%; max-width: 100%; box-sizing: border-box;">
       <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Hora de Inicio</label>
       <div style="width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; border-radius: 10px;">
-        <input type="time" id="habit-time" class="input" value="${habitData.cue?.time || '08:00'}" style="width: 100%; max-width: 100%; box-sizing: border-box; min-height: 46px; font-size: 16px; text-align: center; display: block;">
+         <input type="time" id="habit-time" class="input" value="${habitData.cue?.time || ''}" style="width: 100%; max-width: 100%; box-sizing: border-box; min-height: 46px; font-size: 16px; text-align: center; display: block;" ${habitData.cue?.time ? '' : 'disabled'}>
+      </div>
+      <div style="margin-top: 8px;">
+        <label style="font-weight: 600; font-size: 13px; color: var(--text-primary);"><input type="checkbox" id="habit-no-schedule" ${habitData.cue?.time ? '' : 'checked'}> Sin horario</label>
       </div>
     </div>
 
@@ -226,8 +229,12 @@ function bindFrequencyEvents() {
 }
 
 function checkAndShowCollisions(newHabit, onConfirmed) {
+  if (!newHabit.cue.time) {
+    onConfirmed(newHabit);
+    return;
+  }
   const habits = store.getState().habits || [];
-  const conflictingHabits = habits.filter(h => h.id !== newHabit.id && checkCollision(newHabit, h));
+  const conflictingHabits = habits.filter(h => h.id !== newHabit.id && h.cue.time && checkCollision(newHabit, h));
 
   if (conflictingHabits.length === 0) {
     onConfirmed(newHabit);
@@ -356,10 +363,22 @@ export function mount() {
 
   bindFrequencyEvents();
 
+  const handleNoScheduleToggle = () => {
+    const checkbox = document.getElementById('habit-no-schedule');
+    const timeInput = document.getElementById('habit-time');
+    if (checkbox && timeInput) {
+      timeInput.disabled = checkbox.checked;
+    }
+  };
+
+  const scheduleCheckbox = document.getElementById('habit-no-schedule');
+  scheduleCheckbox?.addEventListener('change', handleNoScheduleToggle);
+
   const saveCurrentStepData = () => {
     if (currentStep === 1) {
       const name = document.getElementById('habit-name')?.value.trim();
-      const time = document.getElementById('habit-time')?.value || '08:00';
+      const noSchedule = document.getElementById('habit-no-schedule')?.checked;
+      const time = noSchedule ? null : (document.getElementById('habit-time')?.value || '08:00');
       const duration = parseInt(document.getElementById('habit-duration')?.value) || 15;
       const place = document.getElementById('habit-place')?.value.trim() || '';
 
