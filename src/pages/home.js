@@ -171,6 +171,85 @@ export function render(props = {}) {
     `;
 }
 
+function openFabChoiceModal() {
+  document.getElementById('fab-choice-modal')?.remove();
+  const state = store.getState();
+  const habits = state.habits || [];
+
+  const modalHtml = `
+    <div id="fab-choice-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px;">
+      <div class="glass-card" style="width: 100%; max-width: 440px; padding: 28px; border-radius: 20px; border: 1px solid var(--border-subtle); background: var(--bg-surface);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 class="editorial-title" style="font-size: 22px; margin: 0; color: var(--text-primary);">¿Qué deseas agregar?</h3>
+          <button id="close-fab-modal" style="background: var(--bg-subtle); border: none; color: var(--text-primary); width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            ${iconSVG('x', 16)}
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+          <button id="btn-fab-option-new" class="btn-primary" style="min-height: 48px; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            ${iconSVG('plus', 18)} Crear Hábito Nuevo
+          </button>
+
+          <button id="btn-fab-option-existing" class="btn-secondary" style="min-height: 48px; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            ${iconSVG('routine', 18)} Seleccionar Hábito Existente
+          </button>
+        </div>
+
+        <div id="existing-habits-container" style="display: none; margin-top: 16px; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
+          <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px;">Elegí un hábito guardado:</div>
+          <div style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto;">
+            ${habits.length === 0 ? `<div style="font-size: 13px; color: var(--text-secondary);">No hay hábitos creados aún.</div>` : habits.map(h => `
+              <button class="btn-pick-existing-habit" data-id="${h.id}" style="text-align: left; padding: 12px 14px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border-subtle); color: var(--text-primary); cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <div style="font-weight: 600; font-size: 14px;">${h.name}</div>
+                  <div style="font-size: 12px; color: var(--text-secondary);">⏰ ${h.cue?.time || '08:00'} (${h.duration || 15} min)</div>
+                </div>
+                <span style="font-size: 12px; font-weight: 600; color: var(--text-primary);">+ Agregar</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <button id="btn-cancel-fab-modal" class="btn-secondary" style="width: 100%; margin-top: 16px; min-height: 44px; color: var(--text-secondary);">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  document.getElementById('close-fab-modal')?.addEventListener('click', () => {
+    document.getElementById('fab-choice-modal')?.remove();
+  });
+  document.getElementById('btn-cancel-fab-modal')?.addEventListener('click', () => {
+    document.getElementById('fab-choice-modal')?.remove();
+  });
+
+  document.getElementById('btn-fab-option-new')?.addEventListener('click', () => {
+    document.getElementById('fab-choice-modal')?.remove();
+    navigate('/habit/new');
+  });
+
+  document.getElementById('btn-fab-option-existing')?.addEventListener('click', () => {
+    const existingContainer = document.getElementById('existing-habits-container');
+    if (existingContainer) existingContainer.style.display = 'block';
+  });
+
+  document.querySelectorAll('.btn-pick-existing-habit').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const habitId = e.currentTarget.dataset.id;
+      const habit = habits.find(h => h.id === habitId);
+      if (habit) {
+        showToast(`Hábito "${habit.name}" listo en tu lista de hoy`, 'success');
+        document.getElementById('fab-choice-modal')?.remove();
+        refreshHomeView();
+      }
+    });
+  });
+}
+
 function refreshHomeView() {
     const pageContent = document.querySelector('.home-page');
     if (pageContent) {
@@ -220,11 +299,11 @@ export function mount() {
     }
 
     document.getElementById('add-fab')?.addEventListener('click', () => {
-        navigate('/habit/new');
+        openFabChoiceModal();
     });
 
     document.getElementById('btn-empty-create')?.addEventListener('click', () => {
-        navigate('/habit/new');
+        openFabChoiceModal();
     });
 
     // Toggle complete / uncomplete habit

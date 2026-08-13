@@ -32,12 +32,22 @@ export function render() {
     const assignedRoutineId = localStorage.getItem(`assigned_routine_${dateStr}`);
     const assignedRoutine = routines.find(r => r.id === assignedRoutineId);
 
-    // Calculate loaded habit count for this day
+    // Calculate specific loaded habit count for this date
     let habitCount = 0;
     if (assignedRoutine) {
       habitCount = (assignedRoutine.habitIds || []).length;
     } else {
-      habitCount = habits.length;
+      const customHabitsStr = localStorage.getItem(`assigned_habits_${dateStr}`);
+      if (customHabitsStr) {
+        try {
+          const customHabits = JSON.parse(customHabitsStr);
+          habitCount = customHabits.length;
+        } catch (e) {
+          habitCount = 0;
+        }
+      } else {
+        habitCount = 0;
+      }
     }
 
     daysHtml += `
@@ -50,7 +60,7 @@ export function render() {
           </span>
         ` : ''}
 
-        <!-- Number of Habits Badge -->
+        <!-- Number of Habits Badge (Accurate per Day) -->
         <div style="font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; background: ${isToday ? 'rgba(0,0,0,0.18)' : 'var(--bg-subtle)'}; color: ${isToday ? 'var(--accent-inverted)' : 'var(--text-primary)'}; border: 1px solid ${isToday ? 'rgba(0,0,0,0.2)' : 'var(--border-subtle)'}; margin-top: 4px; display: flex; align-items: center; gap: 3px;" title="${habitCount} hábitos cargados">
           ${habitCount}
         </div>
@@ -101,6 +111,22 @@ function openDayActionModal(dateStr, dayNum) {
   const assignedRoutineId = localStorage.getItem(`assigned_routine_${dateStr}`);
   const assignedRoutine = routines.find(r => r.id === assignedRoutineId);
 
+  // Determine loaded habits for this specific date
+  let loadedHabits = [];
+  if (assignedRoutine) {
+    loadedHabits = (assignedRoutine.habitIds || []).map(id => habits.find(h => h.id === id)).filter(Boolean);
+  } else {
+    const customHabitsStr = localStorage.getItem(`assigned_habits_${dateStr}`);
+    if (customHabitsStr) {
+      try {
+        const ids = JSON.parse(customHabitsStr);
+        loadedHabits = ids.map(id => habits.find(h => h.id === id)).filter(Boolean);
+      } catch (e) {
+        loadedHabits = [];
+      }
+    }
+  }
+
   const routinesOptions = routines.length === 0 
     ? `<option value="">No hay rutinas guardadas</option>`
     : `<option value="">-- Seleccionar Rutina Guardada --</option>` + routines.map(r => 
@@ -121,8 +147,35 @@ function openDayActionModal(dateStr, dayNum) {
           </button>
         </div>
 
+        <!-- Loaded Habits Section for Date -->
+        <div style="margin-bottom: 20px;">
+          <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px;">
+            Hábitos cargados para esta fecha (${loadedHabits.length}):
+          </div>
+          ${loadedHabits.length === 0 ? `
+            <div style="padding: 12px 14px; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 12px; color: var(--text-secondary); font-size: 13px;">
+              Sin hábitos cargados específicamente para esta fecha.
+            </div>
+          ` : loadedHabits.map(h => `
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 12px; margin-bottom: 6px;">
+              <div>
+                <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">${h.name}</div>
+                <div style="font-size: 12px; color: var(--text-secondary);">⏰ ${h.cue?.time || '08:00'} (${h.duration || 15} min)</div>
+              </div>
+            </div>
+          `).join('')}
+
+          ${assignedRoutine ? `
+            <button id="btn-unassign-routine" class="btn-danger" style="width: 100%; margin-top: 10px; min-height: 38px; font-size: 12px;">
+              🗑️ Desasignar Rutina "${assignedRoutine.name}"
+            </button>
+          ` : ''}
+        </div>
+
+        <div style="height: 1px; background: var(--border-subtle); margin: 20px 0;"></div>
+
         <!-- Section 1: Cargar Preset / Rutina Guardada -->
-        <div style="margin-bottom: 24px;">
+        <div style="margin-bottom: 20px;">
           <label class="form-label" style="display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; font-size: 13.5px;">
             ⚡ Cargar Preset / Rutina Guardada
           </label>
@@ -134,13 +187,8 @@ function openDayActionModal(dateStr, dayNum) {
           </button>
         </div>
 
-        <div style="height: 1px; background: var(--border-subtle); margin: 20px 0;"></div>
-
         <!-- Section 2: Crear Hábito Nuevo -->
         <div style="margin-bottom: 16px;">
-          <label class="form-label" style="display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; font-size: 13.5px;">
-            ➕ Crear Hábito Nuevo
-          </label>
           <button id="btn-create-habit-for-date" class="btn-secondary" style="width: 100%; min-height: 44px; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px;">
             ${iconSVG('plus', 16)} Crear Nuevo Hábito
           </button>
@@ -154,6 +202,13 @@ function openDayActionModal(dateStr, dayNum) {
 
   document.getElementById('close-day-modal')?.addEventListener('click', () => {
     document.getElementById('day-action-modal')?.remove();
+  });
+
+  document.getElementById('btn-unassign-routine')?.addEventListener('click', () => {
+    localStorage.removeItem(`assigned_routine_${dateStr}`);
+    showToast(`Rutina desasignada de ${dateStr}`, 'info');
+    document.getElementById('day-action-modal')?.remove();
+    refreshCalendarView();
   });
 
   document.getElementById('btn-apply-routine')?.addEventListener('click', () => {
