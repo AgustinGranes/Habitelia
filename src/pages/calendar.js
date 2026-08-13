@@ -19,10 +19,11 @@ export function render() {
   
   let daysHtml = '';
   for (let i = 0; i < startOffset; i++) {
-    daysHtml += `<div class="calendar-day other-month" style="opacity: 0.15; pointer-events: none;"></div>`;
+    daysHtml += `<div class="calendar-day other-month" style="opacity: 0.15; pointer-events: none; min-height: 72px;"></div>`;
   }
   
   const today = new Date();
+  const habits = store.getState().habits || [];
   const routines = store.getState().routines || [];
 
   for (let i = 1; i <= daysInMonth; i++) {
@@ -31,10 +32,28 @@ export function render() {
     const assignedRoutineId = localStorage.getItem(`assigned_routine_${dateStr}`);
     const assignedRoutine = routines.find(r => r.id === assignedRoutineId);
 
+    // Calculate loaded habit count for this day
+    let habitCount = 0;
+    if (assignedRoutine) {
+      habitCount = (assignedRoutine.habitIds || []).length;
+    } else {
+      habitCount = habits.length;
+    }
+
     daysHtml += `
-      <div class="calendar-day ${isToday ? 'today-day' : ''}" data-day="${i}" data-date="${dateStr}" style="aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; border: 1px solid ${isToday ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${isToday ? 'var(--accent-primary)' : 'var(--bg-primary)'}; color: ${isToday ? 'var(--accent-inverted)' : 'var(--text-primary)'}; cursor: pointer; position: relative; transition: all 0.2s;">
-        <span style="font-weight: ${isToday ? '700' : '500'}; font-size: 14px;">${i}</span>
-        ${assignedRoutine ? `<span style="font-size: 9px; font-weight: 600; color: ${isToday ? 'var(--accent-inverted)' : 'var(--text-primary)'}; background: ${isToday ? 'rgba(0,0,0,0.15)' : 'var(--bg-subtle)'}; padding: 2px 4px; border-radius: 4px; margin-top: 3px; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${assignedRoutine.name}</span>` : ''}
+      <div class="calendar-day ${isToday ? 'today-day' : ''}" data-day="${i}" data-date="${dateStr}" style="min-height: 72px; padding: 6px 4px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; border-radius: 12px; border: 1px solid ${isToday ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${isToday ? 'var(--accent-primary)' : 'var(--bg-primary)'}; color: ${isToday ? 'var(--accent-inverted)' : 'var(--text-primary)'}; cursor: pointer; position: relative; transition: transform 0.15s ease, border-color 0.15s ease;">
+        <span style="font-weight: ${isToday ? '700' : '600'}; font-size: 14px;">${i}</span>
+        
+        ${assignedRoutine ? `
+          <span style="font-size: 9.5px; font-weight: 600; color: ${isToday ? 'var(--accent-inverted)' : 'var(--text-primary)'}; background: ${isToday ? 'rgba(0,0,0,0.12)' : 'var(--bg-subtle)'}; padding: 2px 5px; border-radius: 4px; max-width: 92%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${assignedRoutine.name}
+          </span>
+        ` : ''}
+
+        <!-- Number of Habits Badge -->
+        <div style="font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; background: ${isToday ? 'rgba(0,0,0,0.18)' : 'var(--bg-subtle)'}; color: ${isToday ? 'var(--accent-inverted)' : 'var(--text-primary)'}; border: 1px solid ${isToday ? 'rgba(0,0,0,0.2)' : 'var(--border-subtle)'}; margin-top: 4px; display: flex; align-items: center; gap: 3px;" title="${habitCount} hábitos cargados">
+          ${habitCount}
+        </div>
       </div>
     `;
   }
@@ -72,6 +91,90 @@ export function render() {
       </div>
     </div>
   `;
+}
+
+function openDayActionModal(dateStr, dayNum) {
+  document.getElementById('day-action-modal')?.remove();
+  const state = store.getState();
+  const habits = state.habits || [];
+  const routines = state.routines || [];
+  const assignedRoutineId = localStorage.getItem(`assigned_routine_${dateStr}`);
+  const assignedRoutine = routines.find(r => r.id === assignedRoutineId);
+
+  const routinesOptions = routines.length === 0 
+    ? `<option value="">No hay rutinas guardadas</option>`
+    : `<option value="">-- Seleccionar Rutina Guardada --</option>` + routines.map(r => 
+        `<option value="${r.id}" ${r.id === assignedRoutineId ? 'selected' : ''}>${r.name} (${(r.habitIds||[]).length} hábitos)</option>`
+      ).join('');
+
+  const modalHtml = `
+    <div id="day-action-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px;">
+      <div class="glass-card" style="width: 100%; max-width: 480px; padding: 28px; border-radius: 20px; border: 1px solid var(--border-subtle); background: var(--bg-surface); max-height: 88vh; overflow-y: auto;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 14px;">
+          <div>
+            <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary);">Planificación de Fecha</div>
+            <h3 class="editorial-title" style="font-size: 24px; margin: 4px 0 0 0; color: var(--text-primary);">${dateStr}</h3>
+          </div>
+          <button id="close-day-modal" style="background: var(--bg-subtle); border: none; color: var(--text-primary); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            ${iconSVG('x', 18)}
+          </button>
+        </div>
+
+        <!-- Section 1: Cargar Preset / Rutina Guardada -->
+        <div style="margin-bottom: 24px;">
+          <label class="form-label" style="display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; font-size: 13.5px;">
+            ⚡ Cargar Preset / Rutina Guardada
+          </label>
+          <select id="modal-routine-select" class="input" style="width: 100%; min-height: 46px; margin-bottom: 12px;">
+            ${routinesOptions}
+          </select>
+          <button id="btn-apply-routine" class="btn-primary" style="width: 100%; min-height: 44px; font-size: 13.5px;">
+            Aplicar Rutina a ${dateStr}
+          </button>
+        </div>
+
+        <div style="height: 1px; background: var(--border-subtle); margin: 20px 0;"></div>
+
+        <!-- Section 2: Crear Hábito Nuevo -->
+        <div style="margin-bottom: 16px;">
+          <label class="form-label" style="display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; font-size: 13.5px;">
+            ➕ Crear Hábito Nuevo
+          </label>
+          <button id="btn-create-habit-for-date" class="btn-secondary" style="width: 100%; min-height: 44px; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            ${iconSVG('plus', 16)} Crear Nuevo Hábito
+          </button>
+        </div>
+
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  document.getElementById('close-day-modal')?.addEventListener('click', () => {
+    document.getElementById('day-action-modal')?.remove();
+  });
+
+  document.getElementById('btn-apply-routine')?.addEventListener('click', () => {
+    const routineId = document.getElementById('modal-routine-select')?.value;
+    if (!routineId) {
+      showToast('Seleccioná una rutina de la lista', 'info');
+      return;
+    }
+    const routine = routines.find(r => r.id === routineId);
+    if (routine) {
+      localStorage.setItem(`assigned_routine_${dateStr}`, routineId);
+      showToast(`Rutina "${routine.name}" asignada a ${dateStr}`, 'success');
+      document.getElementById('day-action-modal')?.remove();
+      refreshCalendarView();
+    }
+  });
+
+  document.getElementById('btn-create-habit-for-date')?.addEventListener('click', () => {
+    document.getElementById('day-action-modal')?.remove();
+    navigate('/habit/new');
+  });
 }
 
 function refreshCalendarView() {
@@ -132,21 +235,9 @@ export function mount() {
   document.querySelectorAll('.calendar-day').forEach(dayEl => {
     dayEl.addEventListener('click', (e) => {
       const dateStr = e.currentTarget.dataset.date;
+      const dayNum = e.currentTarget.dataset.day;
       if (!dateStr) return;
-      const routines = store.getState().routines || [];
-      if (routines.length === 0) {
-        showToast('Primero guardá una rutina para poder asignarla al calendario', 'info');
-        return;
-      }
-      const routineName = prompt(`Asignar rutina a ${dateStr}:\n` + routines.map((r, i) => `${i+1}. ${r.name}`).join('\n') + '\n\nIngresá el número de rutina:');
-      if (routineName) {
-        const idx = parseInt(routineName) - 1;
-        if (routines[idx]) {
-          localStorage.setItem(`assigned_routine_${dateStr}`, routines[idx].id);
-          showToast(`Rutina "${routines[idx].name}" asignada a ${dateStr}`, 'success');
-          refreshCalendarView();
-        }
-      }
+      openDayActionModal(dateStr, dayNum);
     });
   });
 }
