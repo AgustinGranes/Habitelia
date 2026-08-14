@@ -500,15 +500,13 @@ export const store = {
     localStorage.setItem('last_evaluated_date', todayStr);
 
     const driverActive = !!(driver && driver.active);
-    // Count how many DAYS had at least one uncompleted habit (not number of habits)
-    // uncompletedHabitsList may have duplicates from multiple days, so count distinct days
-    const daysWithMissedHabits = new Set(uncompletedHabitsList.map(h => h._evalDate || todayStr)).size;
-    const penaltyDays = Math.max(0, daysWithMissedHabits);
+    // -1 OVR per uncompleted habit
+    const totalPenalty = uncompletedHabitsList.length;
 
     let newOvr = driver?.ovr || 50;
 
-    if (driverActive && penaltyDays > 0) {
-      newOvr = Math.max(10, (driver.ovr || 50) - penaltyDays);
+    if (driverActive && totalPenalty > 0) {
+      newOvr = Math.max(10, (driver.ovr || 50) - totalPenalty);
 
       const team = getTeamForOVR(newOvr);
       const teamsHistory = Array.from(new Set([...(driver.teamsHistory || []), team]));
@@ -531,7 +529,7 @@ export const store = {
         uncompletedHabits: uncompletedHabitsList,
         partner,
         driverActive,
-        ovrDelta: -penaltyDays,
+        ovrDelta: -totalPenalty,
         newOvr,
         teamName: getTeamForOVR(newOvr)
       });
