@@ -111,7 +111,10 @@ export const store = {
   
   getTodayString: () => {
     const d = new Date();
-    return d.toISOString().split('T')[0];
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   },
 
   getHabitOrder: (dateStr) => {
@@ -474,7 +477,8 @@ export const store = {
         const comp = h.completions || {};
         const status = comp[currEvalDate];
         if (status !== 'completed' && status !== 'completed_2min' && status !== 'skipped') {
-          uncompletedHabitsList.push(h);
+          // Tag each item with the eval date so we can count distinct days for penalty
+          uncompletedHabitsList.push({ ...h, _evalDate: currEvalDate });
           const incidentId = `${h.id}_${currEvalDate}`;
           const incidentObj = {
             id: incidentId,
@@ -496,12 +500,15 @@ export const store = {
     localStorage.setItem('last_evaluated_date', todayStr);
 
     const driverActive = !!(driver && driver.active);
-    let totalPenalty = uncompletedHabitsList.length;
+    // Count how many DAYS had at least one uncompleted habit (not number of habits)
+    // uncompletedHabitsList may have duplicates from multiple days, so count distinct days
+    const daysWithMissedHabits = new Set(uncompletedHabitsList.map(h => h._evalDate || todayStr)).size;
+    const penaltyDays = Math.max(0, daysWithMissedHabits);
 
     let newOvr = driver?.ovr || 50;
 
-    if (driverActive && totalPenalty > 0) {
-      newOvr = Math.max(10, (driver.ovr || 50) - totalPenalty);
+    if (driverActive && penaltyDays > 0) {
+      newOvr = Math.max(10, (driver.ovr || 50) - penaltyDays);
 
       const team = getTeamForOVR(newOvr);
       const teamsHistory = Array.from(new Set([...(driver.teamsHistory || []), team]));
@@ -524,10 +531,20 @@ export const store = {
         uncompletedHabits: uncompletedHabitsList,
         partner,
         driverActive,
-        ovrDelta: -totalPenalty,
+        ovrDelta: -penaltyDays,
         newOvr,
         teamName: getTeamForOVR(newOvr)
       });
+    }
+  },
+
+  // Called from driver.js mount — alias for checkDailyIncompleteHabitsAndDriver
+  // Driver-specific season checks (currently handled inside checkDailyIncompleteHabitsAndDriver)
+  checkDriverDailyInactivityAndSeason: async () => {
+    try {
+      await store.checkDailyIncompleteHabitsAndDriver();
+    } catch (e) {
+      console.error('checkDriverDailyInactivityAndSeason error:', e);
     }
   },
 
