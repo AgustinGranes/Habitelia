@@ -69,51 +69,67 @@ function renderTodoCard(todo, habits) {
   const parentHabit = todo.stackedAfterId ? habits.find(h => h.id === todo.stackedAfterId) : null;
 
   return `
-    <div class="glass-card todo-card" data-id="${todo.id}" style="padding: 16px 18px; margin-bottom: 12px; border-radius: 16px; border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; gap: 14px; opacity: ${todo.completed ? '0.6' : '1'};">
-      <div style="display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0;">
-        <button class="btn-toggle-todo" data-id="${todo.id}" style="width: 26px; height: 26px; border-radius: 50%; border: 1.75px solid ${todo.completed ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${todo.completed ? 'var(--text-primary)' : 'transparent'}; color: ${todo.completed ? 'var(--bg-primary)' : 'transparent'}; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s;">
-          ${iconSVG('check', 13)}
-        </button>
+    <div class="glass-card todo-card" data-id="${todo.id}" style="padding: 16px 18px; margin-bottom: 12px; border-radius: 16px; border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 10px; opacity: ${todo.completed ? '0.6' : '1'}; transition: opacity 0.2s;">
+      <!-- Top row: check + name + actions -->
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px;">
+        <div style="display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0;">
+          <button class="btn-toggle-todo" data-id="${todo.id}" style="width: 26px; height: 26px; border-radius: 50%; border: 1.75px solid ${todo.completed ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${todo.completed ? 'var(--text-primary)' : 'transparent'}; color: ${todo.completed ? 'var(--bg-primary)' : 'transparent'}; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s;">
+            ${iconSVG('check', 13)}
+          </button>
 
-        <div style="min-width: 0; flex: 1;">
-          <div style="font-weight: 600; font-size: 15.5px; color: var(--text-primary); ${todo.completed ? 'text-decoration: line-through;' : ''}">
-            ${todo.name}
-          </div>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-weight: 600; font-size: 15.5px; color: var(--text-primary); ${todo.completed ? 'text-decoration: line-through;' : ''}">
+              ${todo.name}
+            </div>
 
-          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 5px; font-size: 12px; color: var(--text-secondary);">
-            ${todo.dueDate ? `
-              <span style="display: flex; align-items: center; gap: 4px; color: ${isOverdue ? '#F56565' : 'var(--text-secondary)'}; font-weight: ${isOverdue ? '700' : '400'};">
-                ${iconSVG('calendar', 12)} ${todo.dueDate}${todo.time ? ` &nbsp;${iconSVG('clock', 12)} ${todo.time}` : ''} ${isOverdue ? '— Vencida' : ''}
-              </span>
-            ` : (todo.time ? `
-              <span style="display: flex; align-items: center; gap: 4px; color: var(--text-secondary);">
-                ${iconSVG('clock', 12)} ${todo.time}
-              </span>
-            ` : '')}
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 5px; font-size: 12px; color: var(--text-secondary);">
+              ${todo.dueDate ? `
+                <span style="display: flex; align-items: center; gap: 4px; color: ${isOverdue ? '#F56565' : 'var(--text-secondary)'}; font-weight: ${isOverdue ? '700' : '400'};">
+                  ${iconSVG('calendar', 12)} ${todo.dueDate}${todo.time ? ` &nbsp;${iconSVG('clock', 12)} ${todo.time}` : ''} ${isOverdue ? '— Vencida' : ''}
+                </span>
+              ` : (todo.time ? `
+                <span style="display: flex; align-items: center; gap: 4px; color: var(--text-secondary);">
+                  ${iconSVG('clock', 12)} ${todo.time}
+                </span>
+              ` : '')}
 
-            ${todo.tag ? `
-              <span style="display: flex; align-items: center; gap: 4px; background: var(--bg-subtle); border: 1px solid var(--border-subtle); padding: 2px 8px; border-radius: 12px; font-weight: 600; color: var(--text-primary);">
-                ${iconSVG('tag', 12)} ${todo.tag}
-              </span>
+              ${todo.tag ? `
+                <span style="display: flex; align-items: center; gap: 4px; background: var(--bg-subtle); border: 1px solid var(--border-subtle); padding: 2px 8px; border-radius: 12px; font-weight: 600; color: var(--text-primary);">
+                  ${iconSVG('tag', 12)} ${todo.tag}
+                </span>
+              ` : ''}
+
+              ${todo.description && !todo.descriptionVisible ? `
+                <span style="display: flex; align-items: center; gap: 3px; color: var(--text-tertiary); font-size: 11px;" title="Tiene descripción oculta">
+                  ${iconSVG('info', 11)} Nota privada
+                </span>
+              ` : ''}
+            </div>
+
+            ${parentHabit ? `
+              <div style="font-size: 11.5px; color: var(--text-tertiary); font-style: italic; margin-top: 4px;">
+                Acumulada después de: <strong>"${parentHabit.name}"</strong>
+              </div>
             ` : ''}
           </div>
+        </div>
 
-          ${parentHabit ? `
-            <div style="font-size: 11.5px; color: var(--text-tertiary); font-style: italic; margin-top: 4px;">
-              Acumulada después de: <strong>"${parentHabit.name}"</strong>
-            </div>
-          ` : ''}
+        <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+          <button class="btn-edit-todo btn-ghost" data-id="${todo.id}" title="Editar tarea" style="padding: 6px; color: var(--text-tertiary);">
+            ${iconSVG('edit', 16)}
+          </button>
+          <button class="btn-delete-todo btn-ghost" data-id="${todo.id}" title="Eliminar tarea" style="padding: 6px; color: var(--text-tertiary);">
+            ${iconSVG('trash', 16)}
+          </button>
         </div>
       </div>
 
-      <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
-        <button class="btn-edit-todo btn-ghost" data-id="${todo.id}" title="Editar tarea" style="padding: 6px; color: var(--text-tertiary);">
-          ${iconSVG('edit', 16)}
-        </button>
-        <button class="btn-delete-todo btn-ghost" data-id="${todo.id}" title="Eliminar tarea" style="padding: 6px; color: var(--text-tertiary);">
-          ${iconSVG('trash', 16)}
-        </button>
-      </div>
+      <!-- Description row (visible only if descriptionVisible === true) -->
+      ${todo.description && todo.descriptionVisible ? `
+        <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--text-secondary); line-height: 1.5; white-space: pre-wrap; word-break: break-word;">
+          ${todo.description}
+        </div>
+      ` : ''}
     </div>
   `;
 }
@@ -164,6 +180,31 @@ function openTodoModal(existingTodo = null) {
           <input type="text" id="todo-tag" class="input" placeholder="Ej. Trabajo, Estudio, Personal..." value="${existingTodo?.tag || ''}" style="width: 100%; min-height: 44px;">
         </div>
 
+        <!-- Description -->
+        <div style="margin-bottom: 14px;">
+          <label class="form-label" style="display: flex; align-items: center; gap: 6px;">
+            Descripción / Nota
+            <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 400;">(opcional)</span>
+          </label>
+          <textarea id="todo-description" class="input" placeholder="Detalles adicionales, contexto, instrucciones..." rows="3" style="width: 100%; min-height: 80px; resize: vertical; font-family: var(--font-ui); line-height: 1.5;">${existingTodo?.description || ''}</textarea>
+        </div>
+
+        <!-- Visibility toggle -->
+        <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px 16px;">
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+              ${iconSVG('info', 15)} Mostrar descripción en la tarea
+            </div>
+            <div style="font-size: 11.5px; color: var(--text-tertiary);">Por defecto la nota es privada e invisible</div>
+          </div>
+          <label style="position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; cursor: pointer;">
+            <input type="checkbox" id="todo-desc-visible" ${existingTodo?.descriptionVisible ? 'checked' : ''} style="opacity: 0; width: 0; height: 0; position: absolute;">
+            <span id="todo-desc-toggle-track" style="position: absolute; inset: 0; border-radius: 24px; background: ${existingTodo?.descriptionVisible ? 'var(--text-primary)' : 'var(--bg-subtle)'}; border: 1px solid var(--border-subtle); transition: background 0.2s;">
+              <span id="todo-desc-toggle-thumb" style="position: absolute; top: 2px; left: ${existingTodo?.descriptionVisible ? '22px' : '2px'}; width: 18px; height: 18px; border-radius: 50%; background: ${existingTodo?.descriptionVisible ? 'var(--bg-primary)' : 'var(--text-tertiary)'}; transition: all 0.2s;"></span>
+            </span>
+          </label>
+        </div>
+
         <!-- Habit Stacking Dropdown -->
         <div style="margin-bottom: 24px;">
           <label class="form-label" style="display: flex; align-items: center; gap: 6px;">
@@ -190,6 +231,19 @@ function openTodoModal(existingTodo = null) {
     document.getElementById('todo-modal')?.remove();
   });
 
+  // Animate the toggle
+  const checkbox = document.getElementById('todo-desc-visible');
+  const track = document.getElementById('todo-desc-toggle-track');
+  const thumb = document.getElementById('todo-desc-toggle-thumb');
+  if (checkbox && track && thumb) {
+    checkbox.addEventListener('change', () => {
+      const on = checkbox.checked;
+      track.style.background = on ? 'var(--text-primary)' : 'var(--bg-subtle)';
+      thumb.style.left = on ? '22px' : '2px';
+      thumb.style.background = on ? 'var(--bg-primary)' : 'var(--text-tertiary)';
+    });
+  }
+
   document.getElementById('btn-save-todo')?.addEventListener('click', async () => {
     const name = document.getElementById('todo-name')?.value.trim();
     if (!name) {
@@ -201,6 +255,8 @@ function openTodoModal(existingTodo = null) {
     const time = document.getElementById('todo-time')?.value || '';
     const tag = document.getElementById('todo-tag')?.value.trim() || '';
     const stackedAfterId = document.getElementById('todo-stacked-after')?.value || '';
+    const description = document.getElementById('todo-description')?.value.trim() || '';
+    const descriptionVisible = document.getElementById('todo-desc-visible')?.checked || false;
 
     const todoData = {
       id: existingTodo?.id || store.generateId(),
@@ -209,6 +265,8 @@ function openTodoModal(existingTodo = null) {
       time,
       tag,
       stackedAfterId,
+      description,
+      descriptionVisible,
       completed: existingTodo?.completed || false,
       createdAt: existingTodo?.createdAt || new Date().toISOString()
     };
