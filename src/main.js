@@ -1,8 +1,7 @@
 import './main.css';
 import { onAuthChange } from './firebase.js';
 import { store } from './store.js';
-import { initRouter, navigate, getCurrentRoute } from './router.js';
-
+import { navigate, getCurrentRoute } from './router.js';
 import { initTheme } from './utils/theme.js';
 
 // Import all page renderers
@@ -62,67 +61,145 @@ window.addEventListener('touchend', (e) => {
 
 const getAppContainer = () => document.getElementById('app') || document.body;
 
+// Show a splash while Firebase resolves auth — prevents black screen
+const showSplash = () => {
+  const app = getAppContainer();
+  app.innerHTML = `
+    <div style="
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; background: var(--bg-primary); gap: 20px;
+    ">
+      <div style="
+        font-family: var(--font-serif); font-size: 42px; color: var(--text-primary);
+        letter-spacing: -0.03em; animation: splashFade 1s ease-out;
+      ">HABITELIA.</div>
+      <div style="
+        width: 32px; height: 3px; background: var(--text-primary); border-radius: 2px;
+        animation: splashBar 1.2s ease-in-out infinite alternate;
+      "></div>
+    </div>
+    <style>
+      @keyframes splashFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes splashBar { from { opacity: 0.2; width: 16px; } to { opacity: 1; width: 40px; } }
+    </style>
+  `;
+};
+
+let routerStarted = false;
+
 const renderApp = (routePath, params) => {
   try {
     store.setState({ currentRoute: routePath });
     const appContainer = getAppContainer();
-    
+
     const route = routesMap[routePath] || routesMap['/login'];
-    const renderFn = route.render || (() => `<div class="page">Page Not Found</div>`);
+    const renderFn = route.render || (() => `<div class="page"></div>`);
     const mountFn = route.mount || (() => {});
     const newHTML = renderFn(params);
-    
+
     appContainer.innerHTML = newHTML;
     mountFn(params);
-    
+
     if (routePath !== '/login' && routePath !== '/onboarding') {
       const sidebarHTML = renderSidebar();
       appContainer.insertAdjacentHTML('beforeend', sidebarHTML);
       mountSidebar();
     }
   } catch (err) {
-    console.error('Error rendering app route:', routePath, err);
+    console.error('Error rendering route:', routePath, err);
+    // Fallback to login so the user sees something
+    try {
+      const appContainer = getAppContainer();
+      appContainer.innerHTML = renderLogin();
+      mountLogin();
+    } catch (e) {
+      console.error('Fatal render error:', e);
+    }
   }
+};
+
+const startRouter = () => {
+  if (routerStarted) return;
+  routerStarted = true;
+
+  // Parse hash manually (avoids importing initRouter which fires immediately)
+  const parseHash = () => {
+    const hash = window.location.hash || '#/login';
+    const rawPathWithQuery = hash.slice(1);
+    const [rawPath, queryString] = rawPathWithQuery.split('?');
+    const pathParts = rawPath.split('/').filter(Boolean);
+
+    const params = {};
+    if (queryString) {
+      const searchParams = new URLSearchParams(queryString);
+      for (const [key, value] of searchParams.entries()) {
+        params[key] = value;
+      }
+    }
+
+    if (rawPath.startsWith('/habit/edit/')) {
+      params.id = pathParts[2];
+      return { path: '/habit/edit', params };
+    }
+    if (rawPath === '/habit/edit' || rawPath === '/habit/new') return { path: '/habit/new', params };
+    if (rawPath === '/login') return { path: '/login', params };
+    if (rawPath === '/onboarding') return { path: '/onboarding', params };
+    if (rawPath === '/home') return { path: '/home', params };
+    if (rawPath === '/routine') return { path: '/routine', params };
+    if (rawPath === '/calendar') return { path: '/calendar', params };
+    if (rawPath === '/chain') return { path: '/chain', params };
+    if (rawPath === '/driver') return { path: '/driver', params };
+    if (rawPath === '/friends') return { path: '/friends', params };
+    if (rawPath === '/calculator') return { path: '/calculator', params };
+    if (rawPath === '/todo') return { path: '/todo', params };
+    if (rawPath === '/settings') return { path: '/settings', params };
+
+    return { path: '/login', params: {} };
+  };
+
+  const handleHashChange = () => {
+    const route = parseHash();
+    renderApp(route.path, route.params);
+  };
+
+  window.addEventListener('hashchange', handleHashChange);
+  // Render current route now
+  handleHashChange();
 };
 
 const initialize = () => {
   initTheme();
-  store.setState({ loading: true });
-  
+
+  // Show splash immediately so screen is never black
+  showSplash();
+
+  // Wait for Firebase to resolve auth before starting router
   onAuthChange(async (user) => {
     if (user) {
       await store.loadUserData();
-      store.setState({ loading: false });
-      
+
       const state = store.getState();
       const localOnboarded = localStorage.getItem(`onboardingCompleted_${user.uid}`) === 'true';
       const isOnboarded = state.user?.onboardingCompleted === true || localOnboarded;
-      
+
       if (!isOnboarded) {
-        if (getCurrentRoute().path !== '/onboarding') {
-          navigate('/onboarding');
+        window.location.hash = '/onboarding';
+      } else {
+        // If already on a valid deep-link route, keep it; otherwise go home
+        const hash = window.location.hash;
+        if (!hash || hash === '#/' || hash === '#/login' || hash === '#/onboarding') {
+          window.location.hash = '/home';
         }
-      } else if (getCurrentRoute().path === '/login' || getCurrentRoute().path === '/onboarding') {
-        navigate('/home');
       }
     } else {
-      store.setState({ loading: false, user: null });
-      if (getCurrentRoute().path !== '/login') {
-        navigate('/login');
-      }
+      store.setState({ user: null });
+      window.location.hash = '/login';
     }
+
+    // Now start the router — only called once
+    startRouter();
   });
-
-  initRouter(renderApp);
 };
-
-let renderTimeout;
-store.subscribe(() => {
-  if (renderTimeout) clearTimeout(renderTimeout);
-  renderTimeout = setTimeout(() => {
-    // Allows hooks for component re-rendering
-  }, 50);
-});
 
 initialize();
 
