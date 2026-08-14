@@ -187,11 +187,12 @@ export function render() {
       </button>
 
       <!-- Modal -->
-      <div id="expense-modal" style="display: none; position: fixed; inset: 0; background: rgba(10,10,10,0.85); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: 20px; font-family: var(--font-ui);">
-        <div class="glass-card" style="width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto; padding: 24px; position: relative; border-radius: 20px;">
-          <button id="close-modal-btn" class="btn-ghost" style="position: absolute; top: 16px; right: 16px; padding: 8px; z-index: 10;">
-            ${iconSVG('x', 20)}
-          </button>
+      <div id="expense-modal" style="display: none; position: fixed; inset: 0; background: rgba(10,10,10,0.85); backdrop-filter: blur(8px); z-index: 1000; overflow-y: auto; font-family: var(--font-ui);">
+        <div style="min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 40px 20px;">
+          <div class="glass-card" style="width: 100%; max-width: 400px; padding: 24px; position: relative; border-radius: 20px;">
+            <button id="close-modal-btn" class="btn-ghost" style="position: absolute; top: 16px; right: 16px; padding: 8px; z-index: 10;">
+              ${iconSVG('x', 20)}
+            </button>
           
           <h2 class="editorial-title" id="modal-title" style="font-size: 1.5rem; margin: 0 0 20px 0; color: var(--text-primary);">Agregar Gasto</h2>
 
@@ -253,8 +254,8 @@ export function render() {
               <input type="number" id="expense-commission" step="1" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="Personalizado (Ej: 60)">
             </div>
             
-            <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px;">
-              <div>
+            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+              <div style="flex: 2; min-width: 0;">
                 <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Frecuencia</label>
                 <select id="expense-cycle-type" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;">
                   <option value="monthly">Mensual</option>
@@ -262,26 +263,26 @@ export function render() {
                   <option value="x_days">Cada X Días</option>
                 </select>
               </div>
-              <div style="display: none;" id="cycle-value-container">
+              <div style="flex: 1; min-width: 0; display: none;" id="cycle-value-container">
                 <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Cant. (X)</label>
                 <input type="number" id="expense-cycle-value" min="1" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="Ej: 3">
               </div>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px;">
-              <div>
-                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Día de pago (opc)</label>
+            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+              <div style="flex: 1; min-width: 0;">
+                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Día de pago</label>
                 <input type="number" id="expense-billing-day" min="1" max="31" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="1-31">
               </div>
-              <div>
-                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Mes inicio (opc)</label>
-                <input type="month" id="expense-start-month" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;">
+              <div style="flex: 1; min-width: 0;">
+                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Mes inicio</label>
+                <input type="month" id="expense-start-month" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box; min-height: 46px;">
               </div>
             </div>
 
             <div style="margin-bottom: 24px;">
               <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Fecha de fin (opcional, p/ Cuotas)</label>
-              <input type="date" id="expense-end-date" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;">
+              <input type="date" id="expense-end-date" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box; min-height: 46px;">
             </div>
 
             <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; border-radius: 8px; font-weight: 500;">
@@ -290,7 +291,6 @@ export function render() {
           </form>
         </div>
       </div>
-
     </div>
   `;
 }
