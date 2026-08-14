@@ -105,21 +105,20 @@ export function render() {
         return `
           <div class="glass-card expense-item-card" data-id="${id}" style="padding: 18px 20px; margin-bottom: 12px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; transition: transform 0.15s ease; position: relative; overflow: hidden; ${isPaid ? 'opacity: 0.6;' : ''}">
             ${isPaid ? `<div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: var(--text-primary); opacity: 0.1; transform: rotate(-10deg); pointer-events: none; letter-spacing: 0.2em;">PAGADO</div>` : ''}
-            <div class="expense-info" data-id="${id}" style="flex: 1; min-width: 0; cursor: pointer; position: relative; z-index: 1; overflow-x: auto; scrollbar-width: none;">
-              <style>.expense-info::-webkit-scrollbar { display: none; }</style>
-              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px; min-width: max-content;">
+            <div class="expense-info" data-id="${id}" style="flex: 1; min-width: 0; cursor: pointer; position: relative; z-index: 1;">
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap;">
                 <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 6px; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-secondary); flex-shrink: 0;">${cur}</span>
-                <div style="font-weight: 600; font-size: 16px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${name}</div>
-                ${bank ? `<span style="font-size: 11px; font-weight: 500; padding: 2px 6px; border-radius: 4px; background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-secondary); white-space: nowrap;">${bank}</span>` : ''}
+                <div style="font-weight: 600; font-size: 16px; color: var(--text-primary); white-space: normal; word-break: break-word;">${name}</div>
+                ${bank ? `<span style="font-size: 11px; font-weight: 500; padding: 2px 6px; border-radius: 4px; background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-secondary);">${bank}</span>` : ''}
               </div>
               
-              <div style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 12px; min-width: max-content;">
-                <span style="white-space: nowrap;">Base: ${cur} ${price}${commission > 0 ? ` (+${Math.round(commission * 100)}%)` : ''}</span>
+              <div style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <span>Base: ${cur} ${price}${commission > 0 ? ` (+${Math.round(commission * 100)}%)` : ''}</span>
                 ${billingDay ? `
-                  <span style="display: inline-flex; align-items: center; gap: 4px; color: ${hasPassed ? 'var(--text-tertiary)' : 'var(--text-secondary)'}; white-space: nowrap;">
+                  <span style="display: inline-flex; align-items: center; gap: 4px; color: ${hasPassed ? 'var(--text-tertiary)' : 'var(--text-secondary)'};">
                     ${billingIcon} Día ${billingDay}${cycleText}
                   </span>
-                ` : cycleText ? `<span style="color: var(--text-secondary); white-space: nowrap;">${cycleText.replace(' | ', '')}</span>` : ''}
+                ` : cycleText ? `<span style="color: var(--text-secondary);">${cycleText.replace(' | ', '')}</span>` : ''}
               </div>
             </div>
 
@@ -254,8 +253,8 @@ export function render() {
               <input type="number" id="expense-commission" step="1" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="Personalizado (Ej: 60)">
             </div>
             
-            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-              <div style="flex: 2;">
+            <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px;">
+              <div>
                 <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Frecuencia</label>
                 <select id="expense-cycle-type" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;">
                   <option value="monthly">Mensual</option>
@@ -263,18 +262,18 @@ export function render() {
                   <option value="x_days">Cada X Días</option>
                 </select>
               </div>
-              <div style="flex: 1; display: none;" id="cycle-value-container">
+              <div style="display: none;" id="cycle-value-container">
                 <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Cant. (X)</label>
                 <input type="number" id="expense-cycle-value" min="1" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="Ej: 3">
               </div>
             </div>
 
-            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-              <div style="flex: 1;">
+            <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px;">
+              <div>
                 <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Día de pago (opc)</label>
                 <input type="number" id="expense-billing-day" min="1" max="31" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="1-31">
               </div>
-              <div style="flex: 1;">
+              <div>
                 <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Mes inicio (opc)</label>
                 <input type="month" id="expense-start-month" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;">
               </div>
