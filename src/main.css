@@ -218,29 +218,50 @@ h1, h2, h3, h4 {
   color: var(--text-tertiary);
 }
 
-/* WebKit Input Styling & Color Scheme Fix for iOS Safari */
-input[type="time"],
-input[type="date"],
-input[type="month"],
-input[type="datetime-local"] {
-  color-scheme: dark;
-  color: var(--text-primary) !important;
-  font-family: var(--font-ui);
-}
-
-input[type="number"].input {
-  max-width: 100% !important;
+/* Normalized Modal Field Utility */
+.modal-field {
   width: 100% !important;
+  max-width: 100% !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  background: var(--bg-subtle) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: 8px !important;
+  color: var(--text-primary) !important;
+  font-family: var(--font-ui) !important;
+  font-size: 14px !important;
+  padding: 0 12px !important;
   box-sizing: border-box !important;
   display: block !important;
+  margin: 0 !important;
+  outline: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
 }
 
-input[type="time"]::-webkit-calendar-picker-indicator,
-input[type="date"]::-webkit-calendar-picker-indicator,
-input[type="month"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-  cursor: pointer;
-  opacity: 0.8;
+select.modal-field {
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23A3A3A3%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 10px auto !important;
+  padding-right: 30px !important;
+}
+
+input[type="date"].modal-field,
+input[type="month"].modal-field {
+  line-height: 44px !important;
+  color-scheme: dark !important;
+}
+
+input[type="date"].modal-field::-webkit-date-and-time-value,
+input[type="month"].modal-field::-webkit-date-and-time-value {
+  text-align: left !important;
+  line-height: 44px !important;
+  min-height: 44px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
 }
 
 /* SVG Icon Helper Alignment */

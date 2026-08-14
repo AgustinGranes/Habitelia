@@ -198,15 +198,15 @@ export function render() {
           <form id="expense-form">
             <input type="hidden" id="expense-id">
             
-            <div style="margin-bottom: 16px;">
-              <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Nombre del gasto</label>
-              <input type="text" id="expense-name" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="Ej: Netflix, Cable, Gimnasio...">
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;">Nombre del gasto</label>
+              <input type="text" id="expense-name" class="modal-field" placeholder="Ej: Netflix, Cable, Gimnasio...">
             </div>
             
-            <div style="margin-bottom: 16px;">
-              <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Tarjeta / Banco (opcional)</label>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;">Tarjeta / Banco (opcional)</label>
               <div style="display: flex; gap: 8px; flex-direction: column;">
-                <select id="expense-bank-select" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box; appearance: none;">
+                <select id="expense-bank-select" class="modal-field">
                   <option value="">Ninguno</option>
                   <option value="Visa">Visa</option>
                   <option value="MasterCard">MasterCard</option>
@@ -221,18 +221,18 @@ export function render() {
                   <option value="Banco Nación">Banco Nación</option>
                   <option value="Otra">Otra (escribir manual)</option>
                 </select>
-                <input type="text" id="expense-bank-custom" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box; display: none;" placeholder="Ej: Lemon Cash, Naranja X...">
+                <input type="text" id="expense-bank-custom" class="modal-field" style="display: none;" placeholder="Ej: Lemon Cash, Naranja X...">
               </div>
             </div>
 
-            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-              <div style="flex: 1;">
-                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Precio base</label>
-                <input type="number" id="expense-price" step="0.01" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="0.00">
+            <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+              <div style="flex: 1; min-width: 0;">
+                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;">Precio base</label>
+                <input type="number" id="expense-price" step="0.01" class="modal-field" placeholder="0.00">
               </div>
-              <div style="width: 100px;">
-                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Moneda</label>
-                <select id="expense-cur" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box; appearance: none;">
+              <div style="width: 100px; flex-shrink: 0;">
+                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;">Moneda</label>
+                <select id="expense-cur" class="modal-field">
                   <option value="ARS">ARS</option>
                   <option value="USD">USD</option>
                   <option value="EUR">EUR</option>
@@ -242,49 +242,49 @@ export function render() {
               </div>
             </div>
 
-            <div style="margin-bottom: 16px;">
-              <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Impuestos / Comisión (%)</label>
-              <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
-                <button type="button" class="btn-secondary commission-preset" data-val="0" style="flex: 1; min-width: 40px; padding: 8px;">0%</button>
-                <button type="button" class="btn-secondary commission-preset" data-val="0.08" style="flex: 1; min-width: 40px; padding: 8px;">8%</button>
-                <button type="button" class="btn-secondary commission-preset" data-val="0.21" style="flex: 1; min-width: 40px; padding: 8px;">21%</button>
-                <button type="button" class="btn-secondary commission-preset" data-val="0.30" style="flex: 1; min-width: 40px; padding: 8px;">30%</button>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;">Impuestos / Comisión (%)</label>
+              <div style="display: flex; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+                <button type="button" class="btn-secondary commission-preset" data-val="0" style="flex: 1; min-width: 40px; min-height: 36px; height: 36px; padding: 0; font-size: 13px;">0%</button>
+                <button type="button" class="btn-secondary commission-preset" data-val="0.08" style="flex: 1; min-width: 40px; min-height: 36px; height: 36px; padding: 0; font-size: 13px;">8%</button>
+                <button type="button" class="btn-secondary commission-preset" data-val="0.21" style="flex: 1; min-width: 40px; min-height: 36px; height: 36px; padding: 0; font-size: 13px;">21%</button>
+                <button type="button" class="btn-secondary commission-preset" data-val="0.30" style="flex: 1; min-width: 40px; min-height: 36px; height: 36px; padding: 0; font-size: 13px;">30%</button>
               </div>
-              <input type="number" id="expense-commission" step="1" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="Personalizado (Ej: 60)">
+              <input type="number" id="expense-commission" step="1" class="modal-field" placeholder="Personalizado (Ej: 60)">
             </div>
             
-            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+            <div style="display: flex; gap: 12px; margin-bottom: 12px;">
               <div style="flex: 2; min-width: 0;">
-                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Frecuencia</label>
-                <select id="expense-cycle-type" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;">
+                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;">Frecuencia</label>
+                <select id="expense-cycle-type" class="modal-field">
                   <option value="monthly">Mensual</option>
                   <option value="x_months">Cada X Meses</option>
                   <option value="x_days">Cada X Días</option>
                 </select>
               </div>
               <div style="flex: 1; min-width: 0; display: none;" id="cycle-value-container">
-                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Cant. (X)</label>
-                <input type="number" id="expense-cycle-value" min="1" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="Ej: 3">
+                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;">Cant. (X)</label>
+                <input type="number" id="expense-cycle-value" min="1" class="modal-field" placeholder="Ej: 3">
               </div>
             </div>
 
-            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+            <div style="display: flex; gap: 12px; margin-bottom: 12px;">
               <div style="flex: 1; min-width: 0;">
-                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Día de pago</label>
-                <input type="number" id="expense-billing-day" min="1" max="31" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="1-31">
+                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;">Día de pago</label>
+                <input type="number" id="expense-billing-day" min="1" max="31" class="modal-field" placeholder="1-31">
               </div>
               <div style="flex: 1; min-width: 0;">
-                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Mes inicio</label>
-                <input type="month" id="expense-start-month" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box; min-height: 46px;">
+                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;">Mes inicio</label>
+                <input type="month" id="expense-start-month" class="modal-field">
               </div>
             </div>
 
-            <div style="margin-bottom: 24px;">
-              <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Fecha de fin (opcional, p/ Cuotas)</label>
-              <input type="date" id="expense-end-date" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box; min-height: 46px;">
+            <div style="margin-bottom: 20px;">
+              <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;">Fecha de fin (opcional, p/ Cuotas)</label>
+              <input type="date" id="expense-end-date" class="modal-field">
             </div>
 
-            <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; border-radius: 8px; font-weight: 500;">
+            <button type="submit" class="btn-primary" style="width: 100%; height: 46px; min-height: 46px; border-radius: 10px; font-weight: 600; font-size: 15px;">
               Guardar Gasto
             </button>
           </form>
