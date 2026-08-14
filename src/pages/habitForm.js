@@ -13,6 +13,7 @@ export function render(props = {}) {
   const targetId = props?.id || hashId;
 
   const defaultFreq = { type: 'daily', days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] };
+  const defaultRepetition = { enabled: false, time: '18:00', days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] };
 
   if (targetId) {
     const state = store.getState();
@@ -20,10 +21,12 @@ export function render(props = {}) {
     if (existing) {
       habitData = JSON.parse(JSON.stringify(existing));
       if (!habitData.frequency) habitData.frequency = defaultFreq;
+      if (!habitData.repetition) habitData.repetition = defaultRepetition;
     } else {
       habitData = {
         name: '', icon: '🎯', duration: 15, cue: { time: '08:00', place: '' },
         frequency: defaultFreq,
+        repetition: defaultRepetition,
         craving: { linkedPleasure: '' },
         response: { twoMinVersion: '' },
         stackedAfterId: ''
@@ -33,6 +36,7 @@ export function render(props = {}) {
     habitData = {
       name: '', icon: '🎯', duration: 15, cue: { time: '08:00', place: '' },
       frequency: defaultFreq,
+      repetition: defaultRepetition,
       craving: { linkedPleasure: '' },
       response: { twoMinVersion: '' },
       stackedAfterId: ''
@@ -112,6 +116,38 @@ function renderStep1() {
             <input type="time" class="input habit-time-per-day" data-day="${d.key}" value="${habitData.cue?.timePerDay?.[d.key] || habitData.cue?.time || '08:00'}" style="flex: 1; min-height: 38px; text-align: center; font-size: 14px;">
           </div>
         `).join('')}
+      </div>
+
+      <div style="margin-top: 8px;">
+        <label style="font-weight: 600; font-size: 13px; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+          <input type="checkbox" id="habit-repetition-enabled" ${habitData.repetition?.enabled ? 'checked' : ''}> 
+          Repetir hábito más de una vez en el día
+        </label>
+      </div>
+
+      <div id="repetition-settings-container" style="display: ${habitData.repetition?.enabled ? 'flex' : 'none'}; flex-direction: column; gap: 12px; margin-top: 12px; background: var(--bg-primary); border: 1px solid var(--border-subtle); padding: 12px; border-radius: 12px;">
+        <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Configuración de la Repetición:</div>
+        
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--text-primary); width: 80px;">Hora</span>
+          <input type="time" id="habit-repetition-time" class="input" value="${habitData.repetition?.time || '18:00'}" style="flex: 1; min-height: 38px; text-align: center; font-size: 14px;">
+        </div>
+
+        <div>
+          <div style="font-size: 12.5px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Días que se repite:</div>
+          <div id="repetition-weekday-pills" style="display: flex; justify-content: space-between; gap: 6px; flex-wrap: wrap;">
+            ${['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((dayName, idx) => {
+              const dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+              const repDays = habitData.repetition?.days || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+              const isSelected = repDays.includes(dayName);
+              return `
+                <button type="button" class="rep-day-pill-btn" data-day="${dayName}" style="flex: 1; min-width: 32px; height: 32px; border-radius: 8px; font-size: 11px; font-weight: 700; border: 1px solid var(--border-subtle); background: ${isSelected ? 'var(--text-primary)' : 'var(--bg-subtle)'}; color: ${isSelected ? 'var(--bg-primary)' : 'var(--text-secondary)'}; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                  ${dayLabels[idx]}
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
       </div>
     </div>
 
@@ -274,115 +310,102 @@ function bindFrequencyEvents() {
 }
 
 function checkAndShowCollisions(newHabit, onConfirmed) {
-  if (!newHabit.cue.time) {
-    onConfirmed(newHabit);
+  const collision = findCollidingHabit(newHabit);
+  if (collision) {
+    if (collision.conflict === newHabit) {
+      showToast(`Conflicto: la repetición colisiona con ${collision.detail}.`, 'error');
+    } else {
+      showToast(`Conflicto de horario: se superpone con ${collision.detail}.`, 'error');
+    }
     return;
   }
+  onConfirmed(newHabit);
+}
+
+function daysOverlap(arr1, arr2) {
+  return arr1.some(x => arr2.includes(x));
+}
+
+function findCollidingHabit(newHabit) {
   const habits = store.getState().habits || [];
-  const conflictingHabits = habits.filter(h => h.id !== newHabit.id && h.cue.time && checkCollision(newHabit, h));
+  
+  const getMainDays = (h) => {
+    if (!h.frequency) return ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+    if (h.frequency.type === 'daily') return ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+    return h.frequency.days || [];
+  };
 
-  if (conflictingHabits.length === 0) {
-    onConfirmed(newHabit);
-    return;
+  const getRepDays = (h) => {
+    if (!h.repetition?.enabled) return [];
+    return h.repetition.days || [];
+  };
+
+  const newMainDays = getMainDays(newHabit);
+  const newRepDays = getRepDays(newHabit);
+
+  // 1. Check main occurrence of newHabit against other habits
+  if (newHabit.cue?.time) {
+    const mainEvent = { startTime: newHabit.cue.time, duration: newHabit.duration };
+    for (const h of habits) {
+      if (h.id === newHabit.id) continue;
+      
+      const otherMainDays = getMainDays(h);
+      const otherRepDays = getRepDays(h);
+
+      // Check against other's main
+      if (h.cue?.time && daysOverlap(newMainDays, otherMainDays)) {
+        const otherMain = { startTime: h.cue.time, duration: h.duration };
+        if (checkCollision(mainEvent, otherMain).collides) {
+          return { conflict: h, type: 'principal', detail: `el horario principal de "${h.name}"` };
+        }
+      }
+      // Check against other's repetition
+      if (h.repetition?.enabled && h.repetition?.time && daysOverlap(newMainDays, otherRepDays)) {
+        const otherRep = { startTime: h.repetition.time, duration: h.duration };
+        if (checkCollision(mainEvent, otherRep).collides) {
+          return { conflict: h, type: 'principal', detail: `la repetición de "${h.name}"` };
+        }
+      }
+    }
   }
 
-  const conflict = conflictingHabits[0];
-  const newStartMin = parseTime(newHabit.cue.time);
-  const confStartMin = parseTime(conflict.cue.time);
-  const confEndMin = confStartMin + parseInt(conflict.duration || 15);
-  const newEndMin = newStartMin + parseInt(newHabit.duration || 15);
-
-  const sugg1NewTime = minutesToTime(Math.max(0, confStartMin - newHabit.duration));
-  const sugg2NewTime = minutesToTime(confEndMin);
-  const sugg3ConfTime = minutesToTime(Math.max(0, newStartMin - conflict.duration));
-  const sugg4ConfTime = minutesToTime(newEndMin);
-
-  document.getElementById('collision-modal')?.remove();
-
-  const modalHtml = `
-    <div id="collision-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px;">
-      <div class="glass-card" style="width: 100%; max-width: 500px; padding: 28px; border-radius: 20px; border: 1px solid var(--border-subtle); max-height: 88vh; overflow-y: auto; background: var(--bg-surface);">
-        
-        <div style="text-align: center; margin-bottom: 20px;">
-          <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--bg-subtle); color: var(--text-primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto;">
-            ${iconSVG('alert', 22)}
-          </div>
-          <h3 class="editorial-title" style="font-size: 22px; margin: 0 0 6px 0;">Conflicto de Horarios</h3>
-          <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">El hábito que deseas guardar se solapa con otro evento existente.</p>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-          <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); padding: 14px; border-radius: 12px;">
-            <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Nuevo Hábito</div>
-            <div style="font-weight: 600; font-size: 14px; color: var(--text-primary); margin-top: 4px;">${newHabit.name || 'Hábito Nuevo'}</div>
-            <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 2px;">⏰ ${newHabit.cue.time} - ${getEndTime(newHabit.cue.time, newHabit.duration)}</div>
-          </div>
-
-          <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); padding: 14px; border-radius: 12px;">
-            <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Existente</div>
-            <div style="font-weight: 600; font-size: 14px; color: var(--text-primary); margin-top: 4px;">${conflict.name}</div>
-            <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 2px;">⏰ ${conflict.cue.time} - ${getEndTime(conflict.cue.time, conflict.duration)}</div>
-          </div>
-        </div>
-
-        <h4 style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin: 0 0 12px 0;">Sugerencias de corrección:</h4>
-
-        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px;">
-          <button class="btn-collision-opt" data-opt="1" style="text-align: left; padding: 12px 16px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border-subtle); color: var(--text-primary); cursor: pointer; transition: background 0.2s ease;">
-            <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">Mover "${newHabit.name}" antes</div>
-            <div style="font-size: 12px; color: var(--text-secondary);">Cambiar a ⏰ ${sugg1NewTime} - ${getEndTime(sugg1NewTime, newHabit.duration)}</div>
-          </button>
-
-          <button class="btn-collision-opt" data-opt="2" style="text-align: left; padding: 12px 16px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border-subtle); color: var(--text-primary); cursor: pointer; transition: background 0.2s ease;">
-            <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">Mover "${newHabit.name}" después</div>
-            <div style="font-size: 12px; color: var(--text-secondary);">Cambiar a ⏰ ${sugg2NewTime} - ${getEndTime(sugg2NewTime, newHabit.duration)}</div>
-          </button>
-
-          <button class="btn-collision-opt" data-opt="3" style="text-align: left; padding: 12px 16px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border-subtle); color: var(--text-primary); cursor: pointer; transition: background 0.2s ease;">
-            <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">Mover "${conflict.name}" antes</div>
-            <div style="font-size: 12px; color: var(--text-secondary);">Mover "${conflict.name}" a ⏰ ${sugg3ConfTime}</div>
-          </button>
-
-          <button class="btn-collision-opt" data-opt="4" style="text-align: left; padding: 12px 16px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border-subtle); color: var(--text-primary); cursor: pointer; transition: background 0.2s ease;">
-            <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">Mover "${conflict.name}" después</div>
-            <div style="font-size: 12px; color: var(--text-secondary);">Mover "${conflict.name}" a ⏰ ${sugg4ConfTime}</div>
-          </button>
-        </div>
-
-        <button id="btn-cancel-collision" class="btn-secondary" style="width: 100%;">Ajustar Manualmente</button>
-
-      </div>
-    </div>
-  `;
-
-  document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-  document.getElementById('btn-cancel-collision')?.addEventListener('click', () => {
-    document.getElementById('collision-modal')?.remove();
-  });
-
-  document.querySelectorAll('.btn-collision-opt').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const opt = e.currentTarget.dataset.opt;
-      document.getElementById('collision-modal')?.remove();
-
-      if (opt === '1') {
-        newHabit.cue.time = sugg1NewTime;
-        await onConfirmed(newHabit);
-      } else if (opt === '2') {
-        newHabit.cue.time = sugg2NewTime;
-        await onConfirmed(newHabit);
-      } else if (opt === '3') {
-        conflict.cue.time = sugg3ConfTime;
-        await store.saveHabit(conflict);
-        await onConfirmed(newHabit);
-      } else if (opt === '4') {
-        conflict.cue.time = sugg4ConfTime;
-        await store.saveHabit(conflict);
-        await onConfirmed(newHabit);
+  // 2. Check repetition of newHabit (if enabled)
+  if (newHabit.repetition?.enabled && newHabit.repetition?.time) {
+    const repEvent = { startTime: newHabit.repetition.time, duration: newHabit.duration };
+    
+    // Check against newHabit's own main
+    if (newHabit.cue?.time && daysOverlap(newRepDays, newMainDays)) {
+      const mainEvent = { startTime: newHabit.cue.time, duration: newHabit.duration };
+      if (checkCollision(repEvent, mainEvent).collides) {
+        return { conflict: newHabit, type: 'propia_repa', detail: 'el horario principal de este mismo hábito' };
       }
-    });
-  });
+    }
+
+    // Check against other habits
+    for (const h of habits) {
+      if (h.id === newHabit.id) continue;
+      
+      const otherMainDays = getMainDays(h);
+      const otherRepDays = getRepDays(h);
+
+      // Check against other's main
+      if (h.cue?.time && daysOverlap(newRepDays, otherMainDays)) {
+        const otherMain = { startTime: h.cue.time, duration: h.duration };
+        if (checkCollision(repEvent, otherMain).collides) {
+          return { conflict: h, type: 'repa_vs_other_main', detail: `el horario principal de "${h.name}"` };
+        }
+      }
+      // Check against other's repetition
+      if (h.repetition?.enabled && h.repetition?.time && daysOverlap(newRepDays, otherRepDays)) {
+        const otherRep = { startTime: h.repetition.time, duration: h.duration };
+        if (checkCollision(repEvent, otherRep).collides) {
+          return { conflict: h, type: 'repa_vs_other_rep', detail: `la repetición de "${h.name}"` };
+        }
+      }
+    }
+  }
+
+  return null;
 }
 
 function updateStepIndicators() {
@@ -427,6 +450,34 @@ export function mount() {
     }
   });
 
+  const repCheckbox = document.getElementById('habit-repetition-enabled');
+  const repContainer = document.getElementById('repetition-settings-container');
+  repCheckbox?.addEventListener('change', () => {
+    if (repContainer) {
+      repContainer.style.display = repCheckbox.checked ? 'flex' : 'none';
+    }
+  });
+
+  document.querySelectorAll('.rep-day-pill-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const day = e.currentTarget.dataset.day;
+      let days = habitData.repetition?.days || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+      if (days.includes(day)) {
+        if (days.length > 1) {
+          days = days.filter(d => d !== day);
+        }
+      } else {
+        days.push(day);
+      }
+      if (!habitData.repetition) habitData.repetition = {};
+      habitData.repetition.days = days;
+
+      const isSelected = days.includes(day);
+      e.currentTarget.style.background = isSelected ? 'var(--text-primary)' : 'var(--bg-subtle)';
+      e.currentTarget.style.color = isSelected ? 'var(--bg-primary)' : 'var(--text-secondary)';
+    });
+  });
+
   const saveCurrentStepData = () => {
     if (currentStep === 1) {
       const name = document.getElementById('habit-name')?.value.trim();
@@ -445,11 +496,16 @@ export function mount() {
         });
       }
 
+      const repEnabled = !!document.getElementById('habit-repetition-enabled')?.checked;
+      const repTime = document.getElementById('habit-repetition-time')?.value || '18:00';
+      const repDays = habitData.repetition?.days || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
       const stackedAfterId = document.getElementById('habit-stacked-after')?.value || '';
 
       habitData.name = name;
       habitData.cue = { ...(habitData.cue || {}), time, timePerDay, place };
       habitData.duration = duration;
+      habitData.repetition = { enabled: repEnabled, time: repTime, days: repDays };
       habitData.stackedAfterId = stackedAfterId;
     } else if (currentStep === 2) {
       const twoMin = document.getElementById('habit-twomin')?.value.trim() || '';

@@ -32,16 +32,18 @@ export function render(props = {}) {
         return true;
     });
 
-    const todayEvents = todayHabits.map(h => {
+    const todayEvents = [];
+
+    // Main occurrences
+    todayHabits.forEach(h => {
         const isCompleted = h.completions?.[todayDate] === 'completed' || h.completions?.[todayDate] === 'completed_2min';
         const isSkipped = h.completions?.[todayDate] === 'skipped';
         const streak = h.streak || 0;
         const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
-
-    const habitTime = (h.cue?.timePerDay && h.cue.timePerDay[todayDayKey]) || h.cue?.time || null;
+        const habitTime = (h.cue?.timePerDay && h.cue.timePerDay[todayDayKey]) || h.cue?.time || null;
         const parentHabit = h.stackedAfterId ? habits.find(item => item.id === h.stackedAfterId) : null;
 
-        return {
+        todayEvents.push({
             id: h.id,
             name: h.name,
             icon: h.icon || '🎯',
@@ -54,7 +56,34 @@ export function render(props = {}) {
             completed: isCompleted,
             skipped: isSkipped,
             streak
-        };
+        });
+    });
+
+    // Repetition occurrences (if scheduled for today)
+    habits.forEach(h => {
+        if (h.repetition?.enabled && Array.isArray(h.repetition.days) && h.repetition.days.includes(todayDayKey)) {
+            const repDateKey = todayDate + '_rep';
+            const isCompleted = h.completions?.[repDateKey] === 'completed' || h.completions?.[repDateKey] === 'completed_2min';
+            const isSkipped = h.completions?.[repDateKey] === 'skipped';
+            const streak = h.streak || 0;
+            const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
+            const parentHabit = h.stackedAfterId ? habits.find(item => item.id === h.stackedAfterId) : null;
+
+            todayEvents.push({
+                id: h.id + '_rep',
+                name: h.name + ' (Repetición)',
+                icon: h.icon || '🎯',
+                time: h.repetition.time || '18:00',
+                duration: h.duration || 15,
+                twoMinuteVersion: h.response?.twoMinVersion || '2 minutos',
+                linkedPleasure,
+                stackedAfterId: h.stackedAfterId ? h.stackedAfterId + '_rep' : '',
+                stackedAfterName: parentHabit?.name ? parentHabit.name + ' (Repetición)' : '',
+                completed: isCompleted,
+                skipped: isSkipped,
+                streak
+            });
+        }
     });
 
     // Build Stacked Groups
@@ -530,15 +559,19 @@ export function mount() {
     });
 
     document.querySelectorAll('.habit-bubble').forEach(bubble => {
-        const habitId = bubble.dataset.id;
+        const rawId = bubble.dataset.id;
+        const isRep = rawId.endsWith('_rep');
+        const habitId = isRep ? rawId.slice(0, -4) : rawId;
+        const completionDateKey = isRep ? store.getTodayString() + '_rep' : store.getTodayString();
+
         const fillOverlay = bubble.querySelector('.fill-overlay');
         let isPressing = false;
         let pressTimer = null;
 
         const completeAction = async () => {
             const habit = store.getState().habits?.find(h => h.id === habitId);
-            openCompletionModeModal(habitId, habit?.name || 'Hábito', async (mode) => {
-                const res = await store.completeEvent(habitId, store.getTodayString(), mode) || {};
+            openCompletionModeModal(rawId, habit?.name || 'Hábito', async (mode) => {
+                const res = await store.completeEvent(habitId, completionDateKey, mode) || {};
                 const streak = res.newStreak || 1;
                 const modeText = mode === 'completed_2min' ? ' (2 minutos)' : ' (Completo)';
                 showToast(`¡Excelente! Racha: ${streak} días${modeText}`, 'success');
@@ -573,7 +606,7 @@ export function mount() {
             bubble.style.transform = 'translateX(-100%)';
             bubble.style.opacity = '0';
             setTimeout(async () => {
-                await store.skipEvent(habitId, store.getTodayString());
+                await store.skipEvent(habitId, completionDateKey);
                 showToast('Hábito omitido', 'info');
                 refreshHomeView();
             }, 300);
@@ -636,17 +669,20 @@ export function mount() {
     document.querySelectorAll('.btn-toggle-habit').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            const habitId = e.currentTarget.dataset.id;
+            const rawId = e.currentTarget.dataset.id;
+            const isRep = rawId.endsWith('_rep');
+            const habitId = isRep ? rawId.slice(0, -4) : rawId;
+            const completionDateKey = isRep ? store.getTodayString() + '_rep' : store.getTodayString();
             const isCompleted = e.currentTarget.dataset.completed === 'true';
 
             if (isCompleted) {
-                await store.uncompleteEvent(habitId, store.getTodayString());
+                await store.uncompleteEvent(habitId, completionDateKey);
                 showToast('Hábito marcado como pendiente', 'info');
                 refreshHomeView();
             } else {
                 const habit = store.getState().habits?.find(h => h.id === habitId);
-                openCompletionModeModal(habitId, habit?.name || 'Hábito', async (mode) => {
-                    const res = await store.completeEvent(habitId, store.getTodayString(), mode) || {};
+                openCompletionModeModal(rawId, habit?.name || 'Hábito', async (mode) => {
+                    const res = await store.completeEvent(habitId, completionDateKey, mode) || {};
                     const streak = res.newStreak || 1;
                     const modeText = mode === 'completed_2min' ? ' (2 minutos)' : ' (Completo)';
                     showToast(`¡Excelente! Racha: ${streak} días${modeText}`, 'success');
@@ -660,7 +696,8 @@ export function mount() {
     document.querySelectorAll('.btn-edit-habit').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const id = e.currentTarget.dataset.id;
+            const rawId = e.currentTarget.dataset.id;
+            const id = rawId.endsWith('_rep') ? rawId.slice(0, -4) : rawId;
             navigate('/habit/new', { id });
         });
     });
@@ -716,7 +753,8 @@ export function mount() {
     document.querySelectorAll('.btn-delete-habit').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            const id = e.currentTarget.dataset.id;
+            const rawId = e.currentTarget.dataset.id;
+            const id = rawId.endsWith('_rep') ? rawId.slice(0, -4) : rawId;
             const name = e.currentTarget.dataset.name || 'Hábito';
             if (confirm(`¿Estás seguro de eliminar el hábito "${name}"?`)) {
                 await store.deleteHabit(id);

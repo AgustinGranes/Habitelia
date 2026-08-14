@@ -18,7 +18,10 @@ export function render() {
   const todayDayKey = dayKeys[new Date().getDay()];
 
   // 1. Today's Items
-  const todayItems = habits.map(h => {
+  const todayItems = [];
+
+  // Main occurrences
+  habits.forEach(h => {
     const status = h.completions?.[todayDate];
     const isCompleted = status === 'completed' || status === 'completed_2min';
     const isTwoMin = status === 'completed_2min';
@@ -27,7 +30,8 @@ export function render() {
     const twoMinuteVersion = h.response?.twoMinVersion || '';
     const habitTime = (h.cue?.timePerDay && h.cue.timePerDay[todayDayKey]) || h.cue?.time || '08:00';
     const parentHabit = h.stackedAfterId ? habits.find(item => item.id === h.stackedAfterId) : null;
-    return {
+    
+    todayItems.push({
       id: h.id,
       name: h.name,
       icon: h.icon || '🎯',
@@ -40,7 +44,36 @@ export function render() {
       completed: isCompleted,
       isTwoMin,
       skipped: isSkipped
-    };
+    });
+  });
+
+  // Repetition occurrences (if scheduled for today)
+  habits.forEach(h => {
+    if (h.repetition?.enabled && Array.isArray(h.repetition.days) && h.repetition.days.includes(todayDayKey)) {
+      const repDateKey = todayDate + '_rep';
+      const status = h.completions?.[repDateKey];
+      const isCompleted = status === 'completed' || status === 'completed_2min';
+      const isTwoMin = status === 'completed_2min';
+      const isSkipped = status === 'skipped';
+      const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
+      const twoMinuteVersion = h.response?.twoMinVersion || '';
+      const parentHabit = h.stackedAfterId ? habits.find(item => item.id === h.stackedAfterId) : null;
+
+      todayItems.push({
+        id: h.id + '_rep',
+        name: h.name + ' (Repetición)',
+        icon: h.icon || '🎯',
+        time: h.repetition.time || '18:00',
+        duration: h.duration || 15,
+        linkedPleasure,
+        twoMinuteVersion,
+        stackedAfterId: h.stackedAfterId ? h.stackedAfterId + '_rep' : '',
+        stackedAfterName: parentHabit?.name ? parentHabit.name + ' (Repetición)' : '',
+        completed: isCompleted,
+        isTwoMin,
+        skipped: isSkipped
+      });
+    }
   });
 
   const eventsMapRoutine = new Map(todayItems.map(e => [e.id, e]));
@@ -451,18 +484,20 @@ export function mount() {
   document.querySelectorAll('.btn-toggle-routine-today').forEach(card => {
     card.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const habitId = e.currentTarget.dataset.id;
+      const rawId = e.currentTarget.dataset.id;
+      const isRep = rawId.endsWith('_rep');
+      const habitId = isRep ? rawId.slice(0, -4) : rawId;
+      const completionDateKey = isRep ? store.getTodayString() + '_rep' : store.getTodayString();
       const isCompleted = e.currentTarget.dataset.completed === 'true';
-      const todayDate = store.getTodayString();
 
       if (isCompleted) {
-        await store.uncompleteEvent(habitId, todayDate);
+        await store.uncompleteEvent(habitId, completionDateKey);
         showToast('Hábito desmarcado como pendiente', 'info');
         refreshRoutineView();
       } else {
         const habit = store.getState().habits?.find(h => h.id === habitId);
-        openCompletionModeModal(habitId, habit?.name || 'Hábito', async (mode) => {
-          const res = await store.completeEvent(habitId, todayDate, mode) || {};
+        openCompletionModeModal(rawId, habit?.name || 'Hábito', async (mode) => {
+          const res = await store.completeEvent(habitId, completionDateKey, mode) || {};
           const streak = res.newStreak || 1;
           const modeText = mode === 'completed_2min' ? ' (2 minutos)' : ' (Completo)';
           showToast(`¡Excelente! Racha: ${streak} días${modeText}`, 'success');
@@ -515,7 +550,8 @@ export function mount() {
 
   document.querySelectorAll('.btn-edit-habit-routine').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const id = e.currentTarget.dataset.id;
+      const rawId = e.currentTarget.dataset.id;
+      const id = rawId.endsWith('_rep') ? rawId.slice(0, -4) : rawId;
       navigate('/habit/new', { id });
     });
   });
