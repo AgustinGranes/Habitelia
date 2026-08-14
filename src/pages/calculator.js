@@ -105,20 +105,21 @@ export function render() {
         return `
           <div class="glass-card expense-item-card" data-id="${id}" style="padding: 18px 20px; margin-bottom: 12px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; transition: transform 0.15s ease; position: relative; overflow: hidden; ${isPaid ? 'opacity: 0.6;' : ''}">
             ${isPaid ? `<div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: var(--text-primary); opacity: 0.1; transform: rotate(-10deg); pointer-events: none; letter-spacing: 0.2em;">PAGADO</div>` : ''}
-            <div class="expense-info" data-id="${id}" style="flex: 1; min-width: 0; cursor: pointer; position: relative; z-index: 1;">
-              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+            <div class="expense-info" data-id="${id}" style="flex: 1; min-width: 0; cursor: pointer; position: relative; z-index: 1; overflow-x: auto; scrollbar-width: none;">
+              <style>.expense-info::-webkit-scrollbar { display: none; }</style>
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px; min-width: max-content;">
                 <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 6px; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-secondary); flex-shrink: 0;">${cur}</span>
                 <div style="font-weight: 600; font-size: 16px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${name}</div>
-                ${bank ? `<span style="font-size: 11px; font-weight: 500; padding: 2px 6px; border-radius: 4px; background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-secondary);">${bank}</span>` : ''}
+                ${bank ? `<span style="font-size: 11px; font-weight: 500; padding: 2px 6px; border-radius: 4px; background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-secondary); white-space: nowrap;">${bank}</span>` : ''}
               </div>
               
-              <div style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                <span>Base: ${cur} ${price}${commission > 0 ? ` (+${Math.round(commission * 100)}%)` : ''}</span>
+              <div style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 12px; min-width: max-content;">
+                <span style="white-space: nowrap;">Base: ${cur} ${price}${commission > 0 ? ` (+${Math.round(commission * 100)}%)` : ''}</span>
                 ${billingDay ? `
-                  <span style="display: inline-flex; align-items: center; gap: 4px; color: ${hasPassed ? 'var(--text-tertiary)' : 'var(--text-secondary)'};">
+                  <span style="display: inline-flex; align-items: center; gap: 4px; color: ${hasPassed ? 'var(--text-tertiary)' : 'var(--text-secondary)'}; white-space: nowrap;">
                     ${billingIcon} Día ${billingDay}${cycleText}
                   </span>
-                ` : cycleText ? `<span style="color: var(--text-secondary);">${cycleText.replace(' | ', '')}</span>` : ''}
+                ` : cycleText ? `<span style="color: var(--text-secondary); white-space: nowrap;">${cycleText.replace(' | ', '')}</span>` : ''}
               </div>
             </div>
 
@@ -188,8 +189,8 @@ export function render() {
 
       <!-- Modal -->
       <div id="expense-modal" style="display: none; position: fixed; inset: 0; background: rgba(10,10,10,0.85); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: 20px; font-family: var(--font-ui);">
-        <div class="glass-card" style="width: 100%; max-width: 400px; padding: 24px; position: relative;">
-          <button id="close-modal-btn" class="btn-ghost" style="position: absolute; top: 16px; right: 16px; padding: 8px;">
+        <div class="glass-card" style="width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto; padding: 24px; position: relative; border-radius: 20px;">
+          <button id="close-modal-btn" class="btn-ghost" style="position: absolute; top: 16px; right: 16px; padding: 8px; z-index: 10;">
             ${iconSVG('x', 20)}
           </button>
           
@@ -205,7 +206,24 @@ export function render() {
             
             <div style="margin-bottom: 16px;">
               <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Tarjeta / Banco (opcional)</label>
-              <input type="text" id="expense-bank" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="Ej: Visa Galicia, MercadoPago...">
+              <div style="display: flex; gap: 8px; flex-direction: column;">
+                <select id="expense-bank-select" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box; appearance: none;">
+                  <option value="">Ninguno</option>
+                  <option value="Visa">Visa</option>
+                  <option value="MasterCard">MasterCard</option>
+                  <option value="American Express">American Express</option>
+                  <option value="MercadoPago">MercadoPago</option>
+                  <option value="Ualá">Ualá</option>
+                  <option value="Brubank">Brubank</option>
+                  <option value="Galicia">Galicia</option>
+                  <option value="Santander">Santander</option>
+                  <option value="BBVA">BBVA</option>
+                  <option value="Banco Provincia">Banco Provincia</option>
+                  <option value="Banco Nación">Banco Nación</option>
+                  <option value="Otra">Otra (escribir manual)</option>
+                </select>
+                <input type="text" id="expense-bank-custom" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box; display: none;" placeholder="Ej: Lemon Cash, Naranja X...">
+              </div>
             </div>
 
             <div style="display: flex; gap: 12px; margin-bottom: 16px;">
@@ -337,12 +355,40 @@ export function mount() {
     }
   }
 
+  function updateBankCustomField() {
+    const bankSelect = document.getElementById('expense-bank-select');
+    const bankCustom = document.getElementById('expense-bank-custom');
+    if (bankSelect && bankCustom) {
+      if (bankSelect.value === 'Otra') {
+        bankCustom.style.display = 'block';
+      } else {
+        bankCustom.style.display = 'none';
+      }
+    }
+  }
+
   function openModal(editExpense = null) {
     if (editExpense) {
       document.getElementById('modal-title').innerText = 'Editar Gasto';
       document.getElementById('expense-id').value = editExpense.id;
       document.getElementById('expense-name').value = editExpense.name || '';
-      if (document.getElementById('expense-bank')) document.getElementById('expense-bank').value = editExpense.bank || '';
+      
+      const bankSelect = document.getElementById('expense-bank-select');
+      const bankCustom = document.getElementById('expense-bank-custom');
+      if (bankSelect && bankCustom) {
+        const standardOptions = ["", "Visa", "MasterCard", "American Express", "MercadoPago", "Ualá", "Brubank", "Galicia", "Santander", "BBVA", "Banco Provincia", "Banco Nación"];
+        const bankVal = editExpense.bank || '';
+        if (standardOptions.includes(bankVal)) {
+          bankSelect.value = bankVal;
+          bankCustom.value = '';
+        } else if (bankVal) {
+          bankSelect.value = 'Otra';
+          bankCustom.value = bankVal;
+        } else {
+          bankSelect.value = '';
+          bankCustom.value = '';
+        }
+      }
       document.getElementById('expense-price').value = editExpense.price || '';
       document.getElementById('expense-cur').value = editExpense.cur || 'ARS';
       document.getElementById('expense-commission').value = editExpense.commission ? (editExpense.commission * 100) : 0;
@@ -358,8 +404,11 @@ export function mount() {
       document.getElementById('expense-cur').value = 'ARS';
       document.getElementById('expense-commission').value = '0';
       if (document.getElementById('expense-cycle-type')) document.getElementById('expense-cycle-type').value = 'monthly';
+      if (document.getElementById('expense-bank-select')) document.getElementById('expense-bank-select').value = '';
+      if (document.getElementById('expense-bank-custom')) document.getElementById('expense-bank-custom').value = '';
     }
     updateCycleContainer();
+    updateBankCustomField();
     modal.style.display = 'flex';
   }
 
@@ -369,6 +418,9 @@ export function mount() {
 
   const cycleTypeEl = document.getElementById('expense-cycle-type');
   if (cycleTypeEl) cycleTypeEl.addEventListener('change', updateCycleContainer);
+
+  const bankSelectEl = document.getElementById('expense-bank-select');
+  if (bankSelectEl) bankSelectEl.addEventListener('change', updateBankCustomField);
 
   if (fab) fab.addEventListener('click', () => openModal());
   if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
@@ -385,7 +437,15 @@ export function mount() {
       e.preventDefault();
       
       const name = document.getElementById('expense-name').value.trim();
-      const bank = document.getElementById('expense-bank')?.value.trim() || '';
+      
+      let bank = '';
+      const bankSelectVal = document.getElementById('expense-bank-select')?.value;
+      if (bankSelectVal === 'Otra') {
+        bank = document.getElementById('expense-bank-custom')?.value.trim() || '';
+      } else {
+        bank = bankSelectVal || '';
+      }
+
       const price = parseFloat(document.getElementById('expense-price').value);
       const cur = document.getElementById('expense-cur').value;
 
