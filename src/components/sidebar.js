@@ -13,7 +13,7 @@ export function renderSidebar() {
 
     return `
         <div class="sidebar-overlay" id="sidebar-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 100; opacity: 0; transition: opacity 0.25s ease;"></div>
-        <div class="sidebar glass-card" id="sidebar-panel" style="position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; z-index: 101; transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; border-radius: 0; border-left: none; border-top: none; border-bottom: none; background: var(--bg-surface);">
+        <div class="sidebar" id="sidebar-panel" style="position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; z-index: 101; transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; border-right: 1px solid var(--border-subtle); background: var(--bg-surface);">
             <div class="sidebar-header" style="padding: 32px 24px 24px 24px; border-bottom: 1px solid var(--border-subtle);">
                 <div style="font-family: var(--font-serif); font-size: 26px; color: var(--text-primary); letter-spacing: -0.02em; font-weight: 400; margin-bottom: 16px;">
                     HABITELIA<span class="brand-dot" style="color: var(--text-primary);">.</span>
