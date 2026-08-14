@@ -187,12 +187,11 @@ export function render() {
       </button>
 
       <!-- Modal -->
-      <div id="expense-modal" style="display: none; position: fixed; inset: 0; background: rgba(10,10,10,0.85); backdrop-filter: blur(8px); z-index: 1000; overflow-y: auto; font-family: var(--font-ui);">
-        <div style="min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 40px 20px;">
-          <div class="glass-card" style="width: 100%; max-width: 400px; padding: 24px; position: relative; border-radius: 20px;">
-            <button id="close-modal-btn" class="btn-ghost" style="position: absolute; top: 16px; right: 16px; padding: 8px; z-index: 10;">
-              ${iconSVG('x', 20)}
-            </button>
+      <div id="expense-modal" style="display: none; position: fixed; inset: 0; background: rgba(10,10,10,0.85); backdrop-filter: blur(8px); z-index: 1000; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 32px 16px; box-sizing: border-box;">
+        <div class="glass-card" style="width: 100%; max-width: 400px; padding: 24px; position: relative; border-radius: 20px; box-sizing: border-box; margin: auto; background: var(--bg-surface);">
+          <button id="close-modal-btn" class="btn-ghost" style="position: absolute; top: 16px; right: 16px; padding: 8px; z-index: 10;">
+            ${iconSVG('x', 20)}
+          </button>
           
           <h2 class="editorial-title" id="modal-title" style="font-size: 1.5rem; margin: 0 0 20px 0; color: var(--text-primary);">Agregar Gasto</h2>
 

@@ -218,18 +218,21 @@ h1, h2, h3, h4 {
   color: var(--text-tertiary);
 }
 
-/* WebKit Input Overflow & Styling Fix for iOS Safari */
-input[type="time"].input,
-input[type="date"].input,
-input[type="month"].input,
-input[type="datetime-local"].input,
+/* WebKit Input Styling & Color Scheme Fix for iOS Safari */
+input[type="time"],
+input[type="date"],
+input[type="month"],
+input[type="datetime-local"] {
+  color-scheme: dark;
+  color: var(--text-primary) !important;
+  font-family: var(--font-ui);
+}
+
 input[type="number"].input {
   max-width: 100% !important;
   width: 100% !important;
   box-sizing: border-box !important;
   display: block !important;
-  -webkit-appearance: none;
-  appearance: none;
 }
 
 input[type="time"]::-webkit-calendar-picker-indicator,
