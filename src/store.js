@@ -8,6 +8,7 @@ function getInitialLocalData() {
   let user = null;
   let habits = [];
   let routines = [];
+  let todos = [];
   let driverProfile = null;
   let calcExpenses = [];
 
@@ -33,7 +34,6 @@ function getInitialLocalData() {
     const rawDriver = localStorage.getItem('driver_profile_v1');
     if (rawDriver) driverProfile = JSON.parse(rawDriver);
 
-    let todos = [];
     const rawTodos = localStorage.getItem('todos_v1') || localStorage.getItem('todos_guest');
     if (rawTodos) todos = JSON.parse(rawTodos);
 
