@@ -19,39 +19,111 @@ export function render() {
   });
 
   const rateSummary = getRateSummarySync();
-  const currentDay = new Date().getDate();
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const currentDay = now.getDate();
+  const todayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
+  
+  const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+  function isExpenseActiveInMonth(expense, targetYear, targetMonth) {
+    if (expense.endDate && expense.endDate < `${targetYear}-${String(targetMonth+1).padStart(2,'0')}-00`) {
+      return false;
+    }
+    
+    let startY = currentYear;
+    let startM = currentMonth;
+    if (expense.startMonth) {
+      const parts = expense.startMonth.split('-');
+      if (parts.length === 2) {
+        startY = parseInt(parts[0], 10);
+        startM = parseInt(parts[1], 10) - 1;
+      }
+    }
+
+    const monthsDiff = (targetYear - startY) * 12 + (targetMonth - startM);
+    if (monthsDiff < 0) return false;
+
+    if (expense.cycleType === 'x_months') {
+      const x = parseInt(expense.cycleValue, 10) || 1;
+      return monthsDiff % x === 0;
+    }
+    
+    if (expense.cycleType === 'x_days') {
+      const startDate = new Date(startY, startM, expense.billingDay || currentDay);
+      const targetStart = new Date(targetYear, targetMonth, 1);
+      const targetEnd = new Date(targetYear, targetMonth + 1, 0);
+      const xDaysMs = (parseInt(expense.cycleValue, 10) || 1) * 24 * 60 * 60 * 1000;
+      
+      if (startDate > targetEnd) return false;
+      if (startDate >= targetStart && startDate <= targetEnd) return true;
+      
+      let nextPayment = startDate.getTime();
+      const diffMs = targetStart.getTime() - nextPayment;
+      if (diffMs > 0) {
+        const cyclesToSkip = Math.ceil(diffMs / xDaysMs);
+        nextPayment += cyclesToSkip * xDaysMs;
+      }
+      return nextPayment <= targetEnd.getTime();
+    }
+
+    return true; 
+  }
 
   let totalARS = 0;
+  let projectionData = Array.from({length: 6}, (_, i) => {
+    let d = new Date(currentYear, currentMonth + i + 1, 1);
+    return { year: d.getFullYear(), month: d.getMonth(), label: `${monthNames[d.getMonth()]} ${d.getFullYear()}`, total: 0 };
+  });
   
   const expenseListHTML = sortedExpenses.length > 0 
     ? sortedExpenses.map(expense => {
-        const { id, name, price, cur, commission, billingDay } = expense;
+        const { id, name, price, cur, commission, billingDay, bank, endDate, cycleType, cycleValue } = expense;
         const converted = convertToARSWithCommissionSync(price, cur, commission);
-        totalARS += converted;
         
+        const isActiveThisMonth = isExpenseActiveInMonth(expense, currentYear, currentMonth);
+        if (isActiveThisMonth) {
+          totalARS += converted;
+        }
+
+        // Calculate for projections
+        projectionData.forEach(proj => {
+          if (isExpenseActiveInMonth(expense, proj.year, proj.month)) {
+            proj.total += converted;
+          }
+        });
+        
+        const isPaid = endDate && todayStr > endDate;
         const hasPassed = billingDay ? currentDay >= billingDay : false;
         const billingIcon = billingDay ? (hasPassed ? iconSVG('check', 14) : iconSVG('clock', 14)) : '';
+        
+        let cycleText = '';
+        if (cycleType === 'x_months') cycleText = ` | Cada ${cycleValue || 1} meses`;
+        else if (cycleType === 'x_days') cycleText = ` | Cada ${cycleValue || 1} días`;
 
         return `
-          <div class="glass-card expense-item-card" data-id="${id}" style="padding: 18px 20px; margin-bottom: 12px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; transition: transform 0.15s ease;">
-            <div class="expense-info" data-id="${id}" style="flex: 1; min-width: 0; cursor: pointer;">
+          <div class="glass-card expense-item-card" data-id="${id}" style="padding: 18px 20px; margin-bottom: 12px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; transition: transform 0.15s ease; position: relative; overflow: hidden; ${isPaid ? 'opacity: 0.6;' : ''}">
+            ${isPaid ? `<div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: var(--text-primary); opacity: 0.1; transform: rotate(-10deg); pointer-events: none; letter-spacing: 0.2em;">PAGADO</div>` : ''}
+            <div class="expense-info" data-id="${id}" style="flex: 1; min-width: 0; cursor: pointer; position: relative; z-index: 1;">
               <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
                 <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 6px; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-secondary); flex-shrink: 0;">${cur}</span>
                 <div style="font-weight: 600; font-size: 16px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${name}</div>
+                ${bank ? `<span style="font-size: 11px; font-weight: 500; padding: 2px 6px; border-radius: 4px; background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-secondary);">${bank}</span>` : ''}
               </div>
               
               <div style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                 <span>Base: ${cur} ${price}${commission > 0 ? ` (+${Math.round(commission * 100)}%)` : ''}</span>
                 ${billingDay ? `
                   <span style="display: inline-flex; align-items: center; gap: 4px; color: ${hasPassed ? 'var(--text-tertiary)' : 'var(--text-secondary)'};">
-                    ${billingIcon} Día ${billingDay}
+                    ${billingIcon} Día ${billingDay}${cycleText}
                   </span>
-                ` : ''}
+                ` : cycleText ? `<span style="color: var(--text-secondary);">${cycleText.replace(' | ', '')}</span>` : ''}
               </div>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
-              <div style="font-weight: 700; font-size: 17px; color: var(--text-primary); font-family: var(--font-ui); text-align: right;">
+            <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0; position: relative; z-index: 1;">
+              <div style="font-weight: 700; font-size: 17px; color: ${isActiveThisMonth ? 'var(--text-primary)' : 'var(--text-tertiary)'}; font-family: var(--font-ui); text-align: right; text-decoration: ${!isActiveThisMonth && !isPaid ? 'line-through' : 'none'};">
                 ${formatPrice(converted)}
               </div>
               <button class="btn-ghost delete-expense-btn" data-id="${id}" title="Eliminar" style="padding: 8px; border-radius: 8px; color: var(--text-tertiary); display: flex; align-items: center; justify-content: center;">
@@ -85,11 +157,25 @@ export function render() {
 
       <div class="glass-card" style="margin-bottom: 24px; text-align: center; padding: 24px;">
         <div style="font-family: var(--font-ui); font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">
-          Total Mensual
+          Total Mensual (Este Mes)
         </div>
-        <div class="editorial-title" style="font-size: 2.5rem; color: var(--text-primary);">
+        <div class="editorial-title" style="font-size: 2.5rem; color: var(--text-primary); margin-bottom: 12px;">
           ${formatPrice(totalARS, 'ARS')}
         </div>
+        <details style="text-align: left; background: var(--bg-subtle); border-radius: 12px; border: 1px solid var(--border-subtle); overflow: hidden;">
+          <summary style="padding: 12px 16px; cursor: pointer; font-size: 0.9rem; font-weight: 500; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; user-select: none;">
+            <span>Proyección a 6 meses</span>
+            <span style="opacity: 0.5;">${iconSVG('arrowDown', 16)}</span>
+          </summary>
+          <div style="padding: 16px; border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 8px;">
+            ${projectionData.map(p => `
+              <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                <span style="color: var(--text-secondary);">${p.label}</span>
+                <span style="font-weight: 600; color: var(--text-primary);">${formatPrice(p.total, 'ARS')}</span>
+              </div>
+            `).join('')}
+          </div>
+        </details>
       </div>
 
       <div class="expenses-list">
@@ -117,6 +203,11 @@ export function render() {
               <input type="text" id="expense-name" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="Ej: Netflix, Cable, Gimnasio...">
             </div>
             
+            <div style="margin-bottom: 16px;">
+              <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Tarjeta / Banco (opcional)</label>
+              <input type="text" id="expense-bank" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="Ej: Visa Galicia, MercadoPago...">
+            </div>
+
             <div style="display: flex; gap: 12px; margin-bottom: 16px;">
               <div style="flex: 1;">
                 <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Precio base</label>
@@ -144,10 +235,36 @@ export function render() {
               </div>
               <input type="number" id="expense-commission" step="1" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="Personalizado (Ej: 60)">
             </div>
+            
+            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+              <div style="flex: 2;">
+                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Frecuencia</label>
+                <select id="expense-cycle-type" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;">
+                  <option value="monthly">Mensual</option>
+                  <option value="x_months">Cada X Meses</option>
+                  <option value="x_days">Cada X Días</option>
+                </select>
+              </div>
+              <div style="flex: 1; display: none;" id="cycle-value-container">
+                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Cant. (X)</label>
+                <input type="number" id="expense-cycle-value" min="1" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="Ej: 3">
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+              <div style="flex: 1;">
+                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Día de pago (opc)</label>
+                <input type="number" id="expense-billing-day" min="1" max="31" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="1-31">
+              </div>
+              <div style="flex: 1;">
+                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Mes inicio (opc)</label>
+                <input type="month" id="expense-start-month" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;">
+              </div>
+            </div>
 
             <div style="margin-bottom: 24px;">
-              <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Día de facturación (opcional)</label>
-              <input type="number" id="expense-billing-day" min="1" max="31" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;" placeholder="1-31">
+              <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Fecha de fin (opcional, p/ Cuotas)</label>
+              <input type="date" id="expense-end-date" class="input-base" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 12px; border-radius: 8px; font-family: var(--font-ui); box-sizing: border-box;">
             </div>
 
             <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; border-radius: 8px; font-weight: 500;">
@@ -208,28 +325,50 @@ export function mount() {
     refreshCalculatorView();
   }
 
+  function updateCycleContainer() {
+    const cycleType = document.getElementById('expense-cycle-type')?.value;
+    const cycleValContainer = document.getElementById('cycle-value-container');
+    if (cycleValContainer) {
+      if (cycleType === 'x_months' || cycleType === 'x_days') {
+        cycleValContainer.style.display = 'block';
+      } else {
+        cycleValContainer.style.display = 'none';
+      }
+    }
+  }
+
   function openModal(editExpense = null) {
     if (editExpense) {
       document.getElementById('modal-title').innerText = 'Editar Gasto';
       document.getElementById('expense-id').value = editExpense.id;
       document.getElementById('expense-name').value = editExpense.name || '';
+      if (document.getElementById('expense-bank')) document.getElementById('expense-bank').value = editExpense.bank || '';
       document.getElementById('expense-price').value = editExpense.price || '';
       document.getElementById('expense-cur').value = editExpense.cur || 'ARS';
       document.getElementById('expense-commission').value = editExpense.commission ? (editExpense.commission * 100) : 0;
       document.getElementById('expense-billing-day').value = editExpense.billingDay || '';
+      if (document.getElementById('expense-cycle-type')) document.getElementById('expense-cycle-type').value = editExpense.cycleType || 'monthly';
+      if (document.getElementById('expense-cycle-value')) document.getElementById('expense-cycle-value').value = editExpense.cycleValue || '';
+      if (document.getElementById('expense-start-month')) document.getElementById('expense-start-month').value = editExpense.startMonth || '';
+      if (document.getElementById('expense-end-date')) document.getElementById('expense-end-date').value = editExpense.endDate || '';
     } else {
       document.getElementById('modal-title').innerText = 'Agregar Gasto';
       form.reset();
       document.getElementById('expense-id').value = '';
       document.getElementById('expense-cur').value = 'ARS';
       document.getElementById('expense-commission').value = '0';
+      if (document.getElementById('expense-cycle-type')) document.getElementById('expense-cycle-type').value = 'monthly';
     }
+    updateCycleContainer();
     modal.style.display = 'flex';
   }
 
   function closeModal() {
     modal.style.display = 'none';
   }
+
+  const cycleTypeEl = document.getElementById('expense-cycle-type');
+  if (cycleTypeEl) cycleTypeEl.addEventListener('change', updateCycleContainer);
 
   if (fab) fab.addEventListener('click', () => openModal());
   if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
@@ -246,6 +385,7 @@ export function mount() {
       e.preventDefault();
       
       const name = document.getElementById('expense-name').value.trim();
+      const bank = document.getElementById('expense-bank')?.value.trim() || '';
       const price = parseFloat(document.getElementById('expense-price').value);
       const cur = document.getElementById('expense-cur').value;
 
@@ -257,15 +397,27 @@ export function mount() {
       const commission = parseFloat(document.getElementById('expense-commission').value || '0') / 100;
       const billingDayVal = document.getElementById('expense-billing-day').value;
       const billingDay = billingDayVal ? parseInt(billingDayVal, 10) : null;
+      
+      const cycleType = document.getElementById('expense-cycle-type')?.value || 'monthly';
+      const cycleValueVal = document.getElementById('expense-cycle-value')?.value;
+      const cycleValue = cycleValueVal ? parseInt(cycleValueVal, 10) : null;
+      const startMonth = document.getElementById('expense-start-month')?.value || '';
+      const endDate = document.getElementById('expense-end-date')?.value || '';
+
       const id = document.getElementById('expense-id').value || Date.now().toString();
 
       const expense = {
         id,
         name,
+        bank,
         price,
         cur,
         commission,
-        billingDay
+        billingDay,
+        cycleType,
+        cycleValue,
+        startMonth,
+        endDate
       };
 
       const existingIdx = currentExpenses.findIndex(ex => ex.id === id);
