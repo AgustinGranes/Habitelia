@@ -5,9 +5,6 @@ import { initRouter, navigate, getCurrentRoute } from './router.js';
 
 import { initTheme } from './utils/theme.js';
 
-// Initialize custom app theme
-initTheme();
-
 // Import all page renderers
 import { render as renderLogin, mount as mountLogin } from './pages/login.js';
 import { render as renderOnboarding, mount as mountOnboarding } from './pages/onboarding.js';
@@ -63,41 +60,19 @@ window.addEventListener('touchend', (e) => {
   }
 }, { passive: true });
 
-const appContainer = document.getElementById('app') || document.body;
+const getAppContainer = () => document.getElementById('app') || document.body;
 
 const renderApp = (routePath, params) => {
-  store.setState({ currentRoute: routePath });
-  
-  const route = routesMap[routePath] || routesMap['/login'];
-  
-  // Guard against missing functions during active development
-  const renderFn = route.render || (() => `<div class="page-content">Missing Render</div>`);
-  const mountFn = route.mount || (() => {});
-  const newHTML = renderFn(params);
-  
-  const oldContent = appContainer.querySelector('.page-content');
-  if (oldContent) {
-    oldContent.classList.add('page-exit');
-    setTimeout(() => {
-      if (routesMap[getCurrentRoute().path]?.unmount) {
-        routesMap[getCurrentRoute().path].unmount();
-      }
-      appContainer.innerHTML = newHTML;
-      
-      const newContent = appContainer.querySelector('.page-content');
-      if (newContent) newContent.classList.add('page-enter');
-      mountFn(params);
-      
-      if (routePath !== '/login' && routePath !== '/onboarding') {
-        const sidebarHTML = renderSidebar();
-        appContainer.insertAdjacentHTML('beforeend', sidebarHTML);
-        mountSidebar();
-      }
-    }, 300);
-  } else {
+  try {
+    store.setState({ currentRoute: routePath });
+    const appContainer = getAppContainer();
+    
+    const route = routesMap[routePath] || routesMap['/login'];
+    const renderFn = route.render || (() => `<div class="page">Page Not Found</div>`);
+    const mountFn = route.mount || (() => {});
+    const newHTML = renderFn(params);
+    
     appContainer.innerHTML = newHTML;
-    const newContent = appContainer.querySelector('.page-content');
-    if (newContent) newContent.classList.add('page-enter');
     mountFn(params);
     
     if (routePath !== '/login' && routePath !== '/onboarding') {
@@ -105,10 +80,13 @@ const renderApp = (routePath, params) => {
       appContainer.insertAdjacentHTML('beforeend', sidebarHTML);
       mountSidebar();
     }
+  } catch (err) {
+    console.error('Error rendering app route:', routePath, err);
   }
 };
 
 const initialize = () => {
+  initTheme();
   store.setState({ loading: true });
   
   onAuthChange(async (user) => {

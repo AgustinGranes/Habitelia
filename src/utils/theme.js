@@ -142,27 +142,35 @@ export const THEMES = {
 };
 
 export function applyTheme(themeKey = 'obsidian') {
-  const theme = THEMES[themeKey] || THEMES.obsidian;
-  const root = document.documentElement;
-
-  root.style.setProperty('--bg-primary', theme.bgPrimary);
-  root.style.setProperty('--bg-surface', theme.bgSurface);
-  root.style.setProperty('--bg-surface-hover', theme.bgSurfaceHover);
-  root.style.setProperty('--bg-subtle', theme.bgSubtle);
-  root.style.setProperty('--text-primary', theme.textPrimary);
-  root.style.setProperty('--text-secondary', theme.textSecondary);
-  root.style.setProperty('--text-tertiary', theme.textTertiary);
-  root.style.setProperty('--border-subtle', theme.borderSubtle);
-  root.style.setProperty('--border-strong', theme.borderStrong);
-  root.style.setProperty('--accent-primary', theme.accentPrimary);
-  root.style.setProperty('--accent-inverted', theme.accentInverted);
-
   try {
+    const theme = THEMES[themeKey] || THEMES.obsidian;
+    const elements = [document.documentElement, document.body].filter(Boolean);
+
+    elements.forEach(el => {
+      el.style.setProperty('--bg-primary', theme.bgPrimary);
+      el.style.setProperty('--bg-surface', theme.bgSurface);
+      el.style.setProperty('--bg-surface-hover', theme.bgSurfaceHover);
+      el.style.setProperty('--bg-subtle', theme.bgSubtle);
+      el.style.setProperty('--text-primary', theme.textPrimary);
+      el.style.setProperty('--text-secondary', theme.textSecondary);
+      el.style.setProperty('--text-tertiary', theme.textTertiary);
+      el.style.setProperty('--border-subtle', theme.borderSubtle);
+      el.style.setProperty('--border-strong', theme.borderStrong);
+      el.style.setProperty('--accent-primary', theme.accentPrimary);
+      el.style.setProperty('--accent-inverted', theme.accentInverted);
+    });
+
     localStorage.setItem('app_theme_key', themeKey);
-  } catch (e) {}
+  } catch (e) {
+    console.error('Error applying theme:', e);
+  }
 }
 
 export function initTheme() {
-  const savedKey = localStorage.getItem('app_theme_key') || 'obsidian';
-  applyTheme(savedKey);
+  try {
+    const savedKey = localStorage.getItem('app_theme_key') || 'obsidian';
+    applyTheme(savedKey);
+  } catch (e) {
+    console.error('Error initializing theme:', e);
+  }
 }
