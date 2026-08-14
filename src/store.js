@@ -139,6 +139,7 @@ export const store = {
       const userDoc = auth.currentUser ? await getDocument(`users/${uid}`) : null;
       let remoteHabits = auth.currentUser ? await getCollection(`users/${uid}/habits`) : [];
       let remoteRoutines = auth.currentUser ? await getCollection(`users/${uid}/routines`) : [];
+      let remoteTodos = auth.currentUser ? await getCollection(`users/${uid}/todos`) : [];
       const remoteExpenses = auth.currentUser ? await getDocument(`users/${uid}/calculator/main`) : null;
       const todayDate = store.getTodayString();
       const todaySchedule = auth.currentUser ? await getDocument(`users/${uid}/schedules/${todayDate}`) : null;
@@ -153,6 +154,11 @@ export const store = {
       (state.routines || []).forEach(r => routineMap.set(r.id, r));
       (remoteRoutines || []).forEach(r => routineMap.set(r.id, r));
       const mergedRoutines = Array.from(routineMap.values());
+
+      const todoMap = new Map();
+      (state.todos || []).forEach(t => todoMap.set(t.id, t));
+      (remoteTodos || []).forEach(t => todoMap.set(t.id, t));
+      const mergedTodos = Array.from(todoMap.values());
 
       const mergedExpenses = remoteExpenses && remoteExpenses.expenses ? remoteExpenses.expenses : (state.calcExpenses || []);
       const localCalc = (state.calcExpenses || []);
@@ -197,6 +203,8 @@ export const store = {
         localStorage.setItem(`habits_${uid}`, JSON.stringify(mergedHabits));
         localStorage.setItem('routines_v1', JSON.stringify(mergedRoutines));
         localStorage.setItem(`routines_${uid}`, JSON.stringify(mergedRoutines));
+        localStorage.setItem('todos_v1', JSON.stringify(mergedTodos));
+        localStorage.setItem(`todos_${uid}`, JSON.stringify(mergedTodos));
         localStorage.setItem('calc_expenses_v1', JSON.stringify(mergedCalcExpenses));
         localStorage.setItem(`calc_expenses_${uid}`, JSON.stringify(mergedCalcExpenses));
         localStorage.setItem('driver_profile_v1', JSON.stringify(driverProfile));
@@ -206,6 +214,7 @@ export const store = {
         user: userObj,
         habits: mergedHabits,
         routines: mergedRoutines,
+        todos: mergedTodos,
         calcExpenses: mergedCalcExpenses,
         driverProfile,
         todaySchedule
@@ -227,6 +236,9 @@ export const store = {
         });
         mergedRoutines.forEach(r => {
           saveDocument(`users/${uid}/routines/${r.id}`, r).catch(e => console.error(e));
+        });
+        mergedTodos.forEach(t => {
+          saveDocument(`users/${uid}/todos/${t.id}`, t).catch(e => console.error(e));
         });
       }
     } catch (error) {
@@ -684,6 +696,9 @@ export const store = {
       }
       for (const r of (currentState.routines || [])) {
         await saveDocument(`users/${uid}/routines/${r.id}`, r);
+      }
+      for (const t of (currentState.todos || [])) {
+        await saveDocument(`users/${uid}/todos/${t.id}`, t);
       }
       return true;
     } catch (e) {
