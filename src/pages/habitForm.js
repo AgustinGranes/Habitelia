@@ -71,6 +71,47 @@ export function render(props = {}) {
   `;
 }
 
+function renderRepetitionInputs() {
+  const count = habitData.repetition?.count || 1;
+  const reps = habitData.repetitions || [];
+  
+  let html = '';
+  for (let i = 0; i < count; i++) {
+    const rep = reps[i] || { time: '18:00', days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] };
+    const timeVal = rep.time || '18:00';
+    const repDays = rep.days || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+    
+    html += `
+      <div class="repetition-item-box" data-index="${i}" style="border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: 8px;">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">
+          Repetición #${i + 1}
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px;">
+          <span style="font-size: 12.5px; font-weight: 600; color: var(--text-secondary); width: 80px;">Hora</span>
+          <input type="time" class="input habit-rep-time" data-index="${i}" value="${timeVal}" style="flex: 1; min-height: 36px; text-align: center; font-size: 13.5px;">
+        </div>
+
+        <div>
+          <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Días que se repite:</div>
+          <div class="repetition-weekday-pills" data-index="${i}" style="display: flex; justify-content: space-between; gap: 4px; flex-wrap: wrap;">
+            ${['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((dayName, idx) => {
+              const dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+              const isSelected = repDays.includes(dayName);
+              return `
+                <button type="button" class="rep-item-day-pill-btn" data-rep-index="${i}" data-day="${dayName}" style="flex: 1; min-width: 28px; height: 28px; border-radius: 6px; font-size: 10px; font-weight: 700; border: 1px solid var(--border-subtle); background: ${isSelected ? 'var(--text-primary)' : 'var(--bg-subtle)'}; color: ${isSelected ? 'var(--bg-primary)' : 'var(--text-secondary)'}; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                  ${dayLabels[idx]}
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  return html;
+}
+
 function renderStep1() {
   const freq = habitData.frequency || { type: 'daily', days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] };
   const freqType = freq.type || 'daily';
@@ -129,24 +170,16 @@ function renderStep1() {
         <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Configuración de la Repetición:</div>
         
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-          <span style="font-size: 13px; font-weight: 600; color: var(--text-primary); width: 80px;">Hora</span>
-          <input type="time" id="habit-repetition-time" class="input" value="${habitData.repetition?.time || '18:00'}" style="flex: 1; min-height: 38px; text-align: center; font-size: 14px;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--text-primary); width: 140px;">Repeticiones (1-10)</span>
+          <select id="habit-repetition-count" class="input" style="flex: 1; min-height: 38px; text-align: center; font-size: 14px; padding: 0 8px;">
+            ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `
+              <option value="${n}" ${ (habitData.repetition?.count || 1) === n ? 'selected' : '' }>${n}</option>
+            `).join('')}
+          </select>
         </div>
 
-        <div>
-          <div style="font-size: 12.5px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Días que se repite:</div>
-          <div id="repetition-weekday-pills" style="display: flex; justify-content: space-between; gap: 6px; flex-wrap: wrap;">
-            ${['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((dayName, idx) => {
-              const dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-              const repDays = habitData.repetition?.days || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-              const isSelected = repDays.includes(dayName);
-              return `
-                <button type="button" class="rep-day-pill-btn" data-day="${dayName}" style="flex: 1; min-width: 32px; height: 32px; border-radius: 8px; font-size: 11px; font-weight: 700; border: 1px solid var(--border-subtle); background: ${isSelected ? 'var(--text-primary)' : 'var(--bg-subtle)'}; color: ${isSelected ? 'var(--bg-primary)' : 'var(--text-secondary)'}; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                  ${dayLabels[idx]}
-                </button>
-              `;
-            }).join('')}
-          </div>
+        <div id="repetition-list-container" style="display: flex; flex-direction: column; gap: 8px;">
+          ${renderRepetitionInputs()}
         </div>
       </div>
     </div>
@@ -335,13 +368,13 @@ function findCollidingHabit(newHabit) {
     return h.frequency.days || [];
   };
 
-  const getRepDays = (h) => {
+  const getRepList = (h) => {
     if (!h.repetition?.enabled) return [];
-    return h.repetition.days || [];
+    return h.repetitions || [];
   };
 
   const newMainDays = getMainDays(newHabit);
-  const newRepDays = getRepDays(newHabit);
+  const newReps = getRepList(newHabit);
 
   // 1. Check main occurrence of newHabit against other habits
   if (newHabit.cue?.time) {
@@ -350,34 +383,52 @@ function findCollidingHabit(newHabit) {
       if (h.id === newHabit.id) continue;
       
       const otherMainDays = getMainDays(h);
-      const otherRepDays = getRepDays(h);
+      const otherReps = getRepList(h);
 
       // Check against other's main
       if (h.cue?.time && daysOverlap(newMainDays, otherMainDays)) {
         const otherMain = { startTime: h.cue.time, duration: h.duration };
         if (checkCollision(mainEvent, otherMain).collides) {
-          return { conflict: h, type: 'principal', detail: `el horario principal de "${h.name}"` };
+          return { conflict: h, detail: `el horario principal de "${h.name}"` };
         }
       }
-      // Check against other's repetition
-      if (h.repetition?.enabled && h.repetition?.time && daysOverlap(newMainDays, otherRepDays)) {
-        const otherRep = { startTime: h.repetition.time, duration: h.duration };
-        if (checkCollision(mainEvent, otherRep).collides) {
-          return { conflict: h, type: 'principal', detail: `la repetición de "${h.name}"` };
+      // Check against other's repetitions
+      for (let j = 0; j < otherReps.length; j++) {
+        const otherRep = otherReps[j];
+        if (otherRep.time && daysOverlap(newMainDays, otherRep.days || [])) {
+          const otherRepEvent = { startTime: otherRep.time, duration: h.duration };
+          if (checkCollision(mainEvent, otherRepEvent).collides) {
+            return { conflict: h, detail: `la repetición #${j+1} de "${h.name}"` };
+          }
         }
       }
     }
   }
 
-  // 2. Check repetition of newHabit (if enabled)
-  if (newHabit.repetition?.enabled && newHabit.repetition?.time) {
-    const repEvent = { startTime: newHabit.repetition.time, duration: newHabit.duration };
-    
+  // 2. Check repetitions of newHabit
+  for (let i = 0; i < newReps.length; i++) {
+    const rep = newReps[i];
+    if (!rep.time) continue;
+    const repEvent = { startTime: rep.time, duration: newHabit.duration };
+    const repDays = rep.days || [];
+
     // Check against newHabit's own main
-    if (newHabit.cue?.time && daysOverlap(newRepDays, newMainDays)) {
+    if (newHabit.cue?.time && daysOverlap(repDays, newMainDays)) {
       const mainEvent = { startTime: newHabit.cue.time, duration: newHabit.duration };
       if (checkCollision(repEvent, mainEvent).collides) {
-        return { conflict: newHabit, type: 'propia_repa', detail: 'el horario principal de este mismo hábito' };
+        return { conflict: newHabit, detail: `el horario principal de este mismo hábito` };
+      }
+    }
+
+    // Check against newHabit's own other repetitions
+    for (let j = 0; j < newReps.length; j++) {
+      if (i === j) continue;
+      const otherRep = newReps[j];
+      if (otherRep.time && daysOverlap(repDays, otherRep.days || [])) {
+        const otherRepEvent = { startTime: otherRep.time, duration: newHabit.duration };
+        if (checkCollision(repEvent, otherRepEvent).collides) {
+          return { conflict: newHabit, detail: `la repetición #${j+1} de este mismo hábito` };
+        }
       }
     }
 
@@ -386,20 +437,23 @@ function findCollidingHabit(newHabit) {
       if (h.id === newHabit.id) continue;
       
       const otherMainDays = getMainDays(h);
-      const otherRepDays = getRepDays(h);
+      const otherReps = getRepList(h);
 
       // Check against other's main
-      if (h.cue?.time && daysOverlap(newRepDays, otherMainDays)) {
+      if (h.cue?.time && daysOverlap(repDays, otherMainDays)) {
         const otherMain = { startTime: h.cue.time, duration: h.duration };
         if (checkCollision(repEvent, otherMain).collides) {
-          return { conflict: h, type: 'repa_vs_other_main', detail: `el horario principal de "${h.name}"` };
+          return { conflict: h, detail: `el horario principal de "${h.name}"` };
         }
       }
-      // Check against other's repetition
-      if (h.repetition?.enabled && h.repetition?.time && daysOverlap(newRepDays, otherRepDays)) {
-        const otherRep = { startTime: h.repetition.time, duration: h.duration };
-        if (checkCollision(repEvent, otherRep).collides) {
-          return { conflict: h, type: 'repa_vs_other_rep', detail: `la repetición de "${h.name}"` };
+      // Check against other's repetitions
+      for (let j = 0; j < otherReps.length; j++) {
+        const otherRep = otherReps[j];
+        if (otherRep.time && daysOverlap(repDays, otherRep.days || [])) {
+          const otherRepEvent = { startTime: otherRep.time, duration: h.duration };
+          if (checkCollision(repEvent, otherRepEvent).collides) {
+            return { conflict: h, detail: `la repetición #${j+1} de "${h.name}"` };
+          }
         }
       }
     }
@@ -424,6 +478,54 @@ function updateStepIndicators() {
   });
 }
 
+function saveRepetitionsFromUI() {
+  const countSelect = document.getElementById('habit-repetition-count');
+  if (!countSelect) return;
+  const count = parseInt(countSelect.value, 10);
+  const reps = [];
+  
+  for (let i = 0; i < count; i++) {
+    const timeInput = document.querySelector(`.habit-rep-time[data-index="${i}"]`);
+    const time = timeInput ? timeInput.value : '18:00';
+    
+    // Get active days for this repetition item
+    const days = [];
+    document.querySelectorAll(`.rep-item-day-pill-btn[data-rep-index="${i}"]`).forEach(btn => {
+      // check color / styles
+      const isSelected = btn.style.background === 'var(--text-primary)';
+      if (isSelected) {
+        days.push(btn.dataset.day);
+      }
+    });
+    
+    reps.push({ time, days });
+  }
+  
+  habitData.repetitions = reps;
+}
+
+function bindRepetitionItemEvents() {
+  document.querySelectorAll('.rep-item-day-pill-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const repIndex = parseInt(e.currentTarget.dataset.repIndex, 10);
+      const day = e.currentTarget.dataset.day;
+      
+      // Get current selection style
+      const isSelected = e.currentTarget.style.background === 'var(--text-primary)';
+      e.currentTarget.style.background = isSelected ? 'var(--bg-subtle)' : 'var(--text-primary)';
+      e.currentTarget.style.color = isSelected ? 'var(--text-secondary)' : 'var(--bg-primary)';
+      
+      saveRepetitionsFromUI();
+    });
+  });
+
+  document.querySelectorAll('.habit-rep-time').forEach(inp => {
+    inp.addEventListener('change', () => {
+      saveRepetitionsFromUI();
+    });
+  });
+}
+
 export function mount() {
   const container = document.getElementById('step-container');
   const btnBack = document.getElementById('btn-back');
@@ -434,13 +536,39 @@ export function mount() {
   const handleNoScheduleToggle = () => {
     const checkbox = document.getElementById('habit-no-schedule');
     const timeInput = document.getElementById('habit-time');
-    if (checkbox && timeInput) {
-      timeInput.disabled = checkbox.checked;
+    const customPerDay = document.getElementById('habit-custom-per-day');
+    const repetitionEnabled = document.getElementById('habit-repetition-enabled');
+    const perDayContainer = document.getElementById('per-day-times-container');
+    const repContainer = document.getElementById('repetition-settings-container');
+
+    if (checkbox) {
+      const isNoSchedule = checkbox.checked;
+      
+      if (timeInput) timeInput.disabled = isNoSchedule;
+      
+      if (customPerDay) {
+        customPerDay.disabled = isNoSchedule;
+        if (isNoSchedule) {
+          customPerDay.checked = false;
+          if (perDayContainer) perDayContainer.style.display = 'none';
+        }
+      }
+      
+      if (repetitionEnabled) {
+        repetitionEnabled.disabled = isNoSchedule;
+        if (isNoSchedule) {
+          repetitionEnabled.checked = false;
+          if (repContainer) repContainer.style.display = 'none';
+        }
+      }
     }
   };
 
   const scheduleCheckbox = document.getElementById('habit-no-schedule');
   scheduleCheckbox?.addEventListener('change', handleNoScheduleToggle);
+
+  // Call initially to enforce disabled states on load
+  handleNoScheduleToggle();
 
   const customPerDayCheckbox = document.getElementById('habit-custom-per-day');
   const perDayContainer = document.getElementById('per-day-times-container');
@@ -458,25 +586,24 @@ export function mount() {
     }
   });
 
-  document.querySelectorAll('.rep-day-pill-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const day = e.currentTarget.dataset.day;
-      let days = habitData.repetition?.days || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-      if (days.includes(day)) {
-        if (days.length > 1) {
-          days = days.filter(d => d !== day);
-        }
-      } else {
-        days.push(day);
-      }
-      if (!habitData.repetition) habitData.repetition = {};
-      habitData.repetition.days = days;
-
-      const isSelected = days.includes(day);
-      e.currentTarget.style.background = isSelected ? 'var(--text-primary)' : 'var(--bg-subtle)';
-      e.currentTarget.style.color = isSelected ? 'var(--bg-primary)' : 'var(--text-secondary)';
-    });
+  // Repetition Count Dropdown change
+  const countSelect = document.getElementById('habit-repetition-count');
+  countSelect?.addEventListener('change', () => {
+    const newCount = parseInt(countSelect.value, 10);
+    saveRepetitionsFromUI();
+    
+    if (!habitData.repetition) habitData.repetition = {};
+    habitData.repetition.count = newCount;
+    
+    const repList = document.getElementById('repetition-list-container');
+    if (repList) {
+      repList.innerHTML = renderRepetitionInputs();
+      bindRepetitionItemEvents();
+    }
   });
+
+  // Bind initial repetition item event listeners
+  bindRepetitionItemEvents();
 
   const saveCurrentStepData = () => {
     if (currentStep === 1) {
@@ -497,15 +624,16 @@ export function mount() {
       }
 
       const repEnabled = !!document.getElementById('habit-repetition-enabled')?.checked;
-      const repTime = document.getElementById('habit-repetition-time')?.value || '18:00';
-      const repDays = habitData.repetition?.days || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+      const repCount = parseInt(document.getElementById('habit-repetition-count')?.value || 1, 10);
+      
+      saveRepetitionsFromUI();
 
       const stackedAfterId = document.getElementById('habit-stacked-after')?.value || '';
 
       habitData.name = name;
       habitData.cue = { ...(habitData.cue || {}), time, timePerDay, place };
       habitData.duration = duration;
-      habitData.repetition = { enabled: repEnabled, time: repTime, days: repDays };
+      habitData.repetition = { enabled: repEnabled, count: repCount };
       habitData.stackedAfterId = stackedAfterId;
     } else if (currentStep === 2) {
       const twoMin = document.getElementById('habit-twomin')?.value.trim() || '';

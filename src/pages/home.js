@@ -61,27 +61,32 @@ export function render(props = {}) {
 
     // Repetition occurrences (if scheduled for today)
     habits.forEach(h => {
-        if (h.repetition?.enabled && Array.isArray(h.repetition.days) && h.repetition.days.includes(todayDayKey)) {
-            const repDateKey = todayDate + '_rep';
-            const isCompleted = h.completions?.[repDateKey] === 'completed' || h.completions?.[repDateKey] === 'completed_2min';
-            const isSkipped = h.completions?.[repDateKey] === 'skipped';
-            const streak = h.streak || 0;
-            const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
-            const parentHabit = h.stackedAfterId ? habits.find(item => item.id === h.stackedAfterId) : null;
+        if (h.repetition?.enabled && Array.isArray(h.repetitions)) {
+            h.repetitions.forEach((rep, idx) => {
+                const repDays = rep.days || [];
+                if (repDays.includes(todayDayKey)) {
+                    const repDateKey = todayDate + '_rep_' + idx;
+                    const isCompleted = h.completions?.[repDateKey] === 'completed' || h.completions?.[repDateKey] === 'completed_2min';
+                    const isSkipped = h.completions?.[repDateKey] === 'skipped';
+                    const streak = h.streak || 0;
+                    const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
+                    const parentHabit = h.stackedAfterId ? habits.find(item => item.id === h.stackedAfterId) : null;
 
-            todayEvents.push({
-                id: h.id + '_rep',
-                name: h.name + ' (Repetición)',
-                icon: h.icon || '🎯',
-                time: h.repetition.time || '18:00',
-                duration: h.duration || 15,
-                twoMinuteVersion: h.response?.twoMinVersion || '2 minutos',
-                linkedPleasure,
-                stackedAfterId: h.stackedAfterId ? h.stackedAfterId + '_rep' : '',
-                stackedAfterName: parentHabit?.name ? parentHabit.name + ' (Repetición)' : '',
-                completed: isCompleted,
-                skipped: isSkipped,
-                streak
+                    todayEvents.push({
+                        id: h.id + '_rep_' + idx,
+                        name: `${h.name} (Repetición ${idx + 1})`,
+                        icon: h.icon || '🎯',
+                        time: rep.time || '18:00',
+                        duration: h.duration || 15,
+                        twoMinuteVersion: h.response?.twoMinVersion || '2 minutos',
+                        linkedPleasure,
+                        stackedAfterId: h.stackedAfterId ? h.stackedAfterId + '_rep_' + idx : '',
+                        stackedAfterName: parentHabit?.name ? `${parentHabit.name} (Repetición ${idx + 1})` : '',
+                        completed: isCompleted,
+                        skipped: isSkipped,
+                        streak
+                    });
+                }
             });
         }
     });
@@ -560,9 +565,10 @@ export function mount() {
 
     document.querySelectorAll('.habit-bubble').forEach(bubble => {
         const rawId = bubble.dataset.id;
-        const isRep = rawId.endsWith('_rep');
-        const habitId = isRep ? rawId.slice(0, -4) : rawId;
-        const completionDateKey = isRep ? store.getTodayString() + '_rep' : store.getTodayString();
+        const isRep = rawId.includes('_rep_');
+        const habitId = isRep ? rawId.split('_rep_')[0] : rawId;
+        const repIndex = isRep ? rawId.split('_rep_')[1] : null;
+        const completionDateKey = isRep ? store.getTodayString() + '_rep_' + repIndex : store.getTodayString();
 
         const fillOverlay = bubble.querySelector('.fill-overlay');
         let isPressing = false;
@@ -670,9 +676,10 @@ export function mount() {
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();
             const rawId = e.currentTarget.dataset.id;
-            const isRep = rawId.endsWith('_rep');
-            const habitId = isRep ? rawId.slice(0, -4) : rawId;
-            const completionDateKey = isRep ? store.getTodayString() + '_rep' : store.getTodayString();
+            const isRep = rawId.includes('_rep_');
+            const habitId = isRep ? rawId.split('_rep_')[0] : rawId;
+            const repIndex = isRep ? rawId.split('_rep_')[1] : null;
+            const completionDateKey = isRep ? store.getTodayString() + '_rep_' + repIndex : store.getTodayString();
             const isCompleted = e.currentTarget.dataset.completed === 'true';
 
             if (isCompleted) {
@@ -697,7 +704,7 @@ export function mount() {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const rawId = e.currentTarget.dataset.id;
-            const id = rawId.endsWith('_rep') ? rawId.slice(0, -4) : rawId;
+            const id = rawId.includes('_rep_') ? rawId.split('_rep_')[0] : rawId;
             navigate('/habit/new', { id });
         });
     });
@@ -754,7 +761,7 @@ export function mount() {
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();
             const rawId = e.currentTarget.dataset.id;
-            const id = rawId.endsWith('_rep') ? rawId.slice(0, -4) : rawId;
+            const id = rawId.includes('_rep_') ? rawId.split('_rep_')[0] : rawId;
             const name = e.currentTarget.dataset.name || 'Hábito';
             if (confirm(`¿Estás seguro de eliminar el hábito "${name}"?`)) {
                 await store.deleteHabit(id);
