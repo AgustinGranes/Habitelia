@@ -206,7 +206,7 @@ function openTodoModal(existingTodo = null) {
         </div>
 
         <!-- Habit Stacking Dropdown -->
-        <div style="margin-bottom: 24px;">
+        <div style="margin-bottom: 20px;">
           <label class="form-label" style="display: flex; align-items: center; gap: 6px;">
             Acumular con un hábito
             <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 400;">(opcional)</span>
@@ -215,6 +215,42 @@ function openTodoModal(existingTodo = null) {
             <option value="">Ninguno (Tarea independiente)</option>
             ${habits.map(h => `<option value="${h.id}" ${existingTodo?.stackedAfterId === h.id ? 'selected' : ''}>Acumular después de: "${h.name}"</option>`).join('')}
           </select>
+        </div>
+
+        <!-- Show in Routine toggle -->
+        <div style="margin-bottom: 14px; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 14px; overflow: hidden;">
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px;">
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                ${iconSVG('routine', 15)} Agregar a la Rutina
+              </div>
+              <div style="font-size: 11.5px; color: var(--text-tertiary);">Mostrar esta tarea en la pantalla de inicio</div>
+            </div>
+            <label style="position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; cursor: pointer;">
+              <input type="checkbox" id="todo-show-in-routine" ${existingTodo?.showInRoutine ? 'checked' : ''} style="opacity: 0; width: 0; height: 0; position: absolute;">
+              <span id="todo-routine-track" style="position: absolute; inset: 0; border-radius: 24px; background: ${existingTodo?.showInRoutine ? 'var(--text-primary)' : 'var(--bg-subtle)'}; border: 1px solid var(--border-subtle); transition: background 0.2s;">
+                <span id="todo-routine-thumb" style="position: absolute; top: 2px; left: ${existingTodo?.showInRoutine ? '22px' : '2px'}; width: 18px; height: 18px; border-radius: 50%; background: ${existingTodo?.showInRoutine ? 'var(--bg-primary)' : 'var(--text-tertiary)'}; transition: all 0.2s;"></span>
+              </span>
+            </label>
+          </div>
+
+          <!-- Sub-options revealed when toggle is ON -->
+          <div id="todo-routine-subopts" style="display: ${existingTodo?.showInRoutine ? 'flex' : 'none'}; flex-direction: column; gap: 0; border-top: 1px solid var(--border-subtle);">
+            <label style="display: flex; align-items: center; gap: 12px; padding: 11px 16px; cursor: pointer; border-bottom: 1px solid var(--border-subtle);">
+              <input type="radio" name="todo-routine-mode" id="todo-routine-daily" value="daily" ${(!existingTodo?.routineMode || existingTodo?.routineMode === 'daily') ? 'checked' : ''} style="accent-color: var(--text-primary); width: 16px; height: 16px; flex-shrink: 0;">
+              <div>
+                <div style="font-size: 13.5px; font-weight: 600; color: var(--text-primary);">Todos los días hasta completar</div>
+                <div style="font-size: 11.5px; color: var(--text-tertiary);">Aparece cada día en la rutina hasta que la marques como hecha</div>
+              </div>
+            </label>
+            <label style="display: flex; align-items: center; gap: 12px; padding: 11px 16px; cursor: pointer;">
+              <input type="radio" name="todo-routine-mode" id="todo-routine-duedate" value="dueDate" ${existingTodo?.routineMode === 'dueDate' ? 'checked' : ''} style="accent-color: var(--text-primary); width: 16px; height: 16px; flex-shrink: 0;">
+              <div>
+                <div style="font-size: 13.5px; font-weight: 600; color: var(--text-primary);">Solo el día de finalización</div>
+                <div style="font-size: 11.5px; color: var(--text-tertiary);">Solo aparece en la rutina del día que pusiste como fecha límite</div>
+              </div>
+            </label>
+          </div>
         </div>
 
         <button id="btn-save-todo" class="btn-primary" style="width: 100%; min-height: 48px; border-radius: 12px; font-size: 14px;">
@@ -231,7 +267,7 @@ function openTodoModal(existingTodo = null) {
     document.getElementById('todo-modal')?.remove();
   });
 
-  // Animate the toggle
+  // Animate description toggle
   const checkbox = document.getElementById('todo-desc-visible');
   const track = document.getElementById('todo-desc-toggle-track');
   const thumb = document.getElementById('todo-desc-toggle-thumb');
@@ -241,6 +277,21 @@ function openTodoModal(existingTodo = null) {
       track.style.background = on ? 'var(--text-primary)' : 'var(--bg-subtle)';
       thumb.style.left = on ? '22px' : '2px';
       thumb.style.background = on ? 'var(--bg-primary)' : 'var(--text-tertiary)';
+    });
+  }
+
+  // Animate routine toggle + show/hide sub-options
+  const routineCheckbox = document.getElementById('todo-show-in-routine');
+  const routineTrack = document.getElementById('todo-routine-track');
+  const routineThumb = document.getElementById('todo-routine-thumb');
+  const routineSubopts = document.getElementById('todo-routine-subopts');
+  if (routineCheckbox && routineTrack && routineThumb && routineSubopts) {
+    routineCheckbox.addEventListener('change', () => {
+      const on = routineCheckbox.checked;
+      routineTrack.style.background = on ? 'var(--text-primary)' : 'var(--bg-subtle)';
+      routineThumb.style.left = on ? '22px' : '2px';
+      routineThumb.style.background = on ? 'var(--bg-primary)' : 'var(--text-tertiary)';
+      routineSubopts.style.display = on ? 'flex' : 'none';
     });
   }
 
@@ -257,6 +308,8 @@ function openTodoModal(existingTodo = null) {
     const stackedAfterId = document.getElementById('todo-stacked-after')?.value || '';
     const description = document.getElementById('todo-description')?.value.trim() || '';
     const descriptionVisible = document.getElementById('todo-desc-visible')?.checked || false;
+    const showInRoutine = document.getElementById('todo-show-in-routine')?.checked || false;
+    const routineMode = document.querySelector('input[name="todo-routine-mode"]:checked')?.value || 'daily';
 
     const todoData = {
       id: existingTodo?.id || store.generateId(),
@@ -267,6 +320,8 @@ function openTodoModal(existingTodo = null) {
       stackedAfterId,
       description,
       descriptionVisible,
+      showInRoutine,
+      routineMode,
       completed: existingTodo?.completed || false,
       createdAt: existingTodo?.createdAt || new Date().toISOString()
     };

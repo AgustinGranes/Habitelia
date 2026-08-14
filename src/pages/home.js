@@ -214,7 +214,23 @@ export function render(props = {}) {
 
     const showTodosInHome = state.user?.settings?.showTodosInHome !== false;
     const todos = state.todos || [];
-    const todayTodos = todos.filter(t => (t.dueDate === todayDate || !t.dueDate) && !t.completed);
+    // Filter todos that should appear in the routine today:
+    // - showInRoutine must be true (or not set, for backwards compat with old todos)
+    // - routineMode 'daily': show every day until completed
+    // - routineMode 'dueDate': show only on the due date
+    const todayTodos = todos.filter(t => {
+        if (t.completed) return false;
+        // Legacy todos without showInRoutine field: show if dueDate matches today or no dueDate
+        if (t.showInRoutine === undefined) {
+            return t.dueDate === todayDate || !t.dueDate;
+        }
+        if (!t.showInRoutine) return false;
+        if (t.routineMode === 'dueDate') {
+            return t.dueDate === todayDate;
+        }
+        // 'daily' mode: show every day until completed
+        return true;
+    });
 
     let todosSectionHtml = '';
     if (showTodosInHome && todayTodos.length > 0) {
@@ -235,8 +251,8 @@ export function render(props = {}) {
                                 <div style="font-weight: 600; font-size: 15px; color: var(--text-primary);">
                                     ${todo.name}
                                 </div>
-                                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
-                                    ${todo.time ? `⏰ ${todo.time}` : ''} ${todo.tag ? `🏷️ ${todo.tag}` : ''}
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    ${todo.time ? `<span style="display:flex;align-items:center;gap:3px;">${iconSVG('clock', 12)} ${todo.time}</span>` : ''} ${todo.tag ? `<span style="display:flex;align-items:center;gap:3px;">${iconSVG('tag', 12)} ${todo.tag}</span>` : ''}
                                 </div>
                             </div>
                         </div>
