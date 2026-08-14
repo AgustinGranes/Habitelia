@@ -24,16 +24,18 @@ export function render(props = {}) {
       habitData = {
         name: '', icon: '🎯', duration: 15, cue: { time: '08:00', place: '' },
         frequency: defaultFreq,
-        craving: { linkedPleasure: 'Tomar un té caliente' },
-        response: { twoMinVersion: '' }
+        craving: { linkedPleasure: '' },
+        response: { twoMinVersion: '' },
+        stackedAfterId: ''
       };
     }
   } else {
     habitData = {
       name: '', icon: '🎯', duration: 15, cue: { time: '08:00', place: '' },
       frequency: defaultFreq,
-      craving: { linkedPleasure: 'Tomar un té caliente' },
-      response: { twoMinVersion: '' }
+      craving: { linkedPleasure: '' },
+      response: { twoMinVersion: '' },
+      stackedAfterId: ''
     };
   }
 
@@ -69,6 +71,7 @@ function renderStep1() {
   const freq = habitData.frequency || { type: 'daily', days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] };
   const freqType = freq.type || 'daily';
   const selectedDays = freq.days || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+  const existingHabits = (store.getState().habits || []).filter(h => h.id !== habitData.id);
 
   return `
     <div style="margin-bottom: 24px;">
@@ -88,8 +91,27 @@ function renderStep1() {
       <div style="width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; border-radius: 10px;">
          <input type="time" id="habit-time" class="input" value="${habitData.cue?.time || ''}" style="width: 100%; max-width: 100%; box-sizing: border-box; min-height: 46px; font-size: 16px; text-align: center; display: block;" ${habitData.cue?.time ? '' : 'disabled'}>
       </div>
-      <div style="margin-top: 8px;">
-        <label style="font-weight: 600; font-size: 13px; color: var(--text-primary);"><input type="checkbox" id="habit-no-schedule" ${habitData.cue?.time ? '' : 'checked'}> Sin horario</label>
+      <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+        <label style="font-weight: 600; font-size: 13px; color: var(--text-primary); cursor: pointer;"><input type="checkbox" id="habit-no-schedule" ${habitData.cue?.time ? '' : 'checked'}> Sin horario</label>
+        <label style="font-weight: 600; font-size: 13px; color: var(--text-primary); cursor: pointer;"><input type="checkbox" id="habit-custom-per-day" ${habitData.cue?.timePerDay ? 'checked' : ''}> Horario distinto por día</label>
+      </div>
+
+      <div id="per-day-times-container" style="display: ${habitData.cue?.timePerDay ? 'flex' : 'none'}; flex-direction: column; gap: 8px; margin-top: 12px; background: var(--bg-primary); border: 1px solid var(--border-subtle); padding: 12px; border-radius: 12px;">
+        <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Horario por día:</div>
+        ${[
+          { key: 'mon', label: 'Lunes' },
+          { key: 'tue', label: 'Martes' },
+          { key: 'wed', label: 'Miércoles' },
+          { key: 'thu', label: 'Jueves' },
+          { key: 'fri', label: 'Viernes' },
+          { key: 'sat', label: 'Sábado' },
+          { key: 'sun', label: 'Domingo' }
+        ].map(d => `
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+            <span style="font-size: 13px; font-weight: 600; color: var(--text-primary); width: 80px;">${d.label}</span>
+            <input type="time" class="input habit-time-per-day" data-day="${d.key}" value="${habitData.cue?.timePerDay?.[d.key] || habitData.cue?.time || '08:00'}" style="flex: 1; min-height: 38px; text-align: center; font-size: 14px;">
+          </div>
+        `).join('')}
       </div>
     </div>
 
@@ -123,6 +145,18 @@ function renderStep1() {
       </div>
     </div>
 
+    <!-- Habit Stacking Dropdown -->
+    <div class="form-group" style="margin-bottom: 20px;">
+      <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Acumular con otro hábito (Habit Stacking)</label>
+      <select id="habit-stacked-after" class="input" style="width: 100%; min-height: 46px;">
+        <option value="">Ninguno (Hábito independiente)</option>
+        ${existingHabits.map(h => `<option value="${h.id}" ${habitData.stackedAfterId === h.id ? 'selected' : ''}>Acumular después de: "${h.name}"</option>`).join('')}
+      </select>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; font-style: italic;">
+        Principio de James Clear: "Después de [hábito actual], haré [nuevo hábito]".
+      </div>
+    </div>
+
     <div class="form-group" style="margin-bottom: 8px;">
       <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Lugar (Opcional)</label>
       <input type="text" id="habit-place" class="input" value="${habitData.cue?.place || ''}" placeholder="Ej. En mi escritorio, parque..." style="width:100%; box-sizing: border-box; min-height:46px;">
@@ -132,7 +166,7 @@ function renderStep1() {
 
 function renderStep2() {
   const defaultTwoMin = habitData.response?.twoMinVersion || (habitData.name ? `1 minuto de ${habitData.name}` : '');
-  const defaultPleasure = habitData.craving?.linkedPleasure || 'Tomar un té caliente';
+  const defaultPleasure = habitData.craving?.linkedPleasure || '';
 
   return `
     <div style="margin-bottom: 24px;">
@@ -165,8 +199,8 @@ function renderStep2() {
     </div>
 
     <div class="form-group" style="margin-bottom: 8px;">
-      <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Placer vinculado / Ritual previo</label>
-      <input type="text" id="habit-pleasure" class="input" value="${defaultPleasure}" placeholder="Ej. Tomar un té mientras lo realizo" style="width:100%; box-sizing: border-box; min-height:46px;">
+      <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Placer vinculado / Ritual previo (Opcional)</label>
+      <input type="text" id="habit-pleasure" class="input" value="${defaultPleasure}" placeholder="Ej. Tomar un té mientras lo realizo (opcional)" style="width:100%; box-sizing: border-box; min-height:46px;">
     </div>
   `;
 }
@@ -374,17 +408,38 @@ export function mount() {
   const scheduleCheckbox = document.getElementById('habit-no-schedule');
   scheduleCheckbox?.addEventListener('change', handleNoScheduleToggle);
 
+  const customPerDayCheckbox = document.getElementById('habit-custom-per-day');
+  const perDayContainer = document.getElementById('per-day-times-container');
+  customPerDayCheckbox?.addEventListener('change', () => {
+    if (perDayContainer) {
+      perDayContainer.style.display = customPerDayCheckbox.checked ? 'flex' : 'none';
+    }
+  });
+
   const saveCurrentStepData = () => {
     if (currentStep === 1) {
       const name = document.getElementById('habit-name')?.value.trim();
       const noSchedule = document.getElementById('habit-no-schedule')?.checked;
+      const customPerDay = document.getElementById('habit-custom-per-day')?.checked;
       const time = noSchedule ? null : (document.getElementById('habit-time')?.value || '08:00');
       const duration = parseInt(document.getElementById('habit-duration')?.value) || 15;
       const place = document.getElementById('habit-place')?.value.trim() || '';
 
+      let timePerDay = null;
+      if (!noSchedule && customPerDay) {
+        timePerDay = {};
+        document.querySelectorAll('.habit-time-per-day').forEach(inp => {
+          const day = inp.dataset.day;
+          timePerDay[day] = inp.value || time || '08:00';
+        });
+      }
+
+      const stackedAfterId = document.getElementById('habit-stacked-after')?.value || '';
+
       habitData.name = name;
-      habitData.cue = { ...(habitData.cue || {}), time, place };
+      habitData.cue = { ...(habitData.cue || {}), time, timePerDay, place };
       habitData.duration = duration;
+      habitData.stackedAfterId = stackedAfterId;
     } else if (currentStep === 2) {
       const twoMin = document.getElementById('habit-twomin')?.value.trim() || '';
       const pleasure = document.getElementById('habit-pleasure')?.value.trim() || '';

@@ -1,6 +1,7 @@
 import { auth, saveDocument, getDocument, getCollection, deleteDocument, getUserPath } from './firebase.js';
 import { getTeamForOVR, calculateMarketValue } from './driverEngine.js';
 import { showTelemetryRadioPopup } from './components/driverTelemetryPopup.js';
+import { showDailyIncompletePopup } from './components/dailyIncompletePopup.js';
 
 // Synchronous initial load from localStorage
 function getInitialLocalData() {
@@ -32,6 +33,10 @@ function getInitialLocalData() {
     const rawDriver = localStorage.getItem('driver_profile_v1');
     if (rawDriver) driverProfile = JSON.parse(rawDriver);
 
+    let todos = [];
+    const rawTodos = localStorage.getItem('todos_v1') || localStorage.getItem('todos_guest');
+    if (rawTodos) todos = JSON.parse(rawTodos);
+
     const rawCalc = localStorage.getItem('calc_expenses_v1') || localStorage.getItem('calc_expenses_guest');
     if (rawCalc) calcExpenses = JSON.parse(rawCalc);
   } catch (e) {
@@ -59,9 +64,10 @@ function getInitialLocalData() {
   }
 
   return {
-    user: user || { uid: 'guest', name: 'Viajero', identity: 'una persona disciplinada' },
+    user: user || { uid: 'guest', name: 'Viajero', identity: 'una persona disciplinada', settings: { showTodosInHome: true } },
     habits: Array.isArray(habits) ? habits : [],
     routines: Array.isArray(routines) ? routines : [],
+    todos: Array.isArray(todos) ? todos : [],
     calcExpenses,
     driverProfile
   };
@@ -73,6 +79,7 @@ const initialState = {
   user: initialData.user,
   habits: initialData.habits,
   routines: initialData.routines,
+  todos: initialData.todos,
   calcExpenses: initialData.calcExpenses,
   driverProfile: initialData.driverProfile,
   todaySchedule: null,
@@ -105,6 +112,21 @@ export const store = {
   getTodayString: () => {
     const d = new Date();
     return d.toISOString().split('T')[0];
+  },
+
+  getHabitOrder: (dateStr) => {
+    try {
+      const raw = localStorage.getItem(`habit_order_${dateStr}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  },
+
+  saveHabitOrder: (dateStr, orderIds) => {
+    try {
+      localStorage.setItem(`habit_order_${dateStr}`, JSON.stringify(orderIds));
+    } catch (e) {}
   },
   
   loadUserData: async () => {
@@ -186,10 +208,8 @@ export const store = {
         todaySchedule
       });
 
-      // Auto-check driver daily inactivity right after state loads
-      if (driverProfile && driverProfile.active) {
-        store.checkDriverDailyInactivityAndSeason();
-      }
+      // Auto-check daily inactivity & partner notification right after state loads
+      store.checkDailyIncompleteHabitsAndDriver();
 
       // Auto-push merged data to Firestore if user is authenticated
       if (auth.currentUser) {
@@ -328,6 +348,55 @@ export const store = {
       deleteDocument(`users/${uid}/routines/${routineId}`).catch(e => console.error(e));
     }
   },
+
+  saveTodo: async (todo) => {
+    const uid = auth.currentUser?.uid || 'guest';
+    const id = todo.id || store.generateId();
+    const todoToSave = { ...todo, id };
+
+    const existingIndex = (state.todos || []).findIndex(t => t.id === id);
+    const newTodos = [...(state.todos || [])];
+    if (existingIndex >= 0) {
+      newTodos[existingIndex] = todoToSave;
+    } else {
+      newTodos.push(todoToSave);
+    }
+
+    try {
+      localStorage.setItem('todos_v1', JSON.stringify(newTodos));
+      localStorage.setItem(`todos_${uid}`, JSON.stringify(newTodos));
+      localStorage.setItem('todos_guest', JSON.stringify(newTodos));
+    } catch (e) {}
+
+    store.setState({ todos: newTodos });
+
+    if (auth.currentUser) {
+      saveDocument(`users/${uid}/todos/${id}`, todoToSave).catch(e => console.error(e));
+    }
+  },
+
+  deleteTodo: async (todoId) => {
+    const uid = auth.currentUser?.uid || 'guest';
+    const newTodos = (state.todos || []).filter(t => t.id !== todoId);
+    try {
+      localStorage.setItem('todos_v1', JSON.stringify(newTodos));
+      localStorage.setItem(`todos_${uid}`, JSON.stringify(newTodos));
+      localStorage.setItem('todos_guest', JSON.stringify(newTodos));
+    } catch (e) {}
+
+    store.setState({ todos: newTodos });
+
+    if (auth.currentUser) {
+      deleteDocument(`users/${uid}/todos/${todoId}`).catch(e => console.error(e));
+    }
+  },
+
+  toggleTodo: async (todoId) => {
+    const todo = (state.todos || []).find(t => t.id === todoId);
+    if (!todo) return;
+    const updated = { ...todo, completed: !todo.completed };
+    await store.saveTodo(updated);
+  },
   
   saveTodaySchedule: async (schedule) => {
     if (!auth.currentUser) return;
@@ -357,41 +426,20 @@ export const store = {
     }
   },
 
-  checkDriverDailyInactivityAndSeason: async () => {
-    const driver = state.driverProfile;
-    if (!driver || !driver.active) return;
-
+  checkDailyIncompleteHabitsAndDriver: async () => {
     const todayStr = store.getTodayString();
-    let lastEvaluated = driver.lastEvaluatedDate || driver.lastActiveDate;
+    const driver = state.driverProfile;
+    const partner = state.user?.partner;
+    const habitsList = state.habits || [];
 
+    let lastEvaluated = localStorage.getItem('last_evaluated_date') || driver?.lastEvaluatedDate || driver?.lastActiveDate;
     if (!lastEvaluated) {
-      lastEvaluated = todayStr;
+      localStorage.setItem('last_evaluated_date', todayStr);
+      return;
     }
 
-    // Year-End Reset Check
-    const currentYear = new Date().getFullYear();
-    const driverStartYear = driver.startYear || currentYear;
-    const calculatedSeasons = Math.max(1, currentYear - driverStartYear + 1);
-    
-    let titlesDriver = driver.titlesDriver || 0;
-    let titlesConstructor = driver.titlesConstructor || 0;
-    let isNewSeason = calculatedSeasons > (driver.seasons || 1);
-    let ovr = driver.ovr || 50;
-    let completedHabitsCounter = driver.completedHabitsCounter || 0;
+    if (lastEvaluated >= todayStr) return;
 
-    if (isNewSeason) {
-      const prevOvr = driver.ovr || 50;
-      if (prevOvr >= 95) {
-        titlesDriver += 1;
-        titlesConstructor += 1;
-      } else if (prevOvr >= 90) {
-        titlesConstructor += 1;
-      }
-      ovr = 50;
-      completedHabitsCounter = 0;
-    }
-
-    // Day-by-Day Catchup Loop
     const addDaysStr = (dateStr, n) => {
       const parts = dateStr.split('-');
       const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
@@ -403,8 +451,7 @@ export const store = {
     };
 
     let currEvalDate = lastEvaluated;
-    let totalPenalty = 0;
-    const habitsList = state.habits || [];
+    let uncompletedHabitsList = [];
 
     while (currEvalDate < todayStr) {
       const dParts = currEvalDate.split('-');
@@ -423,12 +470,11 @@ export const store = {
         return true;
       });
 
-      let uncompletedOnDay = 0;
       scheduledForDay.forEach(h => {
         const comp = h.completions || {};
         const status = comp[currEvalDate];
         if (status !== 'completed' && status !== 'completed_2min' && status !== 'skipped') {
-          uncompletedOnDay++;
+          uncompletedHabitsList.push(h);
           const incidentId = `${h.id}_${currEvalDate}`;
           const incidentObj = {
             id: incidentId,
@@ -444,43 +490,44 @@ export const store = {
         }
       });
 
-      if (uncompletedOnDay > 0) {
-        totalPenalty += uncompletedOnDay;
-      } else if (scheduledForDay.length === 0) {
-        totalPenalty += 1;
-      }
-
       currEvalDate = addDaysStr(currEvalDate, 1);
     }
 
-    let ovrReduced = false;
-    if (totalPenalty > 0 && !isNewSeason) {
-      ovr = Math.max(10, ovr - totalPenalty);
-      ovrReduced = true;
+    localStorage.setItem('last_evaluated_date', todayStr);
+
+    const driverActive = !!(driver && driver.active);
+    let totalPenalty = uncompletedHabitsList.length;
+
+    let newOvr = driver?.ovr || 50;
+
+    if (driverActive && totalPenalty > 0) {
+      newOvr = Math.max(10, (driver.ovr || 50) - totalPenalty);
+
+      const team = getTeamForOVR(newOvr);
+      const teamsHistory = Array.from(new Set([...(driver.teamsHistory || []), team]));
+      const marketValue = calculateMarketValue(newOvr, driver.titlesDriver || 0, driver.titlesConstructor || 0);
+
+      const updatedProfile = {
+        ...driver,
+        ovr: newOvr,
+        marketValue,
+        teamsHistory,
+        lastActiveDate: todayStr,
+        lastEvaluatedDate: todayStr
+      };
+
+      await store.saveDriverProfile(updatedProfile);
     }
 
-    const team = getTeamForOVR(ovr);
-    const teamsHistory = Array.from(new Set([...(driver.teamsHistory || []), team]));
-    const marketValue = calculateMarketValue(ovr, titlesDriver, titlesConstructor);
-
-    const updatedProfile = {
-      ...driver,
-      ovr,
-      completedHabitsCounter,
-      seasons: calculatedSeasons,
-      startYear: driverStartYear,
-      titlesDriver,
-      titlesConstructor,
-      marketValue,
-      teamsHistory,
-      lastActiveDate: todayStr,
-      lastEvaluatedDate: todayStr
-    };
-
-    await store.saveDriverProfile(updatedProfile);
-
-    if (ovrReduced) {
-      showTelemetryRadioPopup(-totalPenalty, ovr, team);
+    if (uncompletedHabitsList.length > 0) {
+      showDailyIncompletePopup({
+        uncompletedHabits: uncompletedHabitsList,
+        partner,
+        driverActive,
+        ovrDelta: -totalPenalty,
+        newOvr,
+        teamName: getTeamForOVR(newOvr)
+      });
     }
   },
 

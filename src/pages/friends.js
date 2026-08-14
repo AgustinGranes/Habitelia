@@ -88,8 +88,14 @@ function renderFriendsList() {
     `;
   }
 
+  const aliasesRaw = localStorage.getItem('friend_aliases');
+  let friendAliases = {};
+  try { if (aliasesRaw) friendAliases = JSON.parse(aliasesRaw); } catch(e){}
+
   return friendsDataList.map(friend => {
-    const friendName = friend.user?.name || friend.user?.displayName || 'Amigo Habitelia';
+    const originalName = friend.user?.name || friend.user?.displayName || 'Amigo Habitelia';
+    const alias = friendAliases[friend.uid];
+    const friendName = alias ? alias : originalName;
     const friendIdentity = friend.user?.identity || 'Persona disciplinada';
     const driver = friend.driverProfile;
     const hasDriver = driver && driver.active;
@@ -103,19 +109,26 @@ function renderFriendsList() {
         
         <!-- Friend Header Row -->
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-          <div style="display: flex; align-items: center; gap: 14px;">
-            <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--bg-subtle); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; color: var(--text-primary);">
+          <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1;">
+            <div style="width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 50%; flex-shrink: 0; background: var(--bg-subtle); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; color: var(--text-primary);">
               ${friendName.charAt(0).toUpperCase()}
             </div>
-            <div>
-              <div style="font-weight: 700; font-size: 17px; color: var(--text-primary);">${friendName}</div>
+            <div style="min-width: 0;">
+              <div style="font-weight: 700; font-size: 17px; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+                ${friendName} ${alias ? `<span style="font-size: 12px; color: var(--text-secondary); font-weight: 400;">(${originalName})</span>` : ''}
+              </div>
               <div style="font-size: 12.5px; color: var(--text-secondary); font-style: italic;">"${friendIdentity}"</div>
             </div>
           </div>
 
-          <button class="btn-remove-friend" data-uid="${friend.uid}" title="Eliminar amigo" style="background: transparent; border: none; color: var(--text-tertiary); cursor: pointer; padding: 6px;">
-            ${iconSVG('x', 16)}
-          </button>
+          <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+            <button class="btn-edit-alias-friend" data-uid="${friend.uid}" data-name="${originalName}" data-alias="${alias || ''}" title="Editar alias" style="background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 6px;">
+              ${iconSVG('pencil', 16)}
+            </button>
+            <button class="btn-remove-friend" data-uid="${friend.uid}" title="Eliminar amigo" style="background: transparent; border: none; color: var(--text-tertiary); cursor: pointer; padding: 6px;">
+              ${iconSVG('x', 16)}
+            </button>
+          </div>
         </div>
 
         <!-- Discipline Streak Badge -->
@@ -263,6 +276,31 @@ async function loadFriendsData() {
 }
 
 function bindFriendActionEvents() {
+  document.querySelectorAll('.btn-edit-alias-friend').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const uid = e.currentTarget.dataset.uid;
+      const currentName = e.currentTarget.dataset.name;
+      const currentAlias = e.currentTarget.dataset.alias;
+      const newAlias = prompt(`Ingresá un alias/apodo para "${currentName}":`, currentAlias || currentName);
+      if (newAlias !== null) {
+        const aliasesRaw = localStorage.getItem('friend_aliases');
+        let friendAliases = {};
+        try { if (aliasesRaw) friendAliases = JSON.parse(aliasesRaw); } catch(err){}
+        
+        if (newAlias.trim()) {
+          friendAliases[uid] = newAlias.trim();
+        } else {
+          delete friendAliases[uid];
+        }
+        localStorage.setItem('friend_aliases', JSON.stringify(friendAliases));
+        showToast('Alias de amigo actualizado', 'success');
+        const container = document.getElementById('friends-list-container');
+        if (container) container.innerHTML = renderFriendsList();
+        bindFriendActionEvents();
+      }
+    });
+  });
+
   document.querySelectorAll('.btn-remove-friend').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       const uid = e.currentTarget.dataset.uid;

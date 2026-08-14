@@ -3,6 +3,11 @@ import { onAuthChange } from './firebase.js';
 import { store } from './store.js';
 import { initRouter, navigate, getCurrentRoute } from './router.js';
 
+import { initTheme } from './utils/theme.js';
+
+// Initialize custom app theme
+initTheme();
+
 // Import all page renderers
 import { render as renderLogin, mount as mountLogin } from './pages/login.js';
 import { render as renderOnboarding, mount as mountOnboarding } from './pages/onboarding.js';
@@ -15,6 +20,7 @@ import { render as renderDriver, mount as mountDriver } from './pages/driver.js'
 import { render as renderFriends, mount as mountFriends } from './pages/friends.js';
 import { render as renderSettings, mount as mountSettings } from './pages/settings.js';
 import { render as renderCalculator, mount as mountCalculator } from './pages/calculator.js';
+import { render as renderTodo, mount as mountTodo } from './pages/todo.js';
 import { renderSidebar, mountSidebar } from './components/sidebar.js';
 
 const routesMap = {
@@ -30,7 +36,32 @@ const routesMap = {
   '/friends': { render: renderFriends, mount: mountFriends },
   '/settings': { render: renderSettings, mount: mountSettings },
   '/calculator': { render: renderCalculator, mount: mountCalculator },
+  '/todo': { render: renderTodo, mount: mountTodo },
 };
+
+// Edge Swipe from Left Gesture to Open Sidebar
+let touchStartX = 0;
+let touchStartY = 0;
+
+window.addEventListener('touchstart', (e) => {
+  if (e.touches && e.touches.length === 1) {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }
+}, { passive: true });
+
+window.addEventListener('touchend', (e) => {
+  if (e.changedTouches && e.changedTouches.length === 1) {
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const diffX = touchEndX - touchStartX;
+    const diffY = touchEndY - touchStartY;
+
+    if (touchStartX < 40 && diffX > 60 && Math.abs(diffY) < 50) {
+      store.setState({ sidebarOpen: true });
+    }
+  }
+}, { passive: true });
 
 const appContainer = document.getElementById('app') || document.body;
 

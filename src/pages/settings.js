@@ -3,6 +3,7 @@ import { auth, deleteAccountAndAllData } from '../firebase.js';
 import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { iconSVG } from '../components/icons.js';
+import { THEMES, applyTheme } from '../utils/theme.js';
 
 export function render(props = {}) {
     const state = store.getState();
@@ -12,6 +13,8 @@ export function render(props = {}) {
     const name = currentUser?.displayName || state.user?.name || state.user?.displayName || localStorage.getItem('user_name_v1') || 'Usuario';
     const identity = state.user?.identity || localStorage.getItem('user_identity_v1') || 'No definida';
     const partner = state.user?.partner || { enabled: false, name: '', phone: '', contract: '' };
+    const currentTheme = localStorage.getItem('app_theme_key') || 'obsidian';
+    const showTodosInHome = state.user?.settings?.showTodosInHome !== false;
 
     return `
         <div class="page settings-page" style="padding: 24px 20px 100px 20px; max-width: 620px; margin: 0 auto; width: 100%; box-sizing: border-box;">
@@ -24,6 +27,40 @@ export function render(props = {}) {
                     ${iconSVG('menu', 20)}
                 </button>
             </header>
+
+            <!-- Personalización de Colores & Tema -->
+            <div class="glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 18px;">
+                <h3 class="editorial-title" style="font-size: 20px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">Personalización de Colores</h3>
+                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Seleccioná la paleta de colores para toda la aplicación:</div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px;">
+                    ${Object.keys(THEMES).map(key => {
+                        const t = THEMES[key];
+                        const isSel = currentTheme === key;
+                        return `
+                            <button class="btn-theme-select" data-theme="${key}" style="padding: 12px; border-radius: 12px; border: 2px solid ${isSel ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${t.bgSurface}; color: ${t.textPrimary}; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.15s ease;">
+                                <div style="width: 24px; height: 24px; border-radius: 50%; background: ${t.accentPrimary}; border: 1px solid ${t.borderSubtle};"></div>
+                                <span style="font-size: 11.5px; font-weight: 700; text-align: center;">${t.name}</span>
+                            </button>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+
+            <!-- Preferencias de Inicio / Rutina -->
+            <div class="glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 18px;">
+                <h3 class="editorial-title" style="font-size: 20px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">Preferencias de Visualización</h3>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">Mostrar Tareas (To-Do) en Inicio y Rutina</div>
+                        <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 2px;">Ver los eventos de tu lista To-Do junto con tus hábitos diarios.</div>
+                    </div>
+                    <label style="display: flex; align-items: center; cursor: pointer; flex-shrink: 0; margin-left: 14px;">
+                        <input type="checkbox" id="todos-in-home-toggle" ${showTodosInHome ? 'checked' : ''} style="width: 20px; height: 20px; accent-color: var(--text-primary);">
+                    </label>
+                </div>
+            </div>
 
             <div class="glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 18px;">
                 <h3 class="editorial-title" style="font-size: 20px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">Mi Identidad</h3>
@@ -153,6 +190,28 @@ export function mount() {
             }
         });
     }
+
+    document.querySelectorAll('.btn-theme-select').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const themeKey = e.currentTarget.dataset.theme;
+            applyTheme(themeKey);
+            showToast(`Tema "${THEMES[themeKey]?.name || themeKey}" aplicado`, 'success');
+            const pageContent = document.querySelector('.settings-page');
+            if (pageContent) {
+                pageContent.outerHTML = render();
+                mount();
+            }
+        });
+    });
+
+    document.getElementById('todos-in-home-toggle')?.addEventListener('change', (e) => {
+        const checked = e.target.checked;
+        const currentSettings = store.getState().user?.settings || {};
+        store.saveUserProfile({
+            settings: { ...currentSettings, showTodosInHome: checked }
+        });
+        showToast(checked ? 'Tareas activadas en Inicio y Rutina' : 'Tareas ocultas en Inicio y Rutina', 'info');
+    });
 
     const display = document.getElementById('identity-display');
     const input = document.getElementById('identity-input');

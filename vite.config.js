@@ -7,9 +7,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Habitelia — Hábitos Atómicos',
+        name: 'Habitelia',
         short_name: 'Habitelia',
-        description: 'Construí la mejor versión de vos mismo, un hábito a la vez.',
+        description: 'Habitelia, una app para trackear tus habitos basada en "Hábitos Atómicos" de James Clear',
         theme_color: '#0D0D0F',
         background_color: '#0D0D0F',
         display: 'standalone',

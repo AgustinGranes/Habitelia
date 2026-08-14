@@ -4,6 +4,9 @@ import { getRandomQuote } from '../quotes.js';
 import { showToast } from '../components/toast.js';
 import { iconSVG } from '../components/icons.js';
 import { renderSidebar, mountSidebar } from '../components/sidebar.js';
+import { showInstallPromptIfNeeded } from '../components/installPrompt.js';
+
+let isReorderingHome = false;
 
 export function render(props = {}) {
     const state = store.getState();
@@ -30,37 +33,114 @@ export function render(props = {}) {
     });
 
     const todayEvents = todayHabits.map(h => {
-        const isCompleted = h.completions?.[todayDate] === 'completed';
+        const isCompleted = h.completions?.[todayDate] === 'completed' || h.completions?.[todayDate] === 'completed_2min';
         const isSkipped = h.completions?.[todayDate] === 'skipped';
         const streak = h.streak || 0;
         const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
+
+    const habitTime = (h.cue?.timePerDay && h.cue.timePerDay[todayDayKey]) || h.cue?.time || null;
+        const parentHabit = h.stackedAfterId ? habits.find(item => item.id === h.stackedAfterId) : null;
 
         return {
             id: h.id,
             name: h.name,
             icon: h.icon || '🎯',
-            time: h.cue?.time || null,
+            time: habitTime,
             duration: h.duration || 15,
             twoMinuteVersion: h.response?.twoMinVersion || '2 minutos',
             linkedPleasure,
+            stackedAfterId: h.stackedAfterId || '',
+            stackedAfterName: parentHabit?.name || '',
             completed: isCompleted,
             skipped: isSkipped,
             streak
         };
     });
 
-    // Sort: timed events first by time, then unscheduled at end
-    todayEvents.sort((a, b) => {
-        if (a.time && b.time) return a.time.localeCompare(b.time);
-        if (a.time && !b.time) return -1; // a comes first
-        if (!a.time && b.time) return 1;  // b comes first
-        return 0;
+    // Build Stacked Groups
+    const eventsMap = new Map(todayEvents.map(e => [e.id, e]));
+    const childrenMap = new Map();
+    todayEvents.forEach(e => {
+        if (e.stackedAfterId && eventsMap.has(e.stackedAfterId)) {
+            if (!childrenMap.has(e.stackedAfterId)) childrenMap.set(e.stackedAfterId, []);
+            childrenMap.get(e.stackedAfterId).push(e);
+        }
     });
+
+    const rootEvents = todayEvents.filter(e => !e.stackedAfterId || !eventsMap.has(e.stackedAfterId));
+
+    const savedOrder = store.getHabitOrder(todayDate);
+    if (savedOrder && Array.isArray(savedOrder) && savedOrder.length > 0) {
+        rootEvents.sort((a, b) => {
+            const idxA = savedOrder.indexOf(a.id);
+            const idxB = savedOrder.indexOf(b.id);
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            if (a.time && b.time) return a.time.localeCompare(b.time);
+            if (a.time && !b.time) return -1;
+            if (!a.time && b.time) return 1;
+            return 0;
+        });
+    } else {
+        rootEvents.sort((a, b) => {
+            if (a.time && b.time) return a.time.localeCompare(b.time);
+            if (a.time && !b.time) return -1;
+            if (!a.time && b.time) return 1;
+            return 0;
+        });
+    }
+
     const remainingEvents = todayEvents.filter(e => !e.completed && !e.skipped);
     const completedEvents = todayEvents.filter(e => e.completed);
     const totalCount = todayEvents.length;
     const completedCount = completedEvents.length;
     const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+    function renderSingleHabitInner(ev, isStackedChild = false) {
+        return `
+            <div class="habit-item-card" data-id="${ev.id}" style="padding: ${isStackedChild ? '12px 14px' : '16px 18px'}; ${isStackedChild ? 'background: var(--bg-primary); border-radius: 14px; border: 1px solid var(--border-subtle); margin-top: 8px;' : ''} display: flex; align-items: center; justify-content: space-between; gap: 14px;">
+                <div style="display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0;">
+                    <button class="btn-toggle-habit" data-id="${ev.id}" data-completed="${ev.completed}" style="width: 28px; height: 28px; border-radius: 50%; border: 1.75px solid ${ev.completed ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${ev.completed ? 'var(--text-primary)' : 'transparent'}; color: ${ev.completed ? 'var(--bg-primary)' : 'transparent'}; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
+                        ${iconSVG('check', 14)}
+                    </button>
+
+                    <div style="min-width: 0; flex: 1;">
+                        <div style="font-weight: 600; font-size: ${isStackedChild ? '15px' : '16px'}; color: ${ev.completed ? 'var(--text-tertiary)' : 'var(--text-primary)'}; ${ev.completed ? 'text-decoration: line-through;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            ${isStackedChild ? `↳ ${ev.name}` : ev.name}
+                        </div>
+                        
+                        ${ev.time ? `
+                        <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; display: flex; align-items: center; gap: 6px;">
+                            <span>${iconSVG('clock', 12)} ${ev.time} (${ev.duration} min)</span>
+                        </div>` : ''}
+
+                        ${ev.linkedPleasure ? `
+                        <div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">
+                            Ritual previo: ${ev.linkedPleasure}
+                        </div>` : ''}
+
+                        ${ev.twoMinuteVersion ? `
+                        <div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">
+                            2 min: ${ev.twoMinuteVersion}
+                        </div>` : ''}
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); padding: 3px 8px; border-radius: 16px; font-size: 11.5px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 4px;">
+                        ${iconSVG('flame', 12)} ${ev.streak}d
+                    </div>
+                    <button class="btn-ghost btn-edit-habit" data-id="${ev.id}" title="Editar" style="padding: 5px; border-radius: 6px; color: var(--text-secondary);">
+                        ${iconSVG('edit', 15)}
+                    </button>
+                    <button class="btn-ghost btn-delete-habit" data-id="${ev.id}" data-name="${ev.name}" title="Eliminar" style="padding: 5px; border-radius: 6px; color: var(--text-tertiary);">
+                        ${iconSVG('trash', 15)}
+                    </button>
+                </div>
+            </div>
+        `;
+    }
 
     let habitCardsHtml = '';
     if (todayEvents.length === 0) {
@@ -79,57 +159,91 @@ export function render(props = {}) {
             </div>
         `;
     } else {
-        habitCardsHtml = todayEvents.map(ev => `
-            <div class="glass-card habit-item-card" data-id="${ev.id}" style="padding: 18px 20px; margin-bottom: 12px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; transition: transform 0.15s ease;">
-                <div style="display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0;">
-                    <!-- Monochromatic Checkbox Mechanism -->
-                    <button class="btn-toggle-habit" data-id="${ev.id}" data-completed="${ev.completed}" style="width: 28px; height: 28px; border-radius: 50%; border: 1.75px solid ${ev.completed ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${ev.completed ? 'var(--text-primary)' : 'transparent'}; color: ${ev.completed ? 'var(--bg-primary)' : 'transparent'}; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
-                        ${iconSVG('check', 14)}
-                    </button>
+        habitCardsHtml = rootEvents.map((rootEv, idx) => {
+            const children = childrenMap.get(rootEv.id) || [];
+            const isStack = children.length > 0;
 
-                    <div style="min-width: 0; flex: 1;">
-                        <div style="font-weight: 600; font-size: 16px; color: ${ev.completed ? 'var(--text-tertiary)' : 'var(--text-primary)'}; ${ev.completed ? 'text-decoration: line-through;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                            ${ev.name}
-                        </div>
-                        
-                        <!-- Scheduled Time Line -->
-                         ${ev.time ? `
-                         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 3px; display: flex; align-items: center; gap: 8px;">
-                             <span>${iconSVG('clock', 13)} ${ev.time} (${ev.duration} min)</span>
-                         </div>` : ''}
-
-                        <!-- Ritual Previo Line (DEBAJO DEL HORARIO) -->
-                        ${ev.linkedPleasure ? `
-                        <div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px; display: flex; align-items: center; gap: 4px;">
-                            <span>Ritual previo: ${ev.linkedPleasure}</span>
-                        </div>
+            if (!isStack) {
+                return `
+                    <div class="glass-card habit-group-card" data-root-id="${rootEv.id}" style="margin-bottom: 12px; border-radius: 16px; overflow: hidden;">
+                        ${isReorderingHome ? `
+                            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--bg-subtle); border-bottom: 1px solid var(--border-subtle);">
+                                <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">${rootEv.name}</span>
+                                <div style="display: flex; gap: 4px;">
+                                    <button class="btn-ghost btn-move-up-group" data-idx="${idx}" style="padding: 4px 8px;" ${idx === 0 ? 'disabled style="opacity:0.3;"' : ''}>
+                                        ${iconSVG('arrowUp', 16)}
+                                    </button>
+                                    <button class="btn-ghost btn-move-down-group" data-idx="${idx}" style="padding: 4px 8px;" ${idx === rootEvents.length - 1 ? 'disabled style="opacity:0.3;"' : ''}>
+                                        ${iconSVG('arrowDown', 16)}
+                                    </button>
+                                </div>
+                            </div>
                         ` : ''}
+                        ${renderSingleHabitInner(rootEv, false)}
+                    </div>
+                `;
+            }
 
-                        <!-- Versión de 2 Minutos Line (DEBAJO DEL RITUAL PREVIO) -->
-                        ${ev.twoMinuteVersion ? `
-                        <div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">
-                            2 min: ${ev.twoMinuteVersion}
-                        </div>
+            return `
+                <div class="glass-card habit-group-card" data-root-id="${rootEv.id}" style="padding: 16px; margin-bottom: 16px; border-radius: 20px; border: 1.5px solid var(--border-subtle); background: var(--bg-surface); box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);">
+                        <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+                            ${iconSVG('chain', 14)} Secuencia de Acumulación (Habit Stack)
+                        </span>
+                        ${isReorderingHome ? `
+                            <div style="display: flex; gap: 4px;">
+                                <button class="btn-ghost btn-move-up-group" data-idx="${idx}" style="padding: 4px 8px;" ${idx === 0 ? 'disabled style="opacity:0.3;"' : ''}>
+                                    ${iconSVG('arrowUp', 16)}
+                                </button>
+                                <button class="btn-ghost btn-move-down-group" data-idx="${idx}" style="padding: 4px 8px;" ${idx === rootEvents.length - 1 ? 'disabled style="opacity:0.3;"' : ''}>
+                                    ${iconSVG('arrowDown', 16)}
+                                </button>
+                            </div>
                         ` : ''}
                     </div>
-                </div>
 
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <!-- Streak Badge Monochromatic -->
-                    <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 5px;">
-                        ${iconSVG('flame', 13)} ${ev.streak}d
+                    ${renderSingleHabitInner(rootEv, false)}
+
+                    <div style="border-left: 2px dashed var(--border-subtle); margin-left: 18px; padding-left: 10px; margin-top: 6px;">
+                        ${children.map(child => renderSingleHabitInner(child, true)).join('')}
                     </div>
-
-                    <!-- Quick Edit & Delete Buttons -->
-                    <button class="btn-ghost btn-edit-habit" data-id="${ev.id}" title="Editar" style="padding: 6px; border-radius: 8px; color: var(--text-secondary);">
-                        ${iconSVG('edit', 16)}
-                    </button>
-                    <button class="btn-ghost btn-delete-habit" data-id="${ev.id}" data-name="${ev.name}" title="Eliminar" style="padding: 6px; border-radius: 8px; color: var(--text-tertiary);">
-                        ${iconSVG('trash', 16)}
-                    </button>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
+    }
+
+    const showTodosInHome = state.user?.settings?.showTodosInHome !== false;
+    const todos = state.todos || [];
+    const todayTodos = todos.filter(t => (t.dueDate === todayDate || !t.dueDate) && !t.completed);
+
+    let todosSectionHtml = '';
+    if (showTodosInHome && todayTodos.length > 0) {
+        todosSectionHtml = `
+            <!-- Today To-Dos Section -->
+            <section class="todos-section" style="margin-bottom: 32px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 class="editorial-title" style="font-size: 22px; margin: 0;">Tareas de hoy (To-Do)</h3>
+                    <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">${todayTodos.length} tareas</span>
+                </div>
+                ${todayTodos.map(todo => `
+                    <div class="glass-card todo-home-card" data-id="${todo.id}" style="padding: 16px 18px; margin-bottom: 10px; border-radius: 14px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border: 1px solid var(--border-subtle);">
+                        <div style="display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0;">
+                            <button class="btn-toggle-todo-home" data-id="${todo.id}" style="width: 26px; height: 26px; border-radius: 50%; border: 1.75px solid var(--border-subtle); background: transparent; color: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                ${iconSVG('check', 13)}
+                            </button>
+                            <div style="min-width: 0; flex: 1;">
+                                <div style="font-weight: 600; font-size: 15px; color: var(--text-primary);">
+                                    ${todo.name}
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
+                                    ${todo.time ? `⏰ ${todo.time}` : ''} ${todo.tag ? `🏷️ ${todo.tag}` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </section>
+        `;
     }
 
     return `
@@ -178,11 +292,20 @@ export function render(props = {}) {
             <!-- Today Habits Section -->
             <section class="habits-section" style="margin-bottom: 32px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <h3 class="editorial-title" style="font-size: 22px; margin: 0;">Hábitos de hoy</h3>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <h3 class="editorial-title" style="font-size: 22px; margin: 0;">Hábitos de hoy</h3>
+                        ${todayEvents.length > 1 ? `
+                            <button id="btn-reorder-home" class="btn-ghost" style="padding: 4px 10px; font-size: 12px; border: 1px solid ${isReorderingHome ? 'var(--text-primary)' : 'var(--border-subtle)'}; color: ${isReorderingHome ? 'var(--text-primary)' : 'var(--text-secondary)'}; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                ${isReorderingHome ? `${iconSVG('check', 12)} Listo` : `${iconSVG('edit', 12)} Editar Orden`}
+                            </button>
+                        ` : ''}
+                    </div>
                     <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">${todayEvents.length} hábitos</span>
                 </div>
                 ${habitCardsHtml}
             </section>
+
+            ${todosSectionHtml}
 
             <!-- Monochromatic FAB Button -->
             <button class="btn-fab" id="add-fab" style="position: fixed; bottom: 32px; right: 32px; width: 56px; height: 56px; border-radius: 50%; background: var(--accent-primary); color: var(--accent-inverted); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(0,0,0,0.5); z-index: 90; transition: transform 0.2s ease, opacity 0.2s ease;">
@@ -339,6 +462,8 @@ function refreshHomeView() {
 
 export function mount() {
     let unsubs = [];
+    
+    showInstallPromptIfNeeded();
     
     // Ensure sidebar is present and mount sidebar trigger
     let overlay = document.getElementById('sidebar-overlay');
@@ -505,6 +630,53 @@ export function mount() {
             e.stopPropagation();
             const id = e.currentTarget.dataset.id;
             navigate('/habit/new', { id });
+        });
+    });
+
+    document.getElementById('btn-reorder-home')?.addEventListener('click', () => {
+        isReorderingHome = !isReorderingHome;
+        refreshHomeView();
+    });
+
+    document.querySelectorAll('.btn-move-up-group').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const idx = parseInt(e.currentTarget.dataset.idx, 10);
+            if (idx > 0) {
+                const groupCards = Array.from(document.querySelectorAll('.habit-group-card'));
+                const ids = groupCards.map(c => c.dataset.rootId);
+                const temp = ids[idx];
+                ids[idx] = ids[idx - 1];
+                ids[idx - 1] = temp;
+                store.saveHabitOrder(store.getTodayString(), ids);
+                refreshHomeView();
+            }
+        });
+    });
+
+    document.querySelectorAll('.btn-move-down-group').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const idx = parseInt(e.currentTarget.dataset.idx, 10);
+            const groupCards = Array.from(document.querySelectorAll('.habit-group-card'));
+            const ids = groupCards.map(c => c.dataset.rootId);
+            if (idx < ids.length - 1) {
+                const temp = ids[idx];
+                ids[idx] = ids[idx + 1];
+                ids[idx + 1] = temp;
+                store.saveHabitOrder(store.getTodayString(), ids);
+                refreshHomeView();
+            }
+        });
+    });
+
+    document.querySelectorAll('.btn-toggle-todo-home').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const id = e.currentTarget.dataset.id;
+            await store.toggleTodo(id);
+            showToast('Tarea completada', 'success');
+            refreshHomeView();
         });
     });
 

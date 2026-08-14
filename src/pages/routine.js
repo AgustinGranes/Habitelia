@@ -4,6 +4,7 @@ import { showToast } from '../components/toast.js';
 import { iconSVG } from '../components/icons.js';
 import { renderSidebar, mountSidebar } from '../components/sidebar.js';
 
+let isReorderingRoutine = false;
 let cleanup = [];
 
 export function render() {
@@ -13,6 +14,9 @@ export function render() {
   const todayDate = store.getTodayString();
   const dateStr = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
 
+  const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const todayDayKey = dayKeys[new Date().getDay()];
+
   // 1. Today's Items
   const todayItems = habits.map(h => {
     const status = h.completions?.[todayDate];
@@ -21,20 +25,69 @@ export function render() {
     const isSkipped = status === 'skipped';
     const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
     const twoMinuteVersion = h.response?.twoMinVersion || '';
+    const habitTime = (h.cue?.timePerDay && h.cue.timePerDay[todayDayKey]) || h.cue?.time || '08:00';
+    const parentHabit = h.stackedAfterId ? habits.find(item => item.id === h.stackedAfterId) : null;
     return {
       id: h.id,
       name: h.name,
       icon: h.icon || '🎯',
-      time: h.cue?.time || '08:00',
+      time: habitTime,
       duration: h.duration || 15,
       linkedPleasure,
       twoMinuteVersion,
+      stackedAfterId: h.stackedAfterId || '',
+      stackedAfterName: parentHabit?.name || '',
       completed: isCompleted,
       isTwoMin,
       skipped: isSkipped
     };
   });
-  todayItems.sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
+
+  const eventsMapRoutine = new Map(todayItems.map(e => [e.id, e]));
+  const childrenMapRoutine = new Map();
+  todayItems.forEach(e => {
+    if (e.stackedAfterId && eventsMapRoutine.has(e.stackedAfterId)) {
+      if (!childrenMapRoutine.has(e.stackedAfterId)) childrenMapRoutine.set(e.stackedAfterId, []);
+      childrenMapRoutine.get(e.stackedAfterId).push(e);
+    }
+  });
+
+  const rootItemsRoutine = todayItems.filter(e => !e.stackedAfterId || !eventsMapRoutine.has(e.stackedAfterId));
+
+  const savedOrder = store.getHabitOrder(todayDate);
+  if (savedOrder && Array.isArray(savedOrder) && savedOrder.length > 0) {
+    rootItemsRoutine.sort((a, b) => {
+      const idxA = savedOrder.indexOf(a.id);
+      const idxB = savedOrder.indexOf(b.id);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return (a.time || '00:00').localeCompare(b.time || '00:00');
+    });
+  } else {
+    rootItemsRoutine.sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
+  }
+
+  function renderRoutineItemInner(item, isStackedChild = false) {
+    return `
+      <div class="habit-item-card-routine ${isReorderingRoutine ? '' : 'btn-toggle-routine-today'}" data-id="${item.id}" data-completed="${item.completed}" style="display: flex; align-items: center; justify-content: space-between; padding: ${isStackedChild ? '10px 14px' : '14px 18px'}; margin-top: ${isStackedChild ? '6px' : '0'}; border-radius: 14px; background: ${isStackedChild ? 'var(--bg-primary)' : 'transparent'}; border: ${isStackedChild ? '1px solid var(--border-subtle)' : 'none'}; ${isReorderingRoutine ? '' : 'cursor: pointer;'} opacity: ${item.completed ? '0.75' : '1'}; transition: all 0.2s ease;">
+        <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1;">
+          <div style="width: 26px; height: 26px; border-radius: 50%; border: 1.75px solid ${item.completed ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${item.completed ? (item.isTwoMin ? 'rgba(255,255,255,0.45)' : 'var(--text-primary)') : 'transparent'}; color: ${item.completed ? 'var(--bg-primary)' : 'transparent'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            ${iconSVG('check', 13)}
+          </div>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-weight: 600; font-size: 15px; color: var(--text-primary); ${item.completed ? 'text-decoration: line-through;' : ''}">${isStackedChild ? `↳ ${item.name}` : item.name}</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${iconSVG('clock', 12)} ${item.time} (${item.duration} min)</div>
+            ${item.linkedPleasure ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">Ritual previo: ${item.linkedPleasure}</div>` : ''}
+            ${item.twoMinuteVersion ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">2 min: ${item.twoMinuteVersion}</div>` : ''}
+          </div>
+        </div>
+        <div style="font-size: 12px; font-weight: 600; color: ${item.completed ? 'var(--text-primary)' : 'var(--text-secondary)'}; background: var(--bg-subtle); padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border-subtle); flex-shrink: 0; margin-left: 8px;">
+          ${item.completed ? (item.isTwoMin ? '✓ 2 Min' : '✓ Hecho') : 'Pendiente'}
+        </div>
+      </div>
+    `;
+  }
 
   let todayListHtml = '';
   if (todayItems.length === 0) {
@@ -51,24 +104,57 @@ export function render() {
       </div>
     `;
   } else {
-    todayListHtml = todayItems.map(item => `
-      <div class="glass-card btn-toggle-routine-today" data-id="${item.id}" data-completed="${item.completed}" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; margin-bottom: 10px; border-radius: 14px; border: 1px solid var(--border-subtle); cursor: pointer; opacity: ${item.completed ? '0.75' : '1'}; transition: all 0.2s ease;">
-        <div style="display: flex; align-items: center; gap: 14px;">
-          <div style="width: 26px; height: 26px; border-radius: 50%; border: 1.75px solid ${item.completed ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${item.completed ? (item.isTwoMin ? 'rgba(255,255,255,0.45)' : 'var(--text-primary)') : 'transparent'}; color: ${item.completed ? 'var(--bg-primary)' : 'transparent'}; display: flex; align-items: center; justify-content: center;">
-            ${iconSVG('check', 13)}
+    todayListHtml = rootItemsRoutine.map((rootItem, idx) => {
+      const children = childrenMapRoutine.get(rootItem.id) || [];
+      const isStack = children.length > 0;
+
+      if (!isStack) {
+        return `
+          <div class="glass-card habit-group-card-routine" data-root-id="${rootItem.id}" style="margin-bottom: 10px; border-radius: 14px; overflow: hidden; border: 1px solid var(--border-subtle);">
+            ${isReorderingRoutine ? `
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--bg-subtle); border-bottom: 1px solid var(--border-subtle);">
+                <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">${rootItem.name}</span>
+                <div style="display: flex; gap: 4px;">
+                  <button class="btn-ghost btn-move-up-routine" data-idx="${idx}" style="padding: 4px 8px;" ${idx === 0 ? 'disabled style="opacity:0.3;"' : ''}>
+                    ${iconSVG('arrowUp', 16)}
+                  </button>
+                  <button class="btn-ghost btn-move-down-routine" data-idx="${idx}" style="padding: 4px 8px;" ${idx === rootItemsRoutine.length - 1 ? 'disabled style="opacity:0.3;"' : ''}>
+                    ${iconSVG('arrowDown', 16)}
+                  </button>
+                </div>
+              </div>
+            ` : ''}
+            ${renderRoutineItemInner(rootItem, false)}
           </div>
-          <div>
-            <div style="font-weight: 600; font-size: 15px; color: var(--text-primary); ${item.completed ? 'text-decoration: line-through;' : ''}">${item.name}</div>
-            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${iconSVG('clock', 12)} ${item.time} (${item.duration} min)</div>
-            ${item.linkedPleasure ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">Ritual previo: ${item.linkedPleasure}</div>` : ''}
-            ${item.twoMinuteVersion ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">2 min: ${item.twoMinuteVersion}</div>` : ''}
+        `;
+      }
+
+      return `
+        <div class="glass-card habit-group-card-routine" data-root-id="${rootItem.id}" style="padding: 14px; margin-bottom: 14px; border-radius: 18px; border: 1.5px solid var(--border-subtle); background: var(--bg-surface);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border-subtle);">
+            <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+              ${iconSVG('chain', 14)} Secuencia de Acumulación (Habit Stack)
+            </span>
+            ${isReorderingRoutine ? `
+              <div style="display: flex; gap: 4px;">
+                <button class="btn-ghost btn-move-up-routine" data-idx="${idx}" style="padding: 4px 8px;" ${idx === 0 ? 'disabled style="opacity:0.3;"' : ''}>
+                  ${iconSVG('arrowUp', 16)}
+                </button>
+                <button class="btn-ghost btn-move-down-routine" data-idx="${idx}" style="padding: 4px 8px;" ${idx === rootItemsRoutine.length - 1 ? 'disabled style="opacity:0.3;"' : ''}>
+                  ${iconSVG('arrowDown', 16)}
+                </button>
+              </div>
+            ` : ''}
+          </div>
+
+          ${renderRoutineItemInner(rootItem, false)}
+
+          <div style="border-left: 2px dashed var(--border-subtle); margin-left: 16px; padding-left: 8px; margin-top: 6px;">
+            ${children.map(child => renderRoutineItemInner(child, true)).join('')}
           </div>
         </div>
-        <div style="font-size: 12px; font-weight: 600; color: ${item.completed ? 'var(--text-primary)' : 'var(--text-secondary)'}; background: var(--bg-subtle); padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border-subtle);">
-          ${item.completed ? (item.isTwoMin ? '✓ 2 Minutos' : '✓ Completado') : 'Pendiente'}
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
   // 2. All Habits Ever Created
@@ -147,7 +233,14 @@ export function render() {
       <!-- Section 1: Today's Routine -->
       <section class="today-section" style="margin-bottom: 32px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-          <h3 class="editorial-title" style="font-size: 20px; margin: 0;">Rutina de Hoy</h3>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <h3 class="editorial-title" style="font-size: 20px; margin: 0;">Rutina de Hoy</h3>
+            ${todayItems.length > 1 ? `
+              <button id="btn-reorder-routine" class="btn-ghost" style="padding: 4px 10px; font-size: 12px; border: 1px solid ${isReorderingRoutine ? 'var(--text-primary)' : 'var(--border-subtle)'}; color: ${isReorderingRoutine ? 'var(--text-primary)' : 'var(--text-secondary)'}; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                ${isReorderingRoutine ? `${iconSVG('check', 12)} Listo` : `${iconSVG('edit', 12)} Editar Orden`}
+              </button>
+            ` : ''}
+          </div>
           <button id="btn-save-today-routine" class="btn-ghost" style="padding: 6px 12px; font-size: 12px; border: 1px solid var(--border-subtle); color: var(--text-primary); border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
             ${iconSVG('star', 13)} Guardar Rutina
           </button>
@@ -379,6 +472,43 @@ export function mount() {
     });
   });
 
+  document.getElementById('btn-reorder-routine')?.addEventListener('click', () => {
+    isReorderingRoutine = !isReorderingRoutine;
+    refreshRoutineView();
+  });
+
+  document.querySelectorAll('.btn-move-up-routine').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(e.currentTarget.dataset.idx, 10);
+      if (idx > 0) {
+        const cards = Array.from(document.querySelectorAll('.habit-group-card-routine'));
+        const ids = cards.map(c => c.dataset.rootId);
+        const temp = ids[idx];
+        ids[idx] = ids[idx - 1];
+        ids[idx - 1] = temp;
+        store.saveHabitOrder(store.getTodayString(), ids);
+        refreshRoutineView();
+      }
+    });
+  });
+
+  document.querySelectorAll('.btn-move-down-routine').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(e.currentTarget.dataset.idx, 10);
+      const cards = Array.from(document.querySelectorAll('.habit-group-card-routine'));
+      const ids = cards.map(c => c.dataset.rootId);
+      if (idx < ids.length - 1) {
+        const temp = ids[idx];
+        ids[idx] = ids[idx + 1];
+        ids[idx + 1] = temp;
+        store.saveHabitOrder(store.getTodayString(), ids);
+        refreshRoutineView();
+      }
+    });
+  });
+
   document.getElementById('btn-create-custom-routine')?.addEventListener('click', () => {
     openCreateRoutineModal();
   });
@@ -401,10 +531,12 @@ export function mount() {
 
     const name = prompt('Nombre para esta rutina (ej. Rutina Mañanera):');
     if (name) {
+      const cards = Array.from(document.querySelectorAll('.habit-item-card-routine'));
+      const orderedIds = cards.length > 0 ? cards.map(c => c.dataset.id) : habits.map(h => h.id);
       const routine = {
         id: store.generateId(),
         name,
-        habitIds: habits.map(h => h.id),
+        habitIds: orderedIds,
         repeatDays: [],
         createdAt: new Date().toISOString()
       };
@@ -421,17 +553,9 @@ export function mount() {
       const routineId = e.currentTarget.dataset.id;
       const routine = state.routines.find(r => r.id === routineId);
       if (routine) {
-        const newSchedule = routine.habitIds.map((id, i) => {
-          const habit = state.habits.find(h => h.id === id);
-          return {
-            habitId: id,
-            startTime: `0${8 + Math.floor(i/2)}:${i%2===0?'00':'30'}`,
-            duration: habit ? habit.duration : 15,
-            completed: false,
-            skipped: false
-          };
-        });
-        store.saveTodaySchedule(newSchedule);
+        if (routine.habitIds && routine.habitIds.length > 0) {
+          store.saveHabitOrder(store.getTodayString(), routine.habitIds);
+        }
         showToast(`Rutina "${routine.name}" cargada para hoy`, 'success');
         refreshRoutineView();
       }

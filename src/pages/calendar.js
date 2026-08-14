@@ -147,12 +147,20 @@ function openDayActionModal(dateStr, dayNum) {
 
   const loadedHabits = getHabitsForDate(dateStr, habits, routines);
 
-  const habitsListHtml = loadedHabits.length > 0 ? loadedHabits.map(h => `
+  const d = new Date(dateStr + 'T00:00:00');
+  const dayIdx = d.getDay();
+  const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const currentDayKey = dayKeys[dayIdx];
+
+  const habitsListHtml = loadedHabits.length > 0 ? loadedHabits.map(h => {
+    const habitTime = (h.cue?.timePerDay && h.cue.timePerDay[currentDayKey]) || h.cue?.time || '08:00';
+    return `
     <div style="padding: 10px 14px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
       <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary);">${h.name}</div>
-      <div style="font-size: 12px; color: var(--text-secondary);">⏰ ${h.cue?.time || '08:00'} (${h.duration || 15} min)</div>
+      <div style="font-size: 12px; color: var(--text-secondary);">⏰ ${habitTime} (${h.duration || 15} min)</div>
     </div>
-  `).join('') : `
+  `;
+  }).join('') : `
     <div style="color: var(--text-secondary); font-size: 13px; font-style: italic; text-align: center; padding: 12px;">
       No hay hábitos específicos cargados para este día.
     </div>
@@ -225,9 +233,14 @@ function openDayActionModal(dateStr, dayNum) {
     const selectedId = document.getElementById('day-routine-select')?.value;
     if (selectedId) {
       localStorage.setItem(`assigned_routine_${dateStr}`, selectedId);
+      const routine = routines.find(r => r.id === selectedId);
+      if (routine && routine.habitIds) {
+        store.saveHabitOrder(dateStr, routine.habitIds);
+      }
       showToast('Rutina asignada a la fecha correctamente', 'success');
     } else {
       localStorage.removeItem(`assigned_routine_${dateStr}`);
+      localStorage.removeItem(`habit_order_${dateStr}`);
       showToast('Rutina desasignada de la fecha', 'info');
     }
     document.getElementById('day-action-modal')?.remove();
