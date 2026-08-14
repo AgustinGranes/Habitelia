@@ -20,8 +20,18 @@ export function render() {
   // 1. Today's Items
   const todayItems = [];
 
+  // Filter habits for today's day of week
+  const todayHabits = habits.filter(h => {
+    if (!h.frequency) return true;
+    if (h.frequency.type === 'daily') return true;
+    if (h.frequency.type === 'weekly' && Array.isArray(h.frequency.days)) {
+      return h.frequency.days.includes(todayDayKey);
+    }
+    return true;
+  });
+
   // Main occurrences
-  habits.forEach(h => {
+  todayHabits.forEach(h => {
     const status = h.completions?.[todayDate];
     const isCompleted = status === 'completed' || status === 'completed_2min';
     const isTwoMin = status === 'completed_2min';

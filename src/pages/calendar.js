@@ -24,16 +24,43 @@ export function getHabitsForDate(dateStr, habits = [], routines = []) {
   const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
   const currentDayKey = dayKeys[dayIdx];
 
-  const habitsMap = new Map();
+  const occurrences = [];
+
+  const addHabitOccurrences = (h) => {
+    // 1. Main occurrence
+    const mainTime = (h.cue?.timePerDay && h.cue.timePerDay[currentDayKey]) || h.cue?.time || '08:00';
+    occurrences.push({
+      id: h.id,
+      name: h.name,
+      time: mainTime,
+      duration: h.duration || 15
+    });
+
+    // 2. Repetition occurrences
+    if (h.repetition?.enabled && Array.isArray(h.repetitions)) {
+      h.repetitions.forEach((rep, idx) => {
+        const repDays = rep.days || [];
+        if (repDays.includes(currentDayKey)) {
+          occurrences.push({
+            id: h.id + '_rep_' + idx,
+            name: `${h.name} (Repetición ${idx + 1})`,
+            time: rep.time || '18:00',
+            duration: h.duration || 15
+          });
+        }
+      });
+    }
+  };
+
+  const activeHabitIds = new Set();
 
   if (assignedRoutine) {
     (assignedRoutine.habitIds || []).forEach(id => {
-      const h = habits.find(item => item.id === id);
-      if (h) habitsMap.set(h.id, h);
+      activeHabitIds.add(id);
     });
   }
 
-  customHabits.forEach(h => habitsMap.set(h.id, h));
+  customHabits.forEach(h => activeHabitIds.add(h.id));
 
   habits.forEach(h => {
     let matchesFreq = false;
@@ -48,11 +75,18 @@ export function getHabitsForDate(dateStr, habits = [], routines = []) {
     }
 
     if (matchesFreq) {
-      habitsMap.set(h.id, h);
+      activeHabitIds.add(h.id);
     }
   });
 
-  return Array.from(habitsMap.values());
+  activeHabitIds.forEach(id => {
+    const h = habits.find(item => item.id === id);
+    if (h) {
+      addHabitOccurrences(h);
+    }
+  });
+
+  return occurrences;
 }
 
 export function render() {
@@ -153,7 +187,7 @@ function openDayActionModal(dateStr, dayNum) {
   const currentDayKey = dayKeys[dayIdx];
 
   const habitsListHtml = loadedHabits.length > 0 ? loadedHabits.map(h => {
-    const habitTime = (h.cue?.timePerDay && h.cue.timePerDay[currentDayKey]) || h.cue?.time || '08:00';
+    const habitTime = h.time || '08:00';
     return `
     <div style="padding: 10px 14px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
       <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary);">${h.name}</div>
