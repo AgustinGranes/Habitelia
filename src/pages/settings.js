@@ -154,10 +154,7 @@ export function render(props = {}) {
                         Esta acción eliminará <strong>permanentemente</strong> todos tus hábitos, rutinas, historial, ficha de piloto y tu usuario de la base de datos en la nube.
                     </p>
 
-                    <div id="reauth-password-group" style="margin-bottom: 20px; text-align: left;">
-                        <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">Confirmá tu contraseña para autorizar:</label>
-                        <input type="password" id="delete-confirm-password" class="input" placeholder="Tu contraseña actual..." style="width: 100%; min-height: 42px; font-size: 13px;">
-                    </div>
+
 
                     <div style="display: flex; gap: 12px;">
                         <button id="cancel-delete-modal-btn" class="btn-secondary" style="flex: 1; min-height: 44px; font-size: 13.5px; margin: 0;">
@@ -291,10 +288,9 @@ export function mount() {
     });
 
     document.getElementById('confirm-delete-modal-btn')?.addEventListener('click', async () => {
-        const pass = document.getElementById('delete-confirm-password')?.value || '';
         showToast('Eliminando tu cuenta y cerrando sesión...', 'info');
         
-        const res = await deleteAccountAndAllData(pass);
+        const res = await deleteAccountAndAllData();
         if (res.success) {
             if (modal) modal.style.display = 'none';
             localStorage.clear();

@@ -402,6 +402,22 @@ function openFabChoiceModal() {
       const habitId = e.currentTarget.dataset.id;
       const habit = habits.find(h => h.id === habitId);
       if (habit) {
+        const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+        const todayDayKey = dayKeys[new Date().getDay()];
+        
+        let freq = habit.frequency || { type: 'daily', days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] };
+        if (freq.type === 'weekly') {
+          let days = freq.days || [];
+          if (!days.includes(todayDayKey)) {
+            days = [...days, todayDayKey];
+            const updatedHabit = {
+              ...habit,
+              frequency: { ...freq, days }
+            };
+            await store.saveHabit(updatedHabit);
+          }
+        }
+
         showToast(`Hábito "${habit.name}" listo en tu lista de hoy`, 'success');
         document.getElementById('fab-choice-modal')?.remove();
         refreshHomeView();

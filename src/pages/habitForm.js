@@ -107,7 +107,7 @@ function renderStep1() {
           { key: 'sat', label: 'Sábado' },
           { key: 'sun', label: 'Domingo' }
         ].map(d => `
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <div class="day-time-row" data-day="${d.key}" style="display: ${freqType === 'daily' || selectedDays.includes(d.key) ? 'flex' : 'none'}; align-items: center; justify-content: space-between; gap: 10px;">
             <span style="font-size: 13px; font-weight: 600; color: var(--text-primary); width: 80px;">${d.label}</span>
             <input type="time" class="input habit-time-per-day" data-day="${d.key}" value="${habitData.cue?.timePerDay?.[d.key] || habitData.cue?.time || '08:00'}" style="flex: 1; min-height: 38px; text-align: center; font-size: 14px;">
           </div>
@@ -227,6 +227,12 @@ function bindFrequencyEvents() {
     if (container) {
       container.style.display = !isDaily ? 'flex' : 'none';
     }
+
+    const days = habitData.frequency.days || [];
+    document.querySelectorAll('.day-time-row').forEach(row => {
+      const day = row.dataset.day;
+      row.style.display = (isDaily || days.includes(day)) ? 'flex' : 'none';
+    });
   };
 
   dailyBtn?.addEventListener('click', () => {
@@ -258,6 +264,11 @@ function bindFrequencyEvents() {
       const isSelected = days.includes(day);
       e.currentTarget.style.background = isSelected ? 'var(--text-primary)' : 'var(--bg-subtle)';
       e.currentTarget.style.color = isSelected ? 'var(--bg-primary)' : 'var(--text-secondary)';
+
+      const row = document.querySelector(`.day-time-row[data-day="${day}"]`);
+      if (row) {
+        row.style.display = isSelected ? 'flex' : 'none';
+      }
     });
   });
 }

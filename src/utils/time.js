@@ -19,10 +19,14 @@ export function getEndTime(startTime, durationMinutes) {
 }
 
 export function checkCollision(event1, event2) {
-  const start1 = parseTime(event1.startTime).totalMinutes;
-  const end1 = start1 + event1.duration;
-  const start2 = parseTime(event2.startTime).totalMinutes;
-  const end2 = start2 + event2.duration;
+  const time1 = event1.startTime || event1.cue?.time || event1.time;
+  const time2 = event2.startTime || event2.cue?.time || event2.time;
+  if (!time1 || !time2) return { collides: false, overlapMinutes: 0 };
+
+  const start1 = parseTime(time1).totalMinutes;
+  const end1 = start1 + parseInt(event1.duration || 15);
+  const start2 = parseTime(time2).totalMinutes;
+  const end2 = start2 + parseInt(event2.duration || 15);
 
   if (start1 < end2 && start2 < end1) {
     const overlapStart = Math.max(start1, start2);

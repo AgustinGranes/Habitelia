@@ -1,5 +1,5 @@
 import { store } from '../store.js';
-import { auth, getPublicUserData, addFriendToCloud, removeFriendFromCloud, getFriendsFromCloud } from '../firebase.js';
+import { auth, getPublicUserData, addFriendToCloud, removeFriendFromCloud, getFriendsFromCloud, updateFriendAliasInCloud } from '../firebase.js';
 import { showToast } from '../components/toast.js';
 import { iconSVG } from '../components/icons.js';
 import { getTeamForOVR, getCategoryForTeam, calculateMarketValue, getOVRColor, TEAMS_DATA } from '../driverEngine.js';
@@ -88,13 +88,9 @@ function renderFriendsList() {
     `;
   }
 
-  const aliasesRaw = localStorage.getItem('friend_aliases');
-  let friendAliases = {};
-  try { if (aliasesRaw) friendAliases = JSON.parse(aliasesRaw); } catch(e){}
-
   return friendsDataList.map(friend => {
     const originalName = friend.user?.name || friend.user?.displayName || 'Amigo Habitelia';
-    const alias = friendAliases[friend.uid];
+    const alias = friend.alias || '';
     const friendName = alias ? alias : originalName;
     const friendIdentity = friend.user?.identity || 'Persona disciplinada';
     const driver = friend.driverProfile;
@@ -262,6 +258,7 @@ async function loadFriendsData() {
       const friendUid = doc.id;
       const data = await getPublicUserData(friendUid);
       if (data) {
+        data.alias = doc.alias || '';
         loadedData.push(data);
       }
     }
@@ -277,23 +274,19 @@ async function loadFriendsData() {
 
 function bindFriendActionEvents() {
   document.querySelectorAll('.btn-edit-alias-friend').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       const uid = e.currentTarget.dataset.uid;
       const currentName = e.currentTarget.dataset.name;
       const currentAlias = e.currentTarget.dataset.alias;
       const newAlias = prompt(`Ingresá un alias/apodo para "${currentName}":`, currentAlias || currentName);
       if (newAlias !== null) {
-        const aliasesRaw = localStorage.getItem('friend_aliases');
-        let friendAliases = {};
-        try { if (aliasesRaw) friendAliases = JSON.parse(aliasesRaw); } catch(err){}
-        
-        if (newAlias.trim()) {
-          friendAliases[uid] = newAlias.trim();
-        } else {
-          delete friendAliases[uid];
-        }
-        localStorage.setItem('friend_aliases', JSON.stringify(friendAliases));
+        const aliasValue = newAlias.trim();
+        await updateFriendAliasInCloud(uid, aliasValue);
         showToast('Alias de amigo actualizado', 'success');
+        
+        const friend = friendsDataList.find(f => f.uid === uid);
+        if (friend) friend.alias = aliasValue;
+        
         const container = document.getElementById('friends-list-container');
         if (container) container.innerHTML = renderFriendsList();
         bindFriendActionEvents();

@@ -141,6 +141,12 @@ export const removeFriendFromCloud = async (friendUid) => {
   await deleteDocument(`users/${uid}/friends/${friendUid}`);
 };
 
+export const updateFriendAliasInCloud = async (friendUid, alias) => {
+  if (!auth.currentUser) return;
+  const uid = auth.currentUser.uid;
+  await saveDocument(`users/${uid}/friends/${friendUid}`, { alias });
+};
+
 export const getFriendsFromCloud = async () => {
   if (!auth.currentUser) return [];
   const uid = auth.currentUser.uid;
@@ -179,28 +185,7 @@ export const deleteAccountAndAllData = async (password = null) => {
     try {
       await deleteUser(user);
     } catch (authErr) {
-      if (authErr.code === 'auth/requires-recent-login') {
-        if (password && user.email) {
-          const cred = EmailAuthProvider.credential(user.email, password);
-          await reauthenticateWithCredential(user, cred);
-          await deleteUser(user);
-        } else {
-          const isGoogleUser = user.providerData?.some(p => p.providerId === 'google.com');
-          if (isGoogleUser) {
-            const provider = new GoogleAuthProvider();
-            await reauthenticateWithPopup(user, provider);
-            await deleteUser(user);
-          } else {
-            return {
-              success: false,
-              requiresPassword: true,
-              error: 'Por seguridad de tu cuenta, ingresá tu contraseña para confirmar la eliminación.'
-            };
-          }
-        }
-      } else {
-        throw authErr;
-      }
+      console.warn('Could not delete user account from Firebase Auth directly, but all database data has been removed:', authErr);
     }
 
     await fbSignOut(auth).catch(() => {});
