@@ -7,6 +7,7 @@ import { parseTime, formatTime, minutesToTime, getEndTime, checkCollision } from
 let currentStep = 1;
 let habitData = {};
 let formReturnPath = '/home';
+let targetDateForHabit = null;
 
 export function render(props = {}) {
   currentStep = 1;
@@ -14,16 +15,28 @@ export function render(props = {}) {
   const hashParams = new URLSearchParams(hashStr.split('?')[1] || '');
   const hashId = hashParams.get('id');
   const fromParam = props?.from || hashParams.get('from');
-  
+  const targetDate = props?.date || hashParams.get('date');
+  targetDateForHabit = null;
+
   if (fromParam === 'routine' || hashStr.includes('from=routine')) {
     formReturnPath = '/routine';
+  } else if (fromParam === 'calendar' || hashStr.includes('from=calendar') || targetDate) {
+    formReturnPath = '/calendar';
   } else {
     formReturnPath = '/home';
   }
 
   const targetId = props?.id || hashId;
 
-  const defaultFreq = { type: 'daily', days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] };
+  let defaultFreq = { type: 'daily', days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] };
+  if (targetDate && !targetId) {
+    targetDateForHabit = targetDate;
+    const dObj = new Date(targetDate + 'T00:00:00');
+    const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    const targetDayKey = dayKeys[dObj.getDay()];
+    defaultFreq = { type: 'weekly', days: [targetDayKey] };
+  }
+
   const defaultRepetition = { enabled: false, time: '18:00', days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] };
 
   if (targetId) {
@@ -35,7 +48,7 @@ export function render(props = {}) {
       if (!habitData.repetition) habitData.repetition = defaultRepetition;
     } else {
       habitData = {
-        name: '', icon: '🎯', duration: 15, cue: { time: '08:00', place: '' },
+        name: '', icon: '🎯', duration: 15, cue: { time: '', place: '' },
         frequency: defaultFreq,
         repetition: defaultRepetition,
         craving: { linkedPleasure: '' },
@@ -45,7 +58,7 @@ export function render(props = {}) {
     }
   } else {
     habitData = {
-      name: '', icon: '🎯', duration: 15, cue: { time: '08:00', place: '' },
+      name: '', icon: '🎯', duration: 15, cue: { time: '', place: '' },
       frequency: defaultFreq,
       repetition: defaultRepetition,
       craving: { linkedPleasure: '' },
@@ -740,6 +753,17 @@ export function mount() {
     } else if (currentStep === 2) {
       checkAndShowCollisions(habitData, async (finalHabit) => {
         await store.saveHabit(finalHabit);
+        if (targetDateForHabit) {
+          try {
+            const key = `assigned_habits_${targetDateForHabit}`;
+            const existingStr = localStorage.getItem(key) || '[]';
+            const existing = JSON.parse(existingStr);
+            if (!existing.includes(finalHabit.id)) {
+              existing.push(finalHabit.id);
+              localStorage.setItem(key, JSON.stringify(existing));
+            }
+          } catch (e) {}
+        }
         showToast('¡Hábito guardado con éxito!', 'success');
         navigate(formReturnPath);
       });

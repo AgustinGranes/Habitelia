@@ -38,12 +38,14 @@ export function getHabitsForDate(dateStr, habits = [], routines = [], todos = []
 
   const addHabitOccurrences = (h) => {
     // 1. Main occurrence
-    const mainTime = (h.cue?.timePerDay && h.cue.timePerDay[currentDayKey]) || h.cue?.time || '08:00';
+    const mainTime = (h.cue?.timePerDay && h.cue.timePerDay[currentDayKey]) || (h.cue?.time ? h.cue.time : null);
+    const duration = (h.noDuration || h.duration === 0) ? 0 : (h.duration || 0);
+
     occurrences.push({
       id: h.id,
       name: h.name,
       time: mainTime,
-      duration: h.duration || 15
+      duration: duration
     });
 
     // 2. Repetition occurrences
@@ -52,11 +54,12 @@ export function getHabitsForDate(dateStr, habits = [], routines = [], todos = []
         const repDays = rep.days || [];
         if (repDays.includes(currentDayKey)) {
           const repLabel = rep.name ? `${h.name} (${rep.name})` : h.name;
+          const repTime = rep.time || mainTime;
           occurrences.push({
             id: h.id + '_rep_' + idx,
             name: repLabel,
-            time: rep.time || '18:00',
-            duration: h.duration || 15
+            time: repTime,
+            duration: duration
           });
         }
       });
