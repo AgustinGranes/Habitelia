@@ -40,9 +40,10 @@ export function render() {
     const isCompleted = status === 'completed' || status === 'completed_2min';
     const isTwoMin = status === 'completed_2min';
     const isSkipped = status === 'skipped';
-    const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
-    const twoMinuteVersion = h.response?.twoMinVersion || '';
-    const habitTime = (h.cue?.timePerDay && h.cue.timePerDay[todayDayKey]) || h.cue?.time || '08:00';
+    const linkedPleasure = h.noPleasure ? '' : (h.craving?.linkedPleasure || h.linkedPleasure || '');
+    const twoMinuteVersion = h.noTwoMin ? '' : (h.response?.twoMinVersion || '');
+    const habitTime = (h.cue?.timePerDay && h.cue.timePerDay[todayDayKey]) || (h.cue?.time ? h.cue.time : null);
+    const duration = (h.noDuration || h.duration === 0) ? 0 : (h.duration || 0);
     const parentHabit = h.stackedAfterId ? habits.find(item => item.id === h.stackedAfterId) : null;
     
     todayItems.push({
@@ -50,7 +51,7 @@ export function render() {
       name: h.name,
       icon: h.icon || '🎯',
       time: habitTime,
-      duration: h.duration || 15,
+      duration: duration,
       linkedPleasure,
       twoMinuteVersion,
       stackedAfterId: h.stackedAfterId || '',
@@ -74,19 +75,21 @@ export function render() {
           const isCompleted = status === 'completed' || status === 'completed_2min';
           const isTwoMin = status === 'completed_2min';
           const isSkipped = status === 'skipped';
-          const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
-          const twoMinuteVersion = h.response?.twoMinVersion || '';
+          const linkedPleasure = h.noPleasure ? '' : (h.craving?.linkedPleasure || h.linkedPleasure || '');
+          const twoMinuteVersion = h.noTwoMin ? '' : (h.response?.twoMinVersion || '');
+          const duration = (h.noDuration || h.duration === 0) ? 0 : (h.duration || 0);
           const parentHabit = h.stackedAfterId ? habits.find(item => item.id === h.stackedAfterId) : null;
 
           const repLabel = rep.name ? `${h.name} (${rep.name})` : h.name;
           const parentRepLabel = parentHabit ? (rep.name ? `${parentHabit.name} (${rep.name})` : parentHabit.name) : '';
+          const repTime = rep.time || (h.cue?.time ? h.cue.time : null);
 
           todayItems.push({
             id: h.id + '_rep_' + idx,
             name: repLabel,
             icon: h.icon || '🎯',
-            time: rep.time || '18:00',
-            duration: h.duration || 15,
+            time: repTime,
+            duration: duration,
             linkedPleasure,
             twoMinuteVersion,
             stackedAfterId: h.stackedAfterId ? h.stackedAfterId + '_rep_' + idx : '',
