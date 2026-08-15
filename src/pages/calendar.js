@@ -3,6 +3,7 @@ import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { iconSVG } from '../components/icons.js';
 import { renderSidebar, mountSidebar } from '../components/sidebar.js';
+import { showDeleteHabitModal } from '../components/deleteHabitModal.js';
 
 let currentDate = new Date();
 
@@ -15,7 +16,7 @@ function checkHabitFreq(h, dayKey) {
   return true;
 }
 
-export function getHabitsForDate(dateStr, habits = [], routines = []) {
+export function getHabitsForDate(dateStr, habits = [], routines = [], todos = []) {
   const assignedRoutineId = localStorage.getItem(`assigned_routine_${dateStr}`);
   const assignedRoutine = routines.find(r => r.id === assignedRoutineId);
 
@@ -86,7 +87,15 @@ export function getHabitsForDate(dateStr, habits = [], routines = []) {
     }
   });
 
-  return occurrences;
+  // Filter To-Do items for dateStr
+  const dayTodos = (todos || []).filter(t => {
+    if (t.completed) return false;
+    if (t.dueDate === dateStr) return true;
+    if (t.showInHabits && (!t.dueDate || t.dueDate === dateStr)) return true;
+    return false;
+  });
+
+  return { habits: occurrences, todos: dayTodos };
 }
 
 export function render() {
@@ -106,8 +115,10 @@ export function render() {
   }
   
   const today = new Date();
-  const habits = store.getState().habits || [];
-  const routines = store.getState().routines || [];
+  const state = store.getState();
+  const habits = state.habits || [];
+  const routines = state.routines || [];
+  const todos = state.todos || [];
 
   for (let i = 1; i <= daysInMonth; i++) {
     const isToday = today.getDate() === i && today.getMonth() === month && today.getFullYear() === year;
@@ -115,8 +126,18 @@ export function render() {
     const assignedRoutineId = localStorage.getItem(`assigned_routine_${dateStr}`);
     const assignedRoutine = routines.find(r => r.id === assignedRoutineId);
 
-    const loadedHabits = getHabitsForDate(dateStr, habits, routines);
-    const habitCount = loadedHabits.length;
+    const loadedData = getHabitsForDate(dateStr, habits, routines, todos);
+    const habitCount = loadedData.habits.length;
+    const hasTodo = loadedData.todos.length > 0;
+
+    let badgeStyle = `font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; margin-top: 4px; display: flex; align-items: center; gap: 3px; transition: all 0.2s ease;`;
+    if (hasTodo) {
+      badgeStyle += ` background: #FFFFFF; color: #000000; border: 1px solid #FFFFFF; box-shadow: 0 0 8px rgba(255,255,255,0.4);`;
+    } else if (isToday) {
+      badgeStyle += ` background: rgba(0,0,0,0.18); color: var(--accent-inverted); border: 1px solid rgba(0,0,0,0.2);`;
+    } else {
+      badgeStyle += ` background: var(--bg-subtle); color: var(--text-primary); border: 1px solid var(--border-subtle);`;
+    }
 
     daysHtml += `
       <div class="calendar-day ${isToday ? 'today-day' : ''}" data-day="${i}" data-date="${dateStr}" style="min-height: 72px; padding: 6px 4px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; border-radius: 12px; border: 1px solid ${isToday ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${isToday ? 'var(--accent-primary)' : 'var(--bg-primary)'}; color: ${isToday ? 'var(--accent-inverted)' : 'var(--text-primary)'}; cursor: pointer; position: relative; transition: transform 0.15s ease, border-color 0.15s ease;">
@@ -128,8 +149,8 @@ export function render() {
           </span>
         ` : ''}
 
-        <!-- Number of Habits Badge (Accurate per Day) -->
-        <div style="font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; background: ${isToday ? 'rgba(0,0,0,0.18)' : 'var(--bg-subtle)'}; color: ${isToday ? 'var(--accent-inverted)' : 'var(--text-primary)'}; border: 1px solid ${isToday ? 'rgba(0,0,0,0.2)' : 'var(--border-subtle)'}; margin-top: 4px; display: flex; align-items: center; gap: 3px;" title="${habitCount} hábitos cargados">
+        <!-- Number of Habits Badge (Pinta blanco si hay To-Do) -->
+        <div style="${badgeStyle}" title="${habitCount} hábitos ${hasTodo ? '(Hay tareas To-Do)' : ''}">
           ${habitCount}
         </div>
       </div>
@@ -167,6 +188,12 @@ export function render() {
           ${daysHtml}
         </div>
       </div>
+
+      <!-- Explanation Button -->
+      <button id="btn-explain-calendar" class="btn-secondary" style="width: 100%; min-height: 46px; border-radius: 14px; margin-top: 20px; font-size: 13.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        ${iconSVG('info', 16)} Explicación del funcionamiento del calendario
+      </button>
+
     </div>
   `;
 }
@@ -176,22 +203,32 @@ function openDayActionModal(dateStr, dayNum) {
   const state = store.getState();
   const habits = state.habits || [];
   const routines = state.routines || [];
+  const todos = state.todos || [];
   const assignedRoutineId = localStorage.getItem(`assigned_routine_${dateStr}`);
   const assignedRoutine = routines.find(r => r.id === assignedRoutineId);
 
-  const loadedHabits = getHabitsForDate(dateStr, habits, routines);
-
-  const d = new Date(dateStr + 'T00:00:00');
-  const dayIdx = d.getDay();
-  const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-  const currentDayKey = dayKeys[dayIdx];
+  const loadedData = getHabitsForDate(dateStr, habits, routines, todos);
+  const loadedHabits = loadedData.habits;
+  const loadedTodos = loadedData.todos;
 
   const habitsListHtml = loadedHabits.length > 0 ? loadedHabits.map(h => {
     const habitTime = h.time || '08:00';
     return `
-    <div style="padding: 10px 14px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-      <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary);">${h.name}</div>
-      <div style="font-size: 12px; color: var(--text-secondary);">⏰ ${habitTime} (${h.duration || 15} min)</div>
+    <div style="padding: 10px 14px; border-radius: 12px; background: var(--bg-primary); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 10px;">
+      <div style="min-width: 0; flex: 1;">
+        <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${h.name}</div>
+        <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; display: flex; align-items: center; gap: 4px;">
+          ${iconSVG('clock', 12)} ${habitTime} (${h.duration || 15} min)
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+        <button class="btn-ghost btn-edit-habit-calendar" data-id="${h.id}" title="Editar Hábito" style="padding: 5px 8px; border-radius: 8px; border: 1px solid var(--border-subtle); font-size: 11.5px; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          ${iconSVG('edit', 13)} Editar
+        </button>
+        <button class="btn-ghost btn-delete-habit-calendar" data-id="${h.id}" data-name="${h.name}" title="Eliminar Hábito" style="padding: 5px 8px; border-radius: 8px; border: 1px solid var(--border-subtle); font-size: 11.5px; color: var(--text-tertiary); cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          ${iconSVG('trash', 13)}
+        </button>
+      </div>
     </div>
   `;
   }).join('') : `
@@ -199,6 +236,22 @@ function openDayActionModal(dateStr, dayNum) {
       No hay hábitos específicos cargados para este día.
     </div>
   `;
+
+  const todosListHtml = loadedTodos.length > 0 ? `
+    <div style="margin-top: 14px; border-top: 1px solid var(--border-subtle); padding-top: 14px;">
+      <h4 style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin: 0 0 10px 0; display: flex; align-items: center; gap: 6px;">
+        ${iconSVG('check', 14)} Tareas Pendientes To-Do (${loadedTodos.length})
+      </h4>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        ${loadedTodos.map(t => `
+          <div style="padding: 8px 12px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 13px; color: var(--text-primary); font-weight: 600;">${t.text || t.name || t.title || 'Tarea'}</span>
+            <span style="font-size: 10px; font-weight: 800; background: #FFFFFF; color: #000000; padding: 2px 7px; border-radius: 6px;">TO-DO</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  ` : '';
 
   const routineOptsHtml = routines.map(r => `
     <option value="${r.id}" ${assignedRoutineId === r.id ? 'selected' : ''}>${r.name} (${(r.habitIds || []).length} hábitos)</option>
@@ -219,8 +272,8 @@ function openDayActionModal(dateStr, dayNum) {
         </div>
 
         <!-- Loaded Habits Section -->
-        <div style="margin-bottom: 20px;">
-          <h4 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin: 0 0 10px 0;">
+        <div style="margin-bottom: 14px;">
+          <h4 style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin: 0 0 10px 0;">
             Hábitos Programados (${loadedHabits.length})
           </h4>
           <div style="max-height: 180px; overflow-y: auto;">
@@ -228,8 +281,11 @@ function openDayActionModal(dateStr, dayNum) {
           </div>
         </div>
 
+        <!-- Loaded To-Dos Section -->
+        ${todosListHtml}
+
         <!-- Routine Preset Assignment -->
-        <div style="margin-bottom: 20px; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
+        <div style="margin-top: 14px; margin-bottom: 20px; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
           <label class="form-label" style="display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; font-size: 13px;">Asignar Rutina Preset a este día</label>
           <select id="day-routine-select" class="input" style="width: 100%; min-height: 44px;">
             <option value="">Sin rutina fija preset</option>
@@ -263,6 +319,31 @@ function openDayActionModal(dateStr, dayNum) {
     document.getElementById('day-action-modal')?.remove();
   });
 
+  // Edit Habit Listener
+  document.querySelectorAll('.btn-edit-habit-calendar').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.getElementById('day-action-modal')?.remove();
+      const rawId = e.currentTarget.dataset.id;
+      const id = rawId.includes('_rep_') ? rawId.split('_rep_')[0] : rawId;
+      navigate('/habit/new', { id, from: 'calendar' });
+    });
+  });
+
+  // Delete Habit Listener
+  document.querySelectorAll('.btn-delete-habit-calendar').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const rawId = e.currentTarget.dataset.id;
+      const habitId = rawId.includes('_rep_') ? rawId.split('_rep_')[0] : rawId;
+      const name = e.currentTarget.dataset.name || 'Hábito';
+      showDeleteHabitModal(habitId, name, () => {
+        document.getElementById('day-action-modal')?.remove();
+        refreshCalendar();
+      });
+    });
+  });
+
   document.getElementById('btn-save-day-routine')?.addEventListener('click', () => {
     const selectedId = document.getElementById('day-routine-select')?.value;
     if (selectedId) {
@@ -285,6 +366,57 @@ function openDayActionModal(dateStr, dayNum) {
     document.getElementById('day-action-modal')?.remove();
     navigate(`/habit/new?date=${dateStr}`);
   });
+}
+
+function showCalendarExplanationModal() {
+  document.getElementById('calendar-explanation-modal')?.remove();
+  const modalHtml = `
+    <div id="calendar-explanation-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1600; display: flex; align-items: center; justify-content: center; padding: 20px;">
+      <div class="glass-card" style="width: 100%; max-width: 520px; padding: 28px; border-radius: 24px; border: 1px solid var(--border-subtle); background: var(--bg-surface); max-height: 88vh; overflow-y: auto;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+          <div>
+            <h3 class="editorial-title" style="font-size: 22px; margin: 0;">Funcionamiento del Calendario</h3>
+            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Guía de planificación y funciones avanzadas</div>
+          </div>
+          <button id="close-calendar-explanation" style="background: var(--bg-subtle); border: none; color: var(--text-primary); width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            ${iconSVG('x', 16)}
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 14px; font-size: 13.5px; color: var(--text-primary); line-height: 1.5;">
+          <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); padding: 14px; border-radius: 14px;">
+            <strong style="display: block; margin-bottom: 4px; color: var(--text-primary); font-size: 14px;">1. Programación de Hábitos por Frecuencia</strong>
+            Los hábitos se distribución automáticamente en las fechas según su frecuencia (diarios o días específicos de la semana) e incluyen todas las repeticiones diarias que hayas configurado.
+          </div>
+
+          <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); padding: 14px; border-radius: 14px;">
+            <strong style="display: block; margin-bottom: 4px; color: var(--text-primary); font-size: 14px;">2. Asignación de Rutinas Presets</strong>
+            Al tocar cualquier fecha podés asignarle una rutina preset guardada para ese día específico o crear un hábito exclusivo para esa fecha.
+          </div>
+
+          <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); padding: 14px; border-radius: 14px;">
+            <strong style="display: block; margin-bottom: 4px; color: var(--text-primary); font-size: 14px;">3. Tareas To-Do e Indicador Blanco</strong>
+            Las tareas del To-Do programadas para una fecha se muestran en el resumen del día sin sumarse al número de hábitos. Las fechas con tareas To-Do destacan con un <strong>distintivo blanco brillante</strong> en la grilla del calendario.
+          </div>
+
+          <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); padding: 14px; border-radius: 14px;">
+            <strong style="display: block; margin-bottom: 4px; color: var(--text-primary); font-size: 14px;">4. Edición y Eliminación Directa</strong>
+            En la ventana del día podés editar cualquier hábito (y volver al calendario al finalizar) o eliminarlo (eligiendo borrarlo solo por hoy o para siempre).
+          </div>
+        </div>
+
+        <button id="btn-close-explanation-ok" class="btn-primary" style="width: 100%; min-height: 46px; border-radius: 12px; margin-top: 22px; font-weight: 600; font-size: 14px;">
+          Entendido
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  const closeModal = () => document.getElementById('calendar-explanation-modal')?.remove();
+  document.getElementById('close-calendar-explanation')?.addEventListener('click', closeModal);
+  document.getElementById('btn-close-explanation-ok')?.addEventListener('click', closeModal);
 }
 
 function refreshCalendar() {
@@ -341,6 +473,10 @@ export function mount() {
         openDayActionModal(dateStr, dayNum);
       }
     });
+  });
+
+  document.getElementById('btn-explain-calendar')?.addEventListener('click', () => {
+    showCalendarExplanationModal();
   });
 }
 
