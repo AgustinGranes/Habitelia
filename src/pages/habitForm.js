@@ -6,10 +6,21 @@ import { parseTime, formatTime, minutesToTime, getEndTime, checkCollision } from
 
 let currentStep = 1;
 let habitData = {};
+let formReturnPath = '/home';
 
 export function render(props = {}) {
   currentStep = 1;
-  const hashId = new URLSearchParams(window.location.hash.split('?')[1] || '').get('id');
+  const hashStr = window.location.hash || '';
+  const hashParams = new URLSearchParams(hashStr.split('?')[1] || '');
+  const hashId = hashParams.get('id');
+  const fromParam = props?.from || hashParams.get('from');
+  
+  if (fromParam === 'routine' || hashStr.includes('from=routine')) {
+    formReturnPath = '/routine';
+  } else {
+    formReturnPath = '/home';
+  }
+
   const targetId = props?.id || hashId;
 
   const defaultFreq = { type: 'daily', days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] };
@@ -682,8 +693,7 @@ export function mount() {
       checkAndShowCollisions(habitData, async (finalHabit) => {
         await store.saveHabit(finalHabit);
         showToast('¡Hábito guardado con éxito!', 'success');
-        const returnPath = (window.location.hash.includes('from=routine')) ? '/routine' : '/home';
-        navigate(returnPath);
+        navigate(formReturnPath);
       });
     }
   });
@@ -701,8 +711,7 @@ export function mount() {
   });
 
   document.getElementById('btn-cancel')?.addEventListener('click', () => {
-    const returnPath = (window.location.hash.includes('from=routine')) ? '/routine' : '/home';
-    navigate(returnPath);
+    navigate(formReturnPath);
   });
 }
 

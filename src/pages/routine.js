@@ -591,7 +591,7 @@ export function mount() {
     btn.addEventListener('click', (e) => {
       const rawId = e.currentTarget.dataset.id;
       const id = rawId.includes('_rep_') ? rawId.split('_rep_')[0] : rawId;
-      navigate('/habit/new', { id });
+      navigate('/habit/new', { id, from: 'routine' });
     });
   });
 
