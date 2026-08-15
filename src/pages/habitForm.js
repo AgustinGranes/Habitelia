@@ -296,8 +296,13 @@ function renderStep2() {
     </div>
 
     <div class="form-group" style="margin-bottom: 20px;">
-      <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Versión de 2 minutos</label>
-      <input type="text" id="habit-twomin" class="input" value="${defaultTwoMin}" placeholder="Ej. Leer 1 página / Ponerte las zapatillas" style="width:100%; box-sizing: border-box; min-height:46px;">
+      <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Versión de 2 minutos (Opcional)</label>
+      <input type="text" id="habit-twomin" class="input" value="${habitData.noTwoMin ? '' : defaultTwoMin}" placeholder="Ej. Leer 1 página / Ponerte las zapatillas" style="width:100%; box-sizing: border-box; min-height:46px; ${habitData.noTwoMin ? 'text-decoration: line-through; opacity: 0.4; pointer-events: none;' : ''}" ${habitData.noTwoMin ? 'disabled' : ''}>
+      <div style="margin-top: 6px;">
+        <label style="font-weight: 600; font-size: 13px; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+          <input type="checkbox" id="habit-no-twomin" ${habitData.noTwoMin ? 'checked' : ''}> Sin versión de 2 minutos (opcional)
+        </label>
+      </div>
     </div>
 
     <div class="form-group" style="margin-bottom: 8px;">
@@ -696,9 +701,11 @@ export function mount() {
       habitData.stackedAfterId = stackedAfterId;
       habitData.isPrivate = isPrivate;
     } else if (currentStep === 2) {
-      const twoMin = document.getElementById('habit-twomin')?.value.trim() || '';
+      const noTwoMin = !!document.getElementById('habit-no-twomin')?.checked;
+      const twoMin = noTwoMin ? '' : (document.getElementById('habit-twomin')?.value.trim() || '');
       const pleasure = document.getElementById('habit-pleasure')?.value.trim() || '';
 
+      habitData.noTwoMin = noTwoMin;
       habitData.response = { ...(habitData.response || {}), twoMinVersion: twoMin };
       habitData.craving = { ...(habitData.craving || {}), linkedPleasure: pleasure };
     }
@@ -717,6 +724,19 @@ export function mount() {
       btnBack.style.display = 'block';
       btnNext.innerHTML = `Guardar Hábito ${iconSVG('check', 16)}`;
       updateStepIndicators();
+
+      const handleNoTwoMinToggle = () => {
+        const twoMinInput = document.getElementById('habit-twomin');
+        const checkbox = document.getElementById('habit-no-twomin');
+        if (checkbox && twoMinInput) {
+          const isNoTwoMin = checkbox.checked;
+          twoMinInput.disabled = isNoTwoMin;
+          twoMinInput.style.textDecoration = isNoTwoMin ? 'line-through' : 'none';
+          twoMinInput.style.opacity = isNoTwoMin ? '0.4' : '1';
+          twoMinInput.style.pointerEvents = isNoTwoMin ? 'none' : 'auto';
+        }
+      };
+      document.getElementById('habit-no-twomin')?.addEventListener('change', handleNoTwoMinToggle);
     } else if (currentStep === 2) {
       checkAndShowCollisions(habitData, async (finalHabit) => {
         await store.saveHabit(finalHabit);

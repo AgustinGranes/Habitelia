@@ -193,18 +193,21 @@ export function render(props = {}) {
     }
 
     let habitCardsHtml = '';
-    if (todayEvents.length === 0) {
+    if (totalCount === 0) {
+        const hasAnyHabits = (habits || []).length > 0;
         habitCardsHtml = `
-            <div class="glass-card" style="text-align: center; padding: 48px 24px; border-radius: 18px; margin-bottom: 24px;">
+            <div class="glass-card" style="text-align: center; padding: 40px 24px; border-radius: 20px; border: 1px solid var(--border-subtle); margin-top: 10px;">
                 <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--bg-subtle); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; color: var(--text-secondary);">
                     ${iconSVG('target', 24)}
                 </div>
-                <h3 class="editorial-title" style="font-size: 22px; margin-bottom: 8px;">Aún no tienes hábitos</h3>
+                <h3 class="editorial-title" style="font-size: 22px; margin-bottom: 8px;">
+                    ${hasAnyHabits ? 'No tienes hábitos para hoy' : 'Aún no tienes hábitos'}
+                </h3>
                 <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px; max-width: 320px; margin-left: auto; margin-right: auto;">
-                    Diseña tu primer hábito atómico para construir la identidad que deseas.
+                    ${hasAnyHabits ? '¡Agregá un hábito para hoy para continuar con tu disciplina!' : 'Diseña tu primer hábito atómico para construir la identidad que deseas.'}
                 </p>
-                <button class="btn-primary" id="btn-empty-create" style="max-width: 240px; margin: 0 auto;">
-                    ${iconSVG('plus', 16)} Crear mi primer hábito
+                <button class="btn-primary" id="btn-empty-create" style="max-width: 280px; margin: 0 auto;">
+                    ${iconSVG('plus', 16)} ${hasAnyHabits ? '¡Agrega un hábito para hoy!' : 'Crear mi primer hábito'}
                 </button>
             </div>
         `;
@@ -592,13 +595,20 @@ export function mount() {
 
         const completeAction = async () => {
             const habit = store.getState().habits?.find(h => h.id === habitId);
-            openCompletionModeModal(rawId, habit?.name || 'Hábito', async (mode) => {
-                const res = await store.completeEvent(habitId, completionDateKey, mode) || {};
+            if (!habit?.response?.twoMinVersion || habit?.noTwoMin) {
+                const res = await store.completeEvent(habitId, completionDateKey, 'completed') || {};
                 const streak = res.newStreak || 1;
-                const modeText = mode === 'completed_2min' ? ' (2 minutos)' : ' (Completo)';
-                showToast(`¡Excelente! Racha: ${streak} días${modeText}`, 'success');
+                showToast(`¡Excelente! Racha: ${streak} días (Completo)`, 'success');
                 refreshHomeView();
-            });
+            } else {
+                openCompletionModeModal(rawId, habit?.name || 'Hábito', async (mode) => {
+                    const res = await store.completeEvent(habitId, completionDateKey, mode) || {};
+                    const streak = res.newStreak || 1;
+                    const modeText = mode === 'completed_2min' ? ' (2 minutos)' : ' (Completo)';
+                    showToast(`¡Excelente! Racha: ${streak} días${modeText}`, 'success');
+                    refreshHomeView();
+                });
+            }
         };
 
         const onPointerDown = (e) => {

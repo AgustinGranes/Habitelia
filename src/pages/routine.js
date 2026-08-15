@@ -535,13 +535,20 @@ export function mount() {
         refreshRoutineView();
       } else {
         const habit = store.getState().habits?.find(h => h.id === habitId);
-        openCompletionModeModal(rawId, habit?.name || 'Hábito', async (mode) => {
-          const res = await store.completeEvent(habitId, completionDateKey, mode) || {};
+        if (!habit?.response?.twoMinVersion || habit?.noTwoMin) {
+          const res = await store.completeEvent(habitId, completionDateKey, 'completed') || {};
           const streak = res.newStreak || 1;
-          const modeText = mode === 'completed_2min' ? ' (2 minutos)' : ' (Completo)';
-          showToast(`¡Excelente! Racha: ${streak} días${modeText}`, 'success');
+          showToast(`¡Excelente! Racha: ${streak} días (Completo)`, 'success');
           refreshRoutineView();
-        });
+        } else {
+          openCompletionModeModal(rawId, habit?.name || 'Hábito', async (mode) => {
+            const res = await store.completeEvent(habitId, completionDateKey, mode) || {};
+            const streak = res.newStreak || 1;
+            const modeText = mode === 'completed_2min' ? ' (2 minutos)' : ' (Completo)';
+            showToast(`¡Excelente! Racha: ${streak} días${modeText}`, 'success');
+            refreshRoutineView();
+          });
+        }
       }
     });
   });
