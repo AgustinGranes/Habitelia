@@ -125,11 +125,7 @@ function renderTodoCard(todo, habits) {
       </div>
 
       <!-- Description row (visible only if descriptionVisible === true) -->
-      ${todo.description && todo.descriptionVisible ? `
-        <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--text-secondary); line-height: 1.5; white-space: pre-wrap; word-break: break-word;">
-          ${todo.description}
-        </div>
-      ` : ''}
+      ${todo.description && todo.descriptionVisible ? `<div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--text-secondary); line-height: 1.5; white-space: pre-wrap; word-break: break-word;">${todo.description.trim()}</div>` : ''}
     </div>
   `;
 }
@@ -155,15 +151,15 @@ function openTodoModal(existingTodo = null) {
           <input type="text" id="todo-name" class="input" placeholder="Ej. Comprar cuaderno, Enviar correo..." value="${existingTodo?.name || ''}" style="width: 100%; min-height: 46px;">
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-          <div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
+          <div style="flex: 1; min-width: 140px;">
             <label class="form-label" style="display: flex; align-items: center; gap: 6px;">
               Fecha de Finalización
               <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 400;">(opcional)</span>
             </label>
             <input type="date" id="todo-date" class="input" value="${existingTodo?.dueDate || ''}" style="width: 100%; min-height: 44px;">
           </div>
-          <div>
+          <div style="flex: 1; min-width: 140px;">
             <label class="form-label" style="display: flex; align-items: center; gap: 6px;">
               Horario
               <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 400;">(opcional)</span>

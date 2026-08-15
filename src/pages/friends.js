@@ -240,6 +240,43 @@ function renderFriendsList() {
           `}
         </div>
 
+        <!-- Registered Habits & Chains Section -->
+        <div style="border-top: 1px solid var(--border-subtle); padding-top: 14px; margin-top: 14px;">
+          <details style="cursor: pointer;">
+            <summary style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-tertiary); display: flex; align-items: center; justify-content: space-between; outline: none;">
+              <span style="display: flex; align-items: center; gap: 6px;">
+                ${iconSVG('chain', 14)} Hábitos Registrados y Cadenas (${(friend.habits || []).length})
+              </span>
+              <span style="font-size: 11px; color: var(--text-secondary); font-weight: 400;">Ver lista</span>
+            </summary>
+
+            <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+              ${(friend.habits || []).length === 0 ? `
+                <div style="font-size: 12.5px; color: var(--text-secondary); font-style: italic; background: var(--bg-primary); padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-subtle);">
+                  Este usuario no tiene hábitos registrados actualmente.
+                </div>
+              ` : (friend.habits || []).map(h => {
+                const streak = h.streak || 0;
+                let freqText = 'Todos los días';
+                if (h.frequency && h.frequency.type === 'weekly' && Array.isArray(h.frequency.days)) {
+                  freqText = `Días: ${h.frequency.days.join(', ').toUpperCase()}`;
+                }
+                return `
+                  <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); padding: 10px 14px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                    <div>
+                      <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary);">${h.name}</div>
+                      <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">Frecuencia: ${freqText}</div>
+                    </div>
+                    <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); padding: 4px 10px; border-radius: 14px; font-size: 12px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 5px; flex-shrink: 0;">
+                      ${iconSVG('flame', 13)} ${streak} días
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </details>
+        </div>
+
       </div>
     `;
   }).join('');

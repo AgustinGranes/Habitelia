@@ -478,8 +478,8 @@ export const store = {
       const scheduledForDay = habitsList.filter(h => {
         if (h.frequency) {
           if (h.frequency.type === 'daily') return true;
-          if (h.frequency.type === 'weekly' && Array.isArray(h.frequency.days)) {
-            return h.frequency.days.includes(dayKey);
+          if (h.frequency.type === 'weekly') {
+            return Array.isArray(h.frequency.days) ? h.frequency.days.includes(dayKey) : false;
           }
         }
         return true;
@@ -508,6 +508,18 @@ export const store = {
 
       currEvalDate = addDaysStr(currEvalDate, 1);
     }
+
+    // Check overdue To-Do items (only penalized if dueDate exists and dueDate < todayStr and not completed)
+    const todos = state.todos || [];
+    todos.forEach(todo => {
+      if (!todo.completed && todo.dueDate && todo.dueDate < todayStr) {
+        uncompletedHabitsList.push({
+          id: todo.id,
+          name: `Tarea vencida: ${todo.name}`,
+          _evalDate: todo.dueDate
+        });
+      }
+    });
 
     localStorage.setItem('last_evaluated_date', todayStr);
 

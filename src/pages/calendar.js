@@ -6,6 +6,15 @@ import { renderSidebar, mountSidebar } from '../components/sidebar.js';
 
 let currentDate = new Date();
 
+function checkHabitFreq(h, dayKey) {
+  if (!h || !h.frequency) return true;
+  if (h.frequency.type === 'daily') return true;
+  if (h.frequency.type === 'weekly' && Array.isArray(h.frequency.days)) {
+    return h.frequency.days.includes(dayKey);
+  }
+  return true;
+}
+
 export function getHabitsForDate(dateStr, habits = [], routines = []) {
   const assignedRoutineId = localStorage.getItem(`assigned_routine_${dateStr}`);
   const assignedRoutine = routines.find(r => r.id === assignedRoutineId);
@@ -56,27 +65,17 @@ export function getHabitsForDate(dateStr, habits = [], routines = []) {
 
   if (assignedRoutine) {
     (assignedRoutine.habitIds || []).forEach(id => {
-      activeHabitIds.add(id);
+      const h = habits.find(item => item.id === id);
+      if (h && checkHabitFreq(h, currentDayKey)) activeHabitIds.add(h.id);
     });
   }
 
-  customHabits.forEach(h => activeHabitIds.add(h.id));
+  customHabits.forEach(h => {
+    if (h && checkHabitFreq(h, currentDayKey)) activeHabitIds.add(h.id);
+  });
 
   habits.forEach(h => {
-    let matchesFreq = false;
-    if (h.frequency) {
-      if (h.frequency.type === 'daily') {
-        matchesFreq = true;
-      } else if (h.frequency.type === 'weekly' && Array.isArray(h.frequency.days)) {
-        matchesFreq = h.frequency.days.includes(currentDayKey);
-      }
-    } else {
-      matchesFreq = true;
-    }
-
-    if (matchesFreq) {
-      activeHabitIds.add(h.id);
-    }
+    if (h && checkHabitFreq(h, currentDayKey)) activeHabitIds.add(h.id);
   });
 
   activeHabitIds.forEach(id => {
