@@ -95,8 +95,12 @@ function renderFriendsList() {
     const friendIdentity = friend.user?.identity || 'Persona disciplinada';
     const driver = friend.driverProfile;
     const hasDriver = driver && driver.active;
-    const incidents = friend.incidents || [];
-    const maxStreak = (friend.habits || []).reduce((max, h) => Math.max(max, h.streak || 0), 0);
+    const visibleHabits = (friend.habits || []).filter(h => !h.isPrivate && !h.private);
+    const incidents = (friend.incidents || []).filter(inc => {
+      const h = (friend.habits || []).find(item => item.id === inc.habitId || item.name === inc.habitName);
+      return !h || (!h.isPrivate && !h.private);
+    });
+    const maxStreak = visibleHabits.reduce((max, h) => Math.max(max, h.streak || 0), 0);
 
     const category = hasDriver ? getCategoryForTeam(driver.team || 'Williams Racing') : 'F4';
 
@@ -245,17 +249,17 @@ function renderFriendsList() {
           <details style="cursor: pointer;">
             <summary style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-tertiary); display: flex; align-items: center; justify-content: space-between; outline: none;">
               <span style="display: flex; align-items: center; gap: 6px;">
-                ${iconSVG('chain', 14)} Hábitos Registrados y Cadenas (${(friend.habits || []).length})
+                ${iconSVG('chain', 14)} Hábitos Registrados y Cadenas (${visibleHabits.length})
               </span>
               <span style="font-size: 11px; color: var(--text-secondary); font-weight: 400;">Ver lista</span>
             </summary>
 
             <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
-              ${(friend.habits || []).length === 0 ? `
+              ${visibleHabits.length === 0 ? `
                 <div style="font-size: 12.5px; color: var(--text-secondary); font-style: italic; background: var(--bg-primary); padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-subtle);">
-                  Este usuario no tiene hábitos registrados actualmente.
+                  Este usuario no tiene hábitos públicos registrados.
                 </div>
-              ` : (friend.habits || []).map(h => {
+              ` : visibleHabits.map(h => {
                 const streak = h.streak || 0;
                 let freqText = 'Todos los días';
                 if (h.frequency && h.frequency.type === 'weekly' && Array.isArray(h.frequency.days)) {

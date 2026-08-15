@@ -232,9 +232,20 @@ function renderStep1() {
       </div>
     </div>
 
-    <div class="form-group" style="margin-bottom: 8px;">
+    <div class="form-group" style="margin-bottom: 16px;">
       <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Lugar (Opcional)</label>
       <input type="text" id="habit-place" class="input" value="${habitData.cue?.place || ''}" placeholder="Ej. En mi escritorio, parque..." style="width:100%; box-sizing: border-box; min-height:46px;">
+    </div>
+
+    <!-- Habit Privacy Toggle -->
+    <div class="form-group" style="margin-bottom: 12px; background: var(--bg-subtle); padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border-subtle);">
+      <label style="font-weight: 600; font-size: 13.5px; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
+        <span>🔒 Hábito Privado <span style="font-size: 12px; color: var(--text-secondary); font-weight: 400;">(Esconder a Amigos)</span></span>
+        <input type="checkbox" id="habit-is-private" ${habitData.isPrivate ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;">
+      </label>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+        Este hábito no será visible para tus amigos en su lista de hábitos ni cadenas.
+      </div>
     </div>
   `;
 }
@@ -637,12 +648,14 @@ export function mount() {
       saveRepetitionsFromUI();
 
       const stackedAfterId = document.getElementById('habit-stacked-after')?.value || '';
+      const isPrivate = !!document.getElementById('habit-is-private')?.checked;
 
       habitData.name = name;
       habitData.cue = { ...(habitData.cue || {}), time, timePerDay, place };
       habitData.duration = duration;
       habitData.repetition = { enabled: repEnabled, count: repCount };
       habitData.stackedAfterId = stackedAfterId;
+      habitData.isPrivate = isPrivate;
     } else if (currentStep === 2) {
       const twoMin = document.getElementById('habit-twomin')?.value.trim() || '';
       const pleasure = document.getElementById('habit-pleasure')?.value.trim() || '';
