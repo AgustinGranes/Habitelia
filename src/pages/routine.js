@@ -134,7 +134,7 @@ export function render() {
           </div>
           <div style="min-width: 0; flex: 1;">
             <div style="font-weight: 600; font-size: 15px; color: var(--text-primary); ${item.completed ? 'text-decoration: line-through;' : ''}">${isStackedChild ? `↳ ${item.name}` : item.name}</div>
-            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${iconSVG('clock', 12)} ${item.time} (${item.duration} min)</div>
+            ${item.time || item.duration ? `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${iconSVG('clock', 12)} ${item.time ? item.time : ''} ${item.duration ? `(${item.duration} min)` : ''}</div>` : ''}
             ${item.linkedPleasure ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">Ritual previo: ${item.linkedPleasure}</div>` : ''}
             ${item.twoMinuteVersion ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">2 min: ${item.twoMinuteVersion}</div>` : ''}
           </div>

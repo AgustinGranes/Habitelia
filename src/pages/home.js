@@ -155,9 +155,9 @@ export function render(props = {}) {
                             ${isStackedChild ? `↳ ${ev.name}` : ev.name}
                         </div>
                         
-                        ${ev.time ? `
+                        ${ev.time || ev.duration ? `
                         <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; display: flex; align-items: center; gap: 6px;">
-                            <span>${iconSVG('clock', 12)} ${ev.time} (${ev.duration} min)</span>
+                            <span>${iconSVG('clock', 12)} ${ev.time ? ev.time : ''} ${ev.duration ? `(${ev.duration} min)` : ''}</span>
                         </div>` : ''}
 
                         ${ev.linkedPleasure ? `

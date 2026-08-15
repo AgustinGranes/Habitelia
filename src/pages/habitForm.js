@@ -151,7 +151,7 @@ function renderStep1() {
     <div class="form-group" style="margin-bottom: 20px; width: 100%; max-width: 100%; box-sizing: border-box;">
       <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Hora de Inicio</label>
       <div style="width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; border-radius: 10px;">
-         <input type="time" id="habit-time" class="input" value="${habitData.cue?.time || ''}" style="width: 100%; max-width: 100%; box-sizing: border-box; min-height: 46px; font-size: 16px; text-align: center; display: block;" ${habitData.cue?.time ? '' : 'disabled'}>
+         <input type="time" id="habit-time" class="input" value="${habitData.cue?.time || '08:00'}" style="width: 100%; max-width: 100%; box-sizing: border-box; min-height: 46px; font-size: 16px; text-align: center; display: block; ${!habitData.cue?.time ? 'text-decoration: line-through; opacity: 0.4; pointer-events: none;' : ''}" ${!habitData.cue?.time ? 'disabled' : ''}>
       </div>
       <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px;">
         <label style="font-weight: 600; font-size: 13px; color: var(--text-primary); cursor: pointer;"><input type="checkbox" id="habit-no-schedule" ${habitData.cue?.time ? '' : 'checked'}> Sin horario</label>
@@ -203,7 +203,12 @@ function renderStep1() {
 
     <div class="form-group" style="margin-bottom: 20px; width: 100%; max-width: 100%; box-sizing: border-box;">
       <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); font-size: 13.5px;">Duración (minutos)</label>
-      <input type="number" id="habit-duration" class="input" value="${habitData.duration || 15}" min="1" max="180" style="width: 100%; max-width: 100%; box-sizing: border-box; min-height: 46px;">
+      <input type="number" id="habit-duration" class="input" value="${habitData.duration || 15}" min="1" max="180" style="width: 100%; max-width: 100%; box-sizing: border-box; min-height: 46px; ${habitData.noDuration || habitData.duration === 0 ? 'text-decoration: line-through; opacity: 0.4; pointer-events: none;' : ''}" ${habitData.noDuration || habitData.duration === 0 ? 'disabled' : ''}>
+      <div style="margin-top: 8px;">
+        <label style="font-weight: 600; font-size: 13px; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+          <input type="checkbox" id="habit-no-duration" ${habitData.noDuration || habitData.duration === 0 ? 'checked' : ''}> Sin duración (opcional)
+        </label>
+      </div>
     </div>
 
     <!-- Repetition / Frequency Selector Section -->
@@ -251,7 +256,7 @@ function renderStep1() {
     <!-- Habit Privacy Toggle -->
     <div class="form-group" style="margin-bottom: 12px; background: var(--bg-subtle); padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border-subtle);">
       <label style="font-weight: 600; font-size: 13.5px; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
-        <span>🔒 Hábito Privado <span style="font-size: 12px; color: var(--text-secondary); font-weight: 400;">(Esconder a Amigos)</span></span>
+        <span style="display: flex; align-items: center; gap: 6px;">${iconSVG('lock', 16)} Hábito Privado <span style="font-size: 12px; color: var(--text-secondary); font-weight: 400;">(Esconder a Amigos)</span></span>
         <input type="checkbox" id="habit-is-private" ${habitData.isPrivate ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;">
       </label>
       <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
@@ -574,7 +579,12 @@ export function mount() {
     if (checkbox) {
       const isNoSchedule = checkbox.checked;
       
-      if (timeInput) timeInput.disabled = isNoSchedule;
+      if (timeInput) {
+        timeInput.disabled = isNoSchedule;
+        timeInput.style.textDecoration = isNoSchedule ? 'line-through' : 'none';
+        timeInput.style.opacity = isNoSchedule ? '0.4' : '1';
+        timeInput.style.pointerEvents = isNoSchedule ? 'none' : 'auto';
+      }
       
       if (customPerDay) {
         customPerDay.disabled = isNoSchedule;
@@ -594,11 +604,27 @@ export function mount() {
     }
   };
 
+  const handleNoDurationToggle = () => {
+    const durationInput = document.getElementById('habit-duration');
+    const checkbox = document.getElementById('habit-no-duration');
+    if (checkbox && durationInput) {
+      const isNoDuration = checkbox.checked;
+      durationInput.disabled = isNoDuration;
+      durationInput.style.textDecoration = isNoDuration ? 'line-through' : 'none';
+      durationInput.style.opacity = isNoDuration ? '0.4' : '1';
+      durationInput.style.pointerEvents = isNoDuration ? 'none' : 'auto';
+    }
+  };
+
   const scheduleCheckbox = document.getElementById('habit-no-schedule');
   scheduleCheckbox?.addEventListener('change', handleNoScheduleToggle);
 
+  const durationCheckbox = document.getElementById('habit-no-duration');
+  durationCheckbox?.addEventListener('change', handleNoDurationToggle);
+
   // Call initially to enforce disabled states on load
   handleNoScheduleToggle();
+  handleNoDurationToggle();
 
   const customPerDayCheckbox = document.getElementById('habit-custom-per-day');
   const perDayContainer = document.getElementById('per-day-times-container');
@@ -639,9 +665,10 @@ export function mount() {
     if (currentStep === 1) {
       const name = document.getElementById('habit-name')?.value.trim();
       const noSchedule = document.getElementById('habit-no-schedule')?.checked;
+      const noDuration = document.getElementById('habit-no-duration')?.checked;
       const customPerDay = document.getElementById('habit-custom-per-day')?.checked;
       const time = noSchedule ? null : (document.getElementById('habit-time')?.value || '08:00');
-      const duration = parseInt(document.getElementById('habit-duration')?.value) || 15;
+      const duration = noDuration ? 0 : (parseInt(document.getElementById('habit-duration')?.value) || 15);
       const place = document.getElementById('habit-place')?.value.trim() || '';
 
       let timePerDay = null;
@@ -663,6 +690,7 @@ export function mount() {
 
       habitData.name = name;
       habitData.cue = { ...(habitData.cue || {}), time, timePerDay, place };
+      habitData.noDuration = noDuration;
       habitData.duration = duration;
       habitData.repetition = { enabled: repEnabled, count: repCount };
       habitData.stackedAfterId = stackedAfterId;

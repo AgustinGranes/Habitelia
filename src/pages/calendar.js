@@ -217,9 +217,10 @@ function openDayActionModal(dateStr, dayNum) {
     <div style="padding: 10px 14px; border-radius: 12px; background: var(--bg-primary); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 10px;">
       <div style="min-width: 0; flex: 1;">
         <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${h.name}</div>
+        ${h.time || h.duration ? `
         <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; display: flex; align-items: center; gap: 4px;">
-          ${iconSVG('clock', 12)} ${habitTime} (${h.duration || 15} min)
-        </div>
+          ${iconSVG('clock', 12)} ${h.time ? h.time : ''} ${h.duration ? `(${h.duration} min)` : ''}
+        </div>` : ''}
       </div>
       <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
         <button class="btn-ghost btn-edit-habit-calendar" data-id="${h.id}" title="Editar Hábito" style="padding: 5px 8px; border-radius: 8px; border: 1px solid var(--border-subtle); font-size: 11.5px; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 4px;">
