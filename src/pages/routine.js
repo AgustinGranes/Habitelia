@@ -4,6 +4,7 @@ import { showToast } from '../components/toast.js';
 import { iconSVG } from '../components/icons.js';
 import { renderSidebar, mountSidebar } from '../components/sidebar.js';
 import { showDeleteHabitModal } from '../components/deleteHabitModal.js';
+import { showSkipHabitModal } from '../components/skipHabitModal.js';
 
 let isReorderingRoutine = false;
 let cleanup = [];
@@ -34,6 +35,8 @@ export function render() {
   // Main occurrences
   todayHabits.forEach(h => {
     const status = h.completions?.[todayDate];
+    if (status === 'deleted_today') return;
+
     const isCompleted = status === 'completed' || status === 'completed_2min';
     const isTwoMin = status === 'completed_2min';
     const isSkipped = status === 'skipped';
@@ -66,6 +69,8 @@ export function render() {
         if (repDays.includes(todayDayKey)) {
           const repDateKey = todayDate + '_rep_' + idx;
           const status = h.completions?.[repDateKey];
+          if (status === 'deleted_today') return;
+
           const isCompleted = status === 'completed' || status === 'completed_2min';
           const isTwoMin = status === 'completed_2min';
           const isSkipped = status === 'skipped';
@@ -135,6 +140,10 @@ export function render() {
           </div>
         </div>
         <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-left: 8px;">
+          ${!item.completed && !item.skipped ? `
+          <button class="btn-ghost btn-skip-habit-routine" data-id="${item.id}" data-name="${item.name}" title="Saltar Hábito" style="padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border-subtle); font-size: 11.5px; color: var(--text-secondary); cursor: pointer;">
+            Saltar
+          </button>` : ''}
           <div style="font-size: 12px; font-weight: 600; color: ${item.completed ? 'var(--text-primary)' : 'var(--text-secondary)'}; background: var(--bg-subtle); padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border-subtle);">
             ${item.completed ? (item.isTwoMin ? '✓ 2 Min' : '✓ Hecho') : (item.skipped ? 'Salteado' : 'Pendiente')}
           </div>
@@ -593,6 +602,18 @@ export function mount() {
       const id = rawId.includes('_rep_') ? rawId.split('_rep_')[0] : rawId;
       const name = e.currentTarget.dataset.name || 'Hábito';
       showDeleteHabitModal(id, name, () => {
+        refreshRoutineView();
+      });
+    });
+  });
+
+  document.querySelectorAll('.btn-skip-habit-routine').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const rawId = e.currentTarget.dataset.id;
+      const id = rawId.includes('_rep_') ? rawId.split('_rep_')[0] : rawId;
+      const name = e.currentTarget.dataset.name || 'Hábito';
+      showSkipHabitModal(id, name, () => {
         refreshRoutineView();
       });
     });

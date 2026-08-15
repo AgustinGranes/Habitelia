@@ -35,8 +35,8 @@ export function showDeleteHabitModal(habitId, habitName, onDone) {
 
   document.getElementById('btn-skip-today')?.addEventListener('click', async () => {
     closeModal();
-    await store.skipEvent(habitId, store.getTodayString());
-    showToast(`Hábito "${habitName}" salteado por hoy`, 'info');
+    await store.deleteTodayEvent(habitId, store.getTodayString());
+    showToast(`Hábito "${habitName}" eliminado por hoy`, 'info');
     if (onDone) onDone();
   });
 

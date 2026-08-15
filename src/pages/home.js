@@ -5,6 +5,7 @@ import { showToast } from '../components/toast.js';
 import { iconSVG } from '../components/icons.js';
 import { renderSidebar, mountSidebar } from '../components/sidebar.js';
 import { showDeleteHabitModal } from '../components/deleteHabitModal.js';
+import { showSkipHabitModal } from '../components/skipHabitModal.js';
 import { showInstallPromptIfNeeded } from '../components/installPrompt.js';
 
 let isReorderingHome = false;
@@ -37,8 +38,11 @@ export function render(props = {}) {
 
     // Main occurrences
     todayHabits.forEach(h => {
-        const isCompleted = h.completions?.[todayDate] === 'completed' || h.completions?.[todayDate] === 'completed_2min';
-        const isSkipped = h.completions?.[todayDate] === 'skipped';
+        const status = h.completions?.[todayDate];
+        if (status === 'deleted_today') return;
+
+        const isCompleted = status === 'completed' || status === 'completed_2min';
+        const isSkipped = status === 'skipped';
         const streak = h.streak || 0;
         const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
         const habitTime = (h.cue?.timePerDay && h.cue.timePerDay[todayDayKey]) || h.cue?.time || null;
@@ -67,8 +71,11 @@ export function render(props = {}) {
                 const repDays = rep.days || [];
                 if (repDays.includes(todayDayKey)) {
                     const repDateKey = todayDate + '_rep_' + idx;
-                    const isCompleted = h.completions?.[repDateKey] === 'completed' || h.completions?.[repDateKey] === 'completed_2min';
-                    const isSkipped = h.completions?.[repDateKey] === 'skipped';
+                    const status = h.completions?.[repDateKey];
+                    if (status === 'deleted_today') return;
+
+                    const isCompleted = status === 'completed' || status === 'completed_2min';
+                    const isSkipped = status === 'skipped';
                     const streak = h.streak || 0;
                     const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
                     const parentHabit = h.stackedAfterId ? habits.find(item => item.id === h.stackedAfterId) : null;
@@ -169,6 +176,11 @@ export function render(props = {}) {
                     <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); padding: 3px 8px; border-radius: 16px; font-size: 11.5px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 4px;">
                         ${iconSVG('flame', 12)} ${ev.streak}d
                     </div>
+                    ${!ev.completed && !ev.skipped ? `
+                    <button class="btn-ghost btn-skip-habit-home" data-id="${ev.id}" data-name="${ev.name}" title="Saltar Hábito" style="padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border-subtle); font-size: 11.5px; color: var(--text-secondary); cursor: pointer;">
+                        Saltar
+                    </button>` : ''}
+                    ${ev.skipped ? `<span style="font-size: 11.5px; font-weight: 600; color: #E53E3E; background: rgba(229,62,62,0.1); padding: 3px 8px; border-radius: 12px;">Salteado</span>` : ''}
                     <button class="btn-ghost btn-edit-habit" data-id="${ev.id}" title="Editar" style="padding: 5px; border-radius: 6px; color: var(--text-secondary);">
                         ${iconSVG('edit', 15)}
                     </button>
@@ -769,6 +781,19 @@ export function mount() {
             const name = e.currentTarget.dataset.name || 'Hábito';
             
             showDeleteHabitModal(id, name, () => {
+                refreshHomeView();
+            });
+        });
+    });
+
+    // Skip habit action
+    document.querySelectorAll('.btn-skip-habit-home').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const rawId = e.currentTarget.dataset.id;
+            const habitId = rawId.split('_rep_')[0];
+            const name = e.currentTarget.dataset.name || 'Hábito';
+            showSkipHabitModal(habitId, name, () => {
                 refreshHomeView();
             });
         });

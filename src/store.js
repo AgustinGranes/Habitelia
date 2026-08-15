@@ -499,7 +499,7 @@ export const store = {
       scheduledForDay.forEach(h => {
         const comp = h.completions || {};
         const status = comp[currEvalDate];
-        if (status !== 'completed' && status !== 'completed_2min' && status !== 'skipped') {
+        if (status !== 'completed' && status !== 'completed_2min' && status !== 'skipped' && status !== 'deleted_today') {
           // Tag each item with the eval date so we can count distinct days for penalty
           uncompletedHabitsList.push({ ...h, _evalDate: currEvalDate });
           const incidentId = `${h.id}_${currEvalDate}`;
@@ -636,6 +636,15 @@ export const store = {
     return { streakBroken: false, newStreak: streak };
   },
   
+  deleteTodayEvent: async (habitId, date) => {
+    const habit = (state.habits || []).find(h => h.id === habitId);
+    if (!habit) return;
+    
+    const completions = { ...(habit.completions || {}), [date]: 'deleted_today' };
+    const updatedHabit = { ...habit, completions, streak: 0 };
+    await store.saveHabit(updatedHabit);
+  },
+
   skipEvent: async (habitId, date) => {
     const habit = (state.habits || []).find(h => h.id === habitId);
     if (!habit) return;
