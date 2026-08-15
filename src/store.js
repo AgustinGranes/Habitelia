@@ -311,16 +311,27 @@ export const store = {
   deleteHabit: async (habitId) => {
     const uid = auth.currentUser?.uid || 'guest';
     const newHabits = (state.habits || []).filter(h => h.id !== habitId);
+    
+    // Also remove deleted habit from all saved routines
+    const newRoutines = (state.routines || []).map(r => ({
+      ...r,
+      habitIds: (r.habitIds || []).filter(id => id !== habitId)
+    }));
+
     try {
       localStorage.setItem('habits_v1', JSON.stringify(newHabits));
       localStorage.setItem(`habits_${uid}`, JSON.stringify(newHabits));
       localStorage.setItem('habits_guest', JSON.stringify(newHabits));
+      localStorage.setItem('routines_v1', JSON.stringify(newRoutines));
     } catch (e) {}
 
-    store.setState({ habits: newHabits });
+    store.setState({ habits: newHabits, routines: newRoutines });
 
     if (auth.currentUser) {
       deleteDocument(`users/${uid}/habits/${habitId}`).catch(e => console.error(e));
+      newRoutines.forEach(r => {
+        saveDocument(`users/${uid}/routines/${r.id}`, r).catch(e => console.error(e));
+      });
     }
   },
   

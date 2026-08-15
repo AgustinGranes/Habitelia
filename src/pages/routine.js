@@ -3,6 +3,7 @@ import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { iconSVG } from '../components/icons.js';
 import { renderSidebar, mountSidebar } from '../components/sidebar.js';
+import { showDeleteHabitModal } from '../components/deleteHabitModal.js';
 
 let isReorderingRoutine = false;
 let cleanup = [];
@@ -130,8 +131,13 @@ export function render() {
             ${item.twoMinuteVersion ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">2 min: ${item.twoMinuteVersion}</div>` : ''}
           </div>
         </div>
-        <div style="font-size: 12px; font-weight: 600; color: ${item.completed ? 'var(--text-primary)' : 'var(--text-secondary)'}; background: var(--bg-subtle); padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border-subtle); flex-shrink: 0; margin-left: 8px;">
-          ${item.completed ? (item.isTwoMin ? '✓ 2 Min' : '✓ Hecho') : 'Pendiente'}
+        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-left: 8px;">
+          <div style="font-size: 12px; font-weight: 600; color: ${item.completed ? 'var(--text-primary)' : 'var(--text-secondary)'}; background: var(--bg-subtle); padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border-subtle);">
+            ${item.completed ? (item.isTwoMin ? '✓ 2 Min' : '✓ Hecho') : (item.skipped ? 'Salteado' : 'Pendiente')}
+          </div>
+          <button class="btn-ghost btn-delete-habit-routine" data-id="${item.id}" data-name="${item.name}" title="Eliminar Hábito" style="padding: 4px 8px; color: var(--text-tertiary); border: none; cursor: pointer;">
+            ${iconSVG('trash', 15)}
+          </button>
         </div>
       </div>
     `;
@@ -225,9 +231,14 @@ export function render() {
             ${linkedPleasure ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">Ritual previo: ${linkedPleasure}</div>` : ''}
             ${twoMin ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">2 min: ${twoMin}</div>` : ''}
           </div>
-          <button class="btn-ghost btn-edit-habit-routine" data-id="${h.id}" style="padding: 6px 12px; font-size: 12px; border: 1px solid var(--border-subtle); color: var(--text-primary); border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-            ${iconSVG('edit', 14)} Editar
-          </button>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button class="btn-ghost btn-edit-habit-routine" data-id="${h.id}" style="padding: 6px 12px; font-size: 12px; border: 1px solid var(--border-subtle); color: var(--text-primary); border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+              ${iconSVG('edit', 14)} Editar
+            </button>
+            <button class="btn-ghost btn-delete-habit-routine" data-id="${h.id}" data-name="${h.name}" title="Eliminar Hábito" style="padding: 6px 10px; font-size: 12px; border: 1px solid var(--border-subtle); color: #E53E3E; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+              ${iconSVG('trash', 14)}
+            </button>
+          </div>
         </div>
       `;
     }).join('');
@@ -569,6 +580,18 @@ export function mount() {
       const rawId = e.currentTarget.dataset.id;
       const id = rawId.includes('_rep_') ? rawId.split('_rep_')[0] : rawId;
       navigate('/habit/new', { id });
+    });
+  });
+
+  document.querySelectorAll('.btn-delete-habit-routine').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const rawId = e.currentTarget.dataset.id;
+      const id = rawId.includes('_rep_') ? rawId.split('_rep_')[0] : rawId;
+      const name = e.currentTarget.dataset.name || 'Hábito';
+      showDeleteHabitModal(id, name, () => {
+        refreshRoutineView();
+      });
     });
   });
 
