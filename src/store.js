@@ -131,52 +131,68 @@ export const store = {
       localStorage.setItem(`habit_order_${dateStr}`, JSON.stringify(orderIds));
     } catch (e) {}
   },
+
+  clearUserData: () => {
+    try {
+      localStorage.clear();
+    } catch (e) {}
+
+    state.user = null;
+    state.habits = [];
+    state.routines = [];
+    state.todos = [];
+    state.calcExpenses = [];
+    state.driverProfile = null;
+    state.todaySchedule = null;
+  },
   
   loadUserData: async () => {
     const uid = auth.currentUser?.uid || 'guest';
     
     try {
-      const userDoc = auth.currentUser ? await getDocument(`users/${uid}`) : null;
-      let remoteHabits = auth.currentUser ? await getCollection(`users/${uid}/habits`) : [];
-      let remoteRoutines = auth.currentUser ? await getCollection(`users/${uid}/routines`) : [];
-      let remoteTodos = auth.currentUser ? await getCollection(`users/${uid}/todos`) : [];
-      const remoteExpenses = auth.currentUser ? await getDocument(`users/${uid}/calculator/main`) : null;
+      if (!auth.currentUser) {
+        const rawUser = localStorage.getItem('user_profile_guest');
+        const rawHabits = localStorage.getItem('habits_guest');
+        const rawRoutines = localStorage.getItem('routines_guest');
+        const rawTodos = localStorage.getItem('todos_guest');
+        const rawCalc = localStorage.getItem('calc_expenses_guest');
+
+        store.setState({
+          user: rawUser ? JSON.parse(rawUser) : null,
+          habits: rawHabits ? JSON.parse(rawHabits) : [],
+          routines: rawRoutines ? JSON.parse(rawRoutines) : [],
+          todos: rawTodos ? JSON.parse(rawTodos) : [],
+          calcExpenses: rawCalc ? JSON.parse(rawCalc) : [],
+          driverProfile: null,
+          todaySchedule: null
+        });
+        return;
+      }
+
+      const userDoc = await getDocument(`users/${uid}`);
+      const remoteHabits = await getCollection(`users/${uid}/habits`);
+      const remoteRoutines = await getCollection(`users/${uid}/routines`);
+      const remoteTodos = await getCollection(`users/${uid}/todos`);
+      const remoteExpenses = await getDocument(`users/${uid}/calculator/main`);
       const todayDate = store.getTodayString();
-      const todaySchedule = auth.currentUser ? await getDocument(`users/${uid}/schedules/${todayDate}`) : null;
-      
-      // Combine remote & local habits
-      const combinedMap = new Map();
-      (state.habits || []).forEach(h => combinedMap.set(h.id, h));
-      (remoteHabits || []).forEach(h => combinedMap.set(h.id, h));
-      const mergedHabits = Array.from(combinedMap.values());
+      const todaySchedule = await getDocument(`users/${uid}/schedules/${todayDate}`);
+      const remoteDriverDoc = await getDocument(`users/${uid}/driverProfile/main`);
 
-      const routineMap = new Map();
-      (state.routines || []).forEach(r => routineMap.set(r.id, r));
-      (remoteRoutines || []).forEach(r => routineMap.set(r.id, r));
-      const mergedRoutines = Array.from(routineMap.values());
+      const mergedHabits = (remoteHabits || []).filter(h => !h.deleted);
+      const mergedRoutines = remoteRoutines || [];
+      const mergedTodos = remoteTodos || [];
+      const mergedCalcExpenses = remoteExpenses && remoteExpenses.expenses ? remoteExpenses.expenses : [];
+      const driverProfile = remoteDriverDoc || { active: false, ovr: 50 };
 
-      const todoMap = new Map();
-      (state.todos || []).forEach(t => todoMap.set(t.id, t));
-      (remoteTodos || []).forEach(t => todoMap.set(t.id, t));
-      const mergedTodos = Array.from(todoMap.values());
-
-      const mergedExpenses = remoteExpenses && remoteExpenses.expenses ? remoteExpenses.expenses : (state.calcExpenses || []);
-      const localCalc = (state.calcExpenses || []);
-      const expensesMap = new Map();
-      localCalc.forEach(e => expensesMap.set(e.id, e));
-      (mergedExpenses || []).forEach(e => expensesMap.set(e.id, e));
-      const mergedCalcExpenses = Array.from(expensesMap.values());
-
-      const localOnboarded = uid !== 'guest' ? localStorage.getItem(`onboardingCompleted_${uid}`) === 'true' : localStorage.getItem('onboardingCompleted_guest') === 'true';
-      const localIdentity = uid !== 'guest' ? localStorage.getItem(`user_identity_${uid}`) : localStorage.getItem('user_identity_v1');
+      const localOnboarded = localStorage.getItem(`onboardingCompleted_${uid}`) === 'true';
+      const localIdentity = localStorage.getItem(`user_identity_${uid}`);
 
       const userObj = {
-        ...(state.user || {}),
         ...(userDoc || {}),
         uid,
-        email: auth.currentUser?.email || userDoc?.email || state.user?.email || '',
-        name: auth.currentUser?.displayName || userDoc?.name || state.user?.name || 'Viajero',
-        identity: userDoc?.identity || state.user?.identity || localIdentity || ''
+        email: auth.currentUser?.email || userDoc?.email || '',
+        name: auth.currentUser?.displayName || userDoc?.name || 'Viajero',
+        identity: userDoc?.identity || localIdentity || ''
       };
 
       if (userDoc?.onboardingCompleted === true || localOnboarded === true) {
@@ -184,29 +200,23 @@ export const store = {
       } else {
         userObj.onboardingCompleted = false;
       }
-      
-      const remoteDriverDoc = auth.currentUser ? await getDocument(`users/${uid}/driverProfile/main`) : null;
-      const driverProfile = {
-        ...(state.driverProfile || {}),
-        ...(remoteDriverDoc || {})
-      };
 
-      // Persist merged to localStorage
       try {
-        localStorage.setItem('user_profile_v1', JSON.stringify(userObj));
         localStorage.setItem(`user_profile_${uid}`, JSON.stringify(userObj));
+        localStorage.setItem('user_profile_v1', JSON.stringify(userObj));
         if (userObj.onboardingCompleted) {
           localStorage.setItem(`onboardingCompleted_${uid}`, 'true');
         }
         if (userObj.identity) localStorage.setItem(`user_identity_${uid}`, userObj.identity);
-        localStorage.setItem('habits_v1', JSON.stringify(mergedHabits));
         localStorage.setItem(`habits_${uid}`, JSON.stringify(mergedHabits));
-        localStorage.setItem('routines_v1', JSON.stringify(mergedRoutines));
+        localStorage.setItem('habits_v1', JSON.stringify(mergedHabits));
         localStorage.setItem(`routines_${uid}`, JSON.stringify(mergedRoutines));
-        localStorage.setItem('todos_v1', JSON.stringify(mergedTodos));
+        localStorage.setItem('routines_v1', JSON.stringify(mergedRoutines));
         localStorage.setItem(`todos_${uid}`, JSON.stringify(mergedTodos));
-        localStorage.setItem('calc_expenses_v1', JSON.stringify(mergedCalcExpenses));
+        localStorage.setItem('todos_v1', JSON.stringify(mergedTodos));
         localStorage.setItem(`calc_expenses_${uid}`, JSON.stringify(mergedCalcExpenses));
+        localStorage.setItem('calc_expenses_v1', JSON.stringify(mergedCalcExpenses));
+        localStorage.setItem(`driver_profile_${uid}`, JSON.stringify(driverProfile));
         localStorage.setItem('driver_profile_v1', JSON.stringify(driverProfile));
       } catch (e) {}
 
@@ -221,7 +231,9 @@ export const store = {
       });
 
       // Auto-check daily inactivity & partner notification right after state loads
-      store.checkDailyIncompleteHabitsAndDriver();
+      if (userObj.onboardingCompleted) {
+        store.checkDailyIncompleteHabitsAndDriver();
+      }
 
       // Auto-push merged data to Firestore if user is authenticated
       if (auth.currentUser) {
@@ -453,14 +465,20 @@ export const store = {
   },
 
   checkDailyIncompleteHabitsAndDriver: async () => {
+    const uid = auth.currentUser?.uid || 'guest';
     const todayStr = store.getTodayString();
-    const driver = state.driverProfile;
-    const partner = state.user?.partner;
-    const habitsList = state.habits || [];
+    const currentState = store.getState();
+    const driver = currentState.driverProfile;
+    const partner = currentState.user?.partner;
+    const habitsList = currentState.habits || [];
 
-    let lastEvaluated = localStorage.getItem('last_evaluated_date') || driver?.lastEvaluatedDate || driver?.lastActiveDate;
+    let lastEvaluated = localStorage.getItem(`last_evaluated_date_${uid}`) || driver?.lastEvaluatedDate;
     if (!lastEvaluated) {
-      localStorage.setItem('last_evaluated_date', todayStr);
+      localStorage.setItem(`last_evaluated_date_${uid}`, todayStr);
+      if (driver) {
+        const updatedProfile = { ...driver, lastActiveDate: todayStr, lastEvaluatedDate: todayStr };
+        await store.saveDriverProfile(updatedProfile);
+      }
       return;
     }
 
@@ -487,6 +505,13 @@ export const store = {
       const dayKey = dayKeys[dayIdx];
 
       const scheduledForDay = habitsList.filter(h => {
+        if (!h || h.deleted) return false;
+
+        if (h.createdAt) {
+          const habitCreatedDateStr = h.createdAt.includes('T') ? h.createdAt.split('T')[0] : h.createdAt;
+          if (currEvalDate < habitCreatedDateStr) return false;
+        }
+
         if (h.frequency) {
           if (h.frequency.type === 'daily') return true;
           if (h.frequency.type === 'weekly') {
@@ -500,7 +525,6 @@ export const store = {
         const comp = h.completions || {};
         const status = comp[currEvalDate];
         if (status !== 'completed' && status !== 'completed_2min' && status !== 'skipped' && status !== 'deleted_today') {
-          // Tag each item with the eval date so we can count distinct days for penalty
           uncompletedHabitsList.push({ ...h, _evalDate: currEvalDate });
           const incidentId = `${h.id}_${currEvalDate}`;
           const incidentObj = {
@@ -512,7 +536,7 @@ export const store = {
             createdAt: new Date().toISOString()
           };
           if (auth.currentUser) {
-            saveDocument(`users/${auth.currentUser.uid}/incidents/${incidentId}`, incidentObj).catch(e => console.error(e));
+            saveDocument(`users/${uid}/incidents/${incidentId}`, incidentObj).catch(e => console.error(e));
           }
         }
       });
@@ -520,29 +544,26 @@ export const store = {
       currEvalDate = addDaysStr(currEvalDate, 1);
     }
 
-    // Check overdue To-Do items (only penalized if dueDate exists and dueDate < todayStr and not completed)
-    const todos = state.todos || [];
+    const todos = currentState.todos || [];
     todos.forEach(todo => {
-      if (!todo.completed && todo.dueDate && todo.dueDate < todayStr) {
+      if (todo && !todo.completed && todo.dueDate && todo.dueDate < todayStr && !todo.deleted) {
         uncompletedHabitsList.push({
           id: todo.id,
-          name: `Tarea vencida: ${todo.name}`,
+          name: `Tarea vencida: ${todo.name || todo.text || todo.title || 'Tarea'}`,
           _evalDate: todo.dueDate
         });
       }
     });
 
-    localStorage.setItem('last_evaluated_date', todayStr);
+    localStorage.setItem(`last_evaluated_date_${uid}`, todayStr);
 
     const driverActive = !!(driver && driver.active);
-    // -1 OVR per uncompleted habit
     const totalPenalty = uncompletedHabitsList.length;
 
     let newOvr = driver?.ovr || 50;
 
     if (driverActive && totalPenalty > 0) {
       newOvr = Math.max(10, (driver.ovr || 50) - totalPenalty);
-
       const team = getTeamForOVR(newOvr);
       const teamsHistory = Array.from(new Set([...(driver.teamsHistory || []), team]));
       const marketValue = calculateMarketValue(newOvr, driver.titlesDriver || 0, driver.titlesConstructor || 0);
@@ -557,9 +578,16 @@ export const store = {
       };
 
       await store.saveDriverProfile(updatedProfile);
+    } else if (driver) {
+      const updatedProfile = {
+        ...driver,
+        lastActiveDate: todayStr,
+        lastEvaluatedDate: todayStr
+      };
+      await store.saveDriverProfile(updatedProfile);
     }
 
-    if (uncompletedHabitsList.length > 0) {
+    if (driverActive && totalPenalty > 0) {
       showDailyIncompletePopup({
         uncompletedHabits: uncompletedHabitsList,
         partner,

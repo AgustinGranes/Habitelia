@@ -42,7 +42,7 @@ export function render() {
     const isSkipped = status === 'skipped';
     const linkedPleasure = h.noPleasure ? '' : (h.craving?.linkedPleasure || h.linkedPleasure || '');
     const twoMinuteVersion = h.noTwoMin ? '' : (h.response?.twoMinVersion || '');
-    const habitTime = (h.cue?.timePerDay && h.cue.timePerDay[todayDayKey]) || (h.cue?.time ? h.cue.time : null);
+    const habitTime = h.noSchedule ? null : ((h.cue?.timePerDay && h.cue.timePerDay[todayDayKey]) || (h.cue?.time ? h.cue.time : null));
     const duration = (h.noDuration || h.duration === 0) ? 0 : (h.duration || 0);
     const parentHabit = h.stackedAfterId ? habits.find(item => item.id === h.stackedAfterId) : null;
     
@@ -242,7 +242,7 @@ export function render() {
         <div class="glass-card" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; margin-bottom: 10px; border-radius: 14px; border: 1px solid var(--border-subtle);">
           <div>
             <div style="font-weight: 600; font-size: 15px; color: var(--text-primary);">${h.name}</div>
-            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Duración: ${h.duration || 15} min ${h.cue?.place ? `• ${h.cue.place}` : ''}</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${(h.noDuration || h.duration === 0) ? '' : `Duración: ${h.duration} min `}${h.cue?.place ? `• ${h.cue.place}` : ''}</div>
             ${linkedPleasure ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">Ritual previo: ${linkedPleasure}</div>` : ''}
             ${twoMin ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">2 min: ${twoMin}</div>` : ''}
           </div>
@@ -409,7 +409,7 @@ function openCreateRoutineModal() {
     : habits.map(h => `
         <label style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 10px; cursor: pointer;">
           <input type="checkbox" class="routine-habit-checkbox" value="${h.id}" checked style="width: 18px; height: 18px; accent-color: var(--text-primary);">
-          <span style="font-weight: 600; font-size: 14px; color: var(--text-primary);">${h.name} (${h.cue?.time || '08:00'})</span>
+          <span style="font-weight: 600; font-size: 14px; color: var(--text-primary);">${h.name} ${h.cue?.time ? `(${h.cue.time})` : ''}</span>
         </label>
       `).join('');
 
