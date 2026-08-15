@@ -20,36 +20,29 @@ function formatDateLabel(dateStr) {
     .replace(/^./, c => c.toUpperCase());
 }
 
-// Build the grouped habits list HTML (grouped by day)
+function formatShortDate(dateStr) {
+  if (!dateStr || dateStr === 'sin-fecha') return '';
+  const parts = dateStr.split('-');
+  if (parts.length < 3) return dateStr;
+  const day = parts[2].padStart(2, '0');
+  const month = parts[1].padStart(2, '0');
+  return `${day}/${month}`;
+}
+
 function buildHabitsListHtml(uncompletedHabits) {
-  // Group by _evalDate
-  const byDate = {};
-  uncompletedHabits.forEach(h => {
-    const date = h._evalDate || 'sin-fecha';
-    if (!byDate[date]) byDate[date] = [];
-    byDate[date].push(typeof h === 'string' ? h : (h.name || h.habitName || 'Hábito'));
-  });
-
-  const dates = Object.keys(byDate).sort();
-  const multiDay = dates.length > 1;
-
-  return dates.map(date => {
-    const label = date !== 'sin-fecha' ? formatDateLabel(date) : '';
-    const habits = byDate[date];
+  return uncompletedHabits.map(h => {
+    const rawName = typeof h === 'string' ? h : (h.name || h.habitName || 'Hábito');
+    const evalDate = typeof h === 'object' && h._evalDate ? h._evalDate : null;
+    const dateTag = evalDate ? formatShortDate(evalDate) : '';
+    const displayText = dateTag ? `${rawName} - ${dateTag}` : rawName;
 
     return `
-      <div style="margin-bottom: ${multiDay ? '10px' : '0'};">
-        ${multiDay && label ? `
-          <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-tertiary); margin-bottom: 5px; display: flex; align-items: center; gap: 5px;">
-            ${iconSVG('calendar', 11)} ${label}
-          </div>
-        ` : ''}
-        ${habits.map(name => `
-          <div style="display: flex; align-items: center; gap: 6px; padding: 3px 0;">
-            ${iconSVG('x', 13)}
-            <span style="font-size: 13.5px; color: var(--text-primary);">${name}</span>
-          </div>
-        `).join('')}
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; margin-bottom: 5px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle);">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          ${iconSVG('x', 14)}
+          <span style="font-size: 13.5px; font-weight: 600; color: var(--text-primary);">${displayText}</span>
+        </div>
+        <span style="font-size: 11px; font-weight: 700; color: #F56565; background: rgba(245,101,101,0.12); padding: 2px 6px; border-radius: 6px;">-1 OVR</span>
       </div>
     `;
   }).join('');
