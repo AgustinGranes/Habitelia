@@ -201,7 +201,7 @@ export function render() {
   `;
 }
 
-function openDayActionModal(dateStr, dayNum) {
+export function openDayActionModal(dateStr, dayNum) {
   document.getElementById('day-action-modal')?.remove();
   const state = store.getState();
   const habits = state.habits || [];
@@ -215,7 +215,6 @@ function openDayActionModal(dateStr, dayNum) {
   const loadedTodos = loadedData.todos;
 
   const habitsListHtml = loadedHabits.length > 0 ? loadedHabits.map(h => {
-    const habitTime = h.time || '08:00';
     return `
     <div style="padding: 10px 14px; border-radius: 12px; background: var(--bg-primary); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 10px;">
       <div style="min-width: 0; flex: 1;">
@@ -299,8 +298,8 @@ function openDayActionModal(dateStr, dayNum) {
 
         <!-- Action Buttons Container -->
         <div style="display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
-          <button id="btn-create-habit-for-day" class="btn-secondary" style="width: 100%; min-height: 44px; border-radius: 12px; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-            ${iconSVG('plus', 16)} Crear Hábito para este día
+          <button id="btn-add-habit-day-menu" class="btn-secondary" style="width: 100%; min-height: 44px; border-radius: 12px; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            ${iconSVG('plus', 16)} Agregar Hábito
           </button>
           <button id="btn-save-day-routine" class="btn-primary" style="width: 100%; min-height: 46px; border-radius: 12px; font-size: 14px; font-weight: 600;">
             Guardar Rutina para esta Fecha
@@ -330,7 +329,7 @@ function openDayActionModal(dateStr, dayNum) {
       document.getElementById('day-action-modal')?.remove();
       const rawId = e.currentTarget.dataset.id;
       const id = rawId.includes('_rep_') ? rawId.split('_rep_')[0] : rawId;
-      navigate('/habit/new', { id, from: 'calendar' });
+      navigate('/habit/new', { id, from: 'calendar', dateReturn: dateStr });
     });
   });
 
@@ -344,6 +343,7 @@ function openDayActionModal(dateStr, dayNum) {
       showDeleteHabitModal(habitId, name, () => {
         document.getElementById('day-action-modal')?.remove();
         refreshCalendar();
+        openDayActionModal(dateStr);
       });
     });
   });
@@ -364,11 +364,141 @@ function openDayActionModal(dateStr, dayNum) {
     }
     document.getElementById('day-action-modal')?.remove();
     refreshCalendar();
+    openDayActionModal(dateStr);
   });
 
-  document.getElementById('btn-create-habit-for-day')?.addEventListener('click', () => {
+  document.getElementById('btn-add-habit-day-menu')?.addEventListener('click', () => {
+    openAddHabitChoiceModal(dateStr);
+  });
+}
+
+function openAddHabitChoiceModal(dateStr) {
+  document.getElementById('add-habit-choice-modal')?.remove();
+  const modalHtml = `
+    <div id="add-habit-choice-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1600; display: flex; align-items: center; justify-content: center; padding: 20px;">
+      <div class="glass-card" style="width: 100%; max-width: 440px; padding: 26px; border-radius: 22px; border: 1px solid var(--border-subtle); background: var(--bg-surface); text-align: center;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+          <h3 class="editorial-title" style="font-size: 20px; margin: 0;">Agregar Hábito</h3>
+          <button id="close-choice-modal" style="background: var(--bg-subtle); border: none; color: var(--text-primary); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            ${iconSVG('x', 16)}
+          </button>
+        </div>
+
+        <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 20px; text-align: left;">
+          Elegí cómo querés agregar un hábito a la fecha <strong>${dateStr}</strong>:
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+          <button id="btn-choice-create-new" class="btn-primary" style="width: 100%; min-height: 48px; border-radius: 12px; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            ${iconSVG('plus', 16)} Crear Hábito para este día
+          </button>
+          <button id="btn-choice-add-existing" class="btn-secondary" style="width: 100%; min-height: 48px; border-radius: 12px; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            ${iconSVG('chain', 16)} Agregar un Hábito Existente
+          </button>
+        </div>
+
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  document.getElementById('close-choice-modal')?.addEventListener('click', () => {
+    document.getElementById('add-habit-choice-modal')?.remove();
+  });
+
+  document.getElementById('btn-choice-create-new')?.addEventListener('click', () => {
+    document.getElementById('add-habit-choice-modal')?.remove();
     document.getElementById('day-action-modal')?.remove();
-    navigate(`/habit/new?date=${dateStr}`);
+    navigate('/habit/new', { date: dateStr, from: 'calendar', dateReturn: dateStr });
+  });
+
+  document.getElementById('btn-choice-add-existing')?.addEventListener('click', () => {
+    document.getElementById('add-habit-choice-modal')?.remove();
+    openSelectExistingHabitModal(dateStr);
+  });
+}
+
+function openSelectExistingHabitModal(dateStr) {
+  document.getElementById('select-existing-habit-modal')?.remove();
+
+  const state = store.getState();
+  const allHabits = state.habits || [];
+  
+  // Get currently assigned habits for dateStr
+  const customHabitsStr = localStorage.getItem(`assigned_habits_${dateStr}`) || '[]';
+  let assignedIds = [];
+  try { assignedIds = JSON.parse(customHabitsStr); } catch (e) {}
+
+  const availableHabits = allHabits.filter(h => !assignedIds.includes(h.id));
+
+  const listHtml = availableHabits.length > 0 ? availableHabits.map(h => `
+    <div style="padding: 12px 14px; border-radius: 12px; background: var(--bg-primary); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+      <div style="min-width: 0; flex: 1;">
+        <div style="font-weight: 600; font-size: 14px; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${h.name}</div>
+        <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">${h.cue?.time || 'Sin hora'} ${h.duration ? `(${h.duration} min)` : ''}</div>
+      </div>
+      <button class="btn-primary btn-add-this-existing" data-id="${h.id}" style="padding: 6px 14px; font-size: 12px; border-radius: 8px; font-weight: 600; width: auto; margin: 0; flex-shrink: 0;">
+        Agregar
+      </button>
+    </div>
+  `).join('') : `
+    <div style="color: var(--text-secondary); font-size: 13.5px; text-align: center; padding: 20px 10px;">
+      Todos tus hábitos existentes ya están agregados a este día o no tienes hábitos creados.
+    </div>
+  `;
+
+  const modalHtml = `
+    <div id="select-existing-habit-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1650; display: flex; align-items: center; justify-content: center; padding: 20px;">
+      <div class="glass-card" style="width: 100%; max-width: 460px; padding: 26px; border-radius: 22px; border: 1px solid var(--border-subtle); background: var(--bg-surface); max-height: 85vh; overflow-y: auto;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+          <h3 class="editorial-title" style="font-size: 20px; margin: 0;">Seleccionar Hábito Existente</h3>
+          <button id="close-select-existing-modal" style="background: var(--bg-subtle); border: none; color: var(--text-primary); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            ${iconSVG('x', 16)}
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; margin-bottom: 16px;">
+          ${listHtml}
+        </div>
+
+        <button id="btn-cancel-select-existing" class="btn-secondary" style="width: 100%; min-height: 44px; border-radius: 12px; color: var(--text-secondary);">
+          Volver
+        </button>
+
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  const closeMe = () => document.getElementById('select-existing-habit-modal')?.remove();
+
+  document.getElementById('close-select-existing-modal')?.addEventListener('click', closeMe);
+  document.getElementById('btn-cancel-select-existing')?.addEventListener('click', closeMe);
+
+  document.querySelectorAll('.btn-add-this-existing').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const habitId = e.currentTarget.dataset.id;
+      if (habitId) {
+        const key = `assigned_habits_${dateStr}`;
+        const existingStr = localStorage.getItem(key) || '[]';
+        let existing = [];
+        try { existing = JSON.parse(existingStr); } catch (err) {}
+        if (!existing.includes(habitId)) {
+          existing.push(habitId);
+          localStorage.setItem(key, JSON.stringify(existing));
+        }
+        showToast('Hábito agregado a la fecha con éxito', 'success');
+        closeMe();
+        document.getElementById('day-action-modal')?.remove();
+        refreshCalendar();
+        openDayActionModal(dateStr);
+      }
+    });
   });
 }
 
@@ -391,7 +521,7 @@ function showCalendarExplanationModal() {
         <div style="display: flex; flex-direction: column; gap: 14px; font-size: 13.5px; color: var(--text-primary); line-height: 1.5;">
           <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); padding: 14px; border-radius: 14px;">
             <strong style="display: block; margin-bottom: 4px; color: var(--text-primary); font-size: 14px;">1. Programación de Hábitos por Frecuencia</strong>
-            Los hábitos se distribución automáticamente en las fechas según su frecuencia (diarios o días específicos de la semana) e incluyen todas las repeticiones diarias que hayas configurado.
+            Los hábitos se distribuyen automáticamente en las fechas según su frecuencia (diarios o días específicos de la semana) e incluyen todas las repeticiones diarias que hayas configurado.
           </div>
 
           <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); padding: 14px; border-radius: 14px;">
@@ -406,7 +536,7 @@ function showCalendarExplanationModal() {
 
           <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); padding: 14px; border-radius: 14px;">
             <strong style="display: block; margin-bottom: 4px; color: var(--text-primary); font-size: 14px;">4. Edición y Eliminación Directa</strong>
-            En la ventana del día podés editar cualquier hábito (y volver al calendario al finalizar) o eliminarlo (eligiendo borrarlo solo por hoy o para siempre).
+            En la ventana del día podés editar cualquier hábito (y volver a esa misma fecha al finalizar) o eliminarlo (eligiendo borrarlo solo por hoy o para siempre).
           </div>
         </div>
 
@@ -482,6 +612,15 @@ export function mount() {
   document.getElementById('btn-explain-calendar')?.addEventListener('click', () => {
     showCalendarExplanationModal();
   });
+
+  // Re-open specific date modal if openDate query parameter is present in URL
+  const hashStr = window.location.hash || '';
+  const hashParams = new URLSearchParams(hashStr.split('?')[1] || '');
+  const openDateParam = hashParams.get('openDate');
+  if (openDateParam) {
+    window.history.replaceState(null, '', `#/calendar`);
+    openDayActionModal(openDateParam);
+  }
 }
 
 export function unmount() {

@@ -18,7 +18,11 @@ export function render(props = {}) {
   const targetDate = props?.date || hashParams.get('date');
   targetDateForHabit = null;
 
-  if (fromParam === 'routine' || hashStr.includes('from=routine')) {
+  const dateReturnParam = props?.dateReturn || hashParams.get('dateReturn');
+
+  if (dateReturnParam) {
+    formReturnPath = `/calendar?openDate=${dateReturnParam}`;
+  } else if (fromParam === 'routine' || hashStr.includes('from=routine')) {
     formReturnPath = '/routine';
   } else if (fromParam === 'calendar' || hashStr.includes('from=calendar') || targetDate) {
     formReturnPath = '/calendar';
