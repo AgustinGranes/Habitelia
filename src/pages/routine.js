@@ -73,16 +73,19 @@ export function render() {
           const twoMinuteVersion = h.response?.twoMinVersion || '';
           const parentHabit = h.stackedAfterId ? habits.find(item => item.id === h.stackedAfterId) : null;
 
+          const repLabel = rep.name ? `${h.name} (${rep.name})` : h.name;
+          const parentRepLabel = parentHabit ? (rep.name ? `${parentHabit.name} (${rep.name})` : parentHabit.name) : '';
+
           todayItems.push({
             id: h.id + '_rep_' + idx,
-            name: `${h.name} (Repetición ${idx + 1})`,
+            name: repLabel,
             icon: h.icon || '🎯',
             time: rep.time || '18:00',
             duration: h.duration || 15,
             linkedPleasure,
             twoMinuteVersion,
             stackedAfterId: h.stackedAfterId ? h.stackedAfterId + '_rep_' + idx : '',
-            stackedAfterName: parentHabit?.name ? `${parentHabit.name} (Repetición ${idx + 1})` : '',
+            stackedAfterName: parentRepLabel,
             completed: isCompleted,
             isTwoMin,
             skipped: isSkipped

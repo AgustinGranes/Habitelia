@@ -50,9 +50,10 @@ export function getHabitsForDate(dateStr, habits = [], routines = []) {
       h.repetitions.forEach((rep, idx) => {
         const repDays = rep.days || [];
         if (repDays.includes(currentDayKey)) {
+          const repLabel = rep.name ? `${h.name} (${rep.name})` : h.name;
           occurrences.push({
             id: h.id + '_rep_' + idx,
-            name: `${h.name} (Repetición ${idx + 1})`,
+            name: repLabel,
             time: rep.time || '18:00',
             duration: h.duration || 15
           });
