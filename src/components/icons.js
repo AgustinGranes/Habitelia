@@ -39,7 +39,8 @@ export const iconSVG = (name, size = 20, className = '') => {
     todo: `<svg ${commonAttrs}><path d="M11 6h9"/><path d="M11 12h9"/><path d="M11 18h9"/><polyline points="3 6 4.5 7.5 7.5 4.5"/><polyline points="3 12 4.5 13.5 7.5 10.5"/><polyline points="3 18 4.5 19.5 7.5 16.5"/></svg>`,
     tag: `<svg ${commonAttrs}><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>`,
     pencil: `<svg ${commonAttrs}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`,
-    lock: `<svg ${commonAttrs}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`
+    lock: `<svg ${commonAttrs}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+    timer: `<svg ${commonAttrs}><line x1="10" y1="2" x2="14" y2="2"/><line x1="12" y1="14" x2="15" y2="11"/><circle cx="12" cy="14" r="8"/></svg>`
   };
 
   return icons[name] || icons.target;

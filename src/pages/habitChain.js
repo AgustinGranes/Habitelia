@@ -8,11 +8,42 @@ let selectedHabitId = null;
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 
+function calculateScheduledStreak(habit) {
+    if (!habit.completions) return 0;
+    const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    const isDaily = !habit.frequency || habit.frequency.type === 'daily';
+    const scheduledDays = isDaily ? dayKeys : (habit.frequency.days || dayKeys);
+    
+    let streak = 0;
+    let checkDate = new Date();
+    // Go back day by day, only counting scheduled days
+    for (let i = 0; i < 365; i++) {
+        const dateStr = checkDate.toISOString().split('T')[0];
+        const dayKey = dayKeys[checkDate.getDay()];
+        
+        if (scheduledDays.includes(dayKey)) {
+            // This was a scheduled day
+            if (habit.completions[dateStr] === 'completed' || habit.completions[dateStr] === 'completed_2min') {
+                streak++;
+            } else {
+                break; // Chain broken
+            }
+        }
+        // Non-scheduled days are simply skipped (don't break chain)
+        checkDate.setDate(checkDate.getDate() - 1);
+    }
+    return streak;
+}
+
 function renderMonthlyGrid(habit, year, month) {
   const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
   const dayNamesShort = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   
   const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const isDaily = !habit?.frequency || habit.frequency.type === 'daily';
+  const scheduledDays = isDaily ? dayKeys : (habit.frequency.days || dayKeys);
 
   const daysData = [];
   for (let d = 1; d <= daysInMonth; d++) {
@@ -22,7 +53,11 @@ function renderMonthlyGrid(habit, year, month) {
     const status = habit?.completions?.[dateStr];
     const isCompletedFull = status === 'completed';
     const isCompleted2Min = status === 'completed_2min';
-    daysData.push({ dayNumber: d, dayOfWeek, dateStr, isCompletedFull, isCompleted2Min });
+    
+    const dayKey = dayKeys[dateObj.getDay()];
+    const isScheduled = scheduledDays.includes(dayKey);
+    
+    daysData.push({ dayNumber: d, dayOfWeek, dateStr, isCompletedFull, isCompleted2Min, isScheduled });
   }
 
   const columnsHtml = daysData.map(item => {
@@ -51,10 +86,16 @@ function renderMonthlyGrid(habit, year, month) {
         </div>
         
         <!-- Cell (Empty, 2-Min Dimmed, or Solid White Full) -->
+        ${(!item.isScheduled && !isCompleted) ? `
+        <div class="chain-cell not-scheduled" style="width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: var(--bg-primary); border: 1px solid var(--border-subtle); position: relative; overflow: hidden;" title="No programado">
+            <svg width="26" height="26" style="position: absolute; top: 0; left: 0;"><line x1="0" y1="26" x2="26" y2="0" stroke="var(--text-tertiary)" stroke-width="1" opacity="0.4"/></svg>
+        </div>
+        ` : `
         <div title="${item.dateStr}: ${item.isCompletedFull ? 'Completado (Completo)' : item.isCompleted2Min ? 'Completado (2 Minutos)' : 'No completado'}" 
              style="width: 26px; height: 26px; border-radius: 6px; background: ${cellBg}; border: ${cellBorder}; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">
           ${isCompleted ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${checkColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
         </div>
+        `}
       </div>
     `;
   }).join('');
@@ -81,6 +122,12 @@ function renderMonthlyGrid(habit, year, month) {
 
       <!-- Legend -->
       <div style="display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-top: 16px; font-size: 11px; color: var(--text-secondary);">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <div style="width: 14px; height: 14px; border-radius: 4px; background: var(--bg-primary); border: 1px solid var(--border-subtle); position: relative; overflow: hidden;">
+            <svg width="14" height="14" style="position: absolute; top: 0; left: 0;"><line x1="0" y1="14" x2="14" y2="0" stroke="var(--text-tertiary)" stroke-width="1" opacity="0.4"/></svg>
+          </div>
+          <span>No programado</span>
+        </div>
         <div style="display: flex; align-items: center; gap: 6px;">
           <div style="width: 14px; height: 14px; border-radius: 4px; background: var(--bg-primary); border: 1px solid var(--border-subtle);"></div>
           <span>No completado</span>
@@ -163,11 +210,11 @@ export function render() {
         <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 6px; color: var(--text-primary);">
           ${iconSVG('flame', 28)}
           <span style="font-family: var(--font-serif); font-size: 42px; font-weight: 400; line-height: 1;">
-            ${habit.streak || 0} Días de Racha
+            ${calculateScheduledStreak(habit)} Días de Racha
           </span>
         </div>
         <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
-          Racha Máxima: <strong style="color: var(--text-primary);">${habit.maxStreak || habit.streak || 0} días</strong> • Total: <strong style="color: var(--text-primary);">${habit.totalCompletions || (habit.streak || 0)} repeticiones</strong>
+          Racha Máxima: <strong style="color: var(--text-primary);">${habit.maxStreak || calculateScheduledStreak(habit)} días</strong> • Total: <strong style="color: var(--text-primary);">${habit.totalCompletions || calculateScheduledStreak(habit)} repeticiones</strong>
         </div>
       </div>
 
@@ -251,7 +298,7 @@ export function mount() {
     const state = store.getState();
     const habit = state.habits.find(h => h.id === selectedHabitId);
     if (habit && habit.reward?.partnerPhone) {
-      const msg = encodeURIComponent(`¡Hola ${habit.reward.partnerName}! Mantuve mi racha de ${habit.streak || 1} días en el hábito "${habit.name}" con Habitelia.`);
+      const msg = encodeURIComponent(`¡Hola ${habit.reward.partnerName}! Mantuve mi racha de ${calculateScheduledStreak(habit)} días en el hábito "${habit.name}" con Habitelia.`);
       window.open(`https://wa.me/${habit.reward.partnerPhone.replace(/[^0-9]/g, '')}?text=${msg}`, '_blank');
     } else {
       showToast('No hay número cargado para el socio corresponsable', 'info');

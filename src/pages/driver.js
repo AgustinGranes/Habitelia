@@ -49,6 +49,8 @@ export function render() {
   }).join('');
 
   const hasTitles = (driver.titlesDriver || 0) > 0 || (driver.titlesConstructor || 0) > 0;
+  const counter = driver.completedHabitsCounter || 0;
+  const remaining = 10 - counter;
 
   return `
     <div class="page driver-page" style="padding: 24px 20px 100px 20px; max-width: 520px; margin: 0 auto; width: 100%; box-sizing: border-box;">
@@ -114,6 +116,17 @@ export function render() {
             </div>
 
           </div>
+        </div>
+
+        <div style="margin-bottom: 24px; padding: 12px 16px; background: var(--bg-subtle); border-radius: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 13px; color: var(--text-secondary);">Progreso hacia +1 OVR</span>
+                <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">${counter}/10</span>
+            </div>
+            <div style="height: 6px; background: var(--bg-primary); border-radius: 3px; overflow: hidden;">
+                <div style="height: 100%; width: ${counter * 10}%; background: var(--text-primary); border-radius: 3px; transition: width 0.3s ease;"></div>
+            </div>
+            <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">${remaining === 0 ? '¡Próximo punto al completar el siguiente hábito!' : `Faltan ${remaining} hábitos para +1 OVR`}</div>
         </div>
 
         <!-- Driver Name Prominent Center -->

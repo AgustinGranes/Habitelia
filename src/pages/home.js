@@ -39,8 +39,7 @@ export function render(props = {}) {
     // Main occurrences
     todayHabits.forEach(h => {
         const status = h.completions?.[todayDate];
-        if (status === 'deleted_today') return;
-
+        const isDeletedToday = status === 'deleted_today';
         const isCompleted = status === 'completed' || status === 'completed_2min';
         const isSkipped = status === 'skipped';
         const streak = h.streak || 0;
@@ -62,6 +61,7 @@ export function render(props = {}) {
             stackedAfterName: parentHabit?.name || '',
             completed: isCompleted,
             skipped: isSkipped,
+            deletedToday: isDeletedToday,
             streak
         });
     });
@@ -74,8 +74,7 @@ export function render(props = {}) {
                 if (repDays.includes(todayDayKey)) {
                     const repDateKey = todayDate + '_rep_' + idx;
                     const status = h.completions?.[repDateKey];
-                    if (status === 'deleted_today') return;
-
+                    const isDeletedToday = status === 'deleted_today';
                     const isCompleted = status === 'completed' || status === 'completed_2min';
                     const isSkipped = status === 'skipped';
                     const streak = h.streak || 0;
@@ -100,6 +99,7 @@ export function render(props = {}) {
                         stackedAfterName: parentRepLabel,
                         completed: isCompleted,
                         skipped: isSkipped,
+                        deletedToday: isDeletedToday,
                         streak
                     });
                 }
@@ -141,22 +141,44 @@ export function render(props = {}) {
         });
     }
 
-    const remainingEvents = todayEvents.filter(e => !e.completed && !e.skipped);
+    const remainingEvents = todayEvents.filter(e => !e.completed && !e.skipped && !e.deletedToday);
     const completedEvents = todayEvents.filter(e => e.completed);
-    const totalCount = todayEvents.length;
+    const totalCount = todayEvents.filter(e => !e.deletedToday).length;
     const completedCount = completedEvents.length;
     const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
     function renderSingleHabitInner(ev, isStackedChild = false) {
+        if (ev.deletedToday) {
+            return `
+                <div class="habit-item-card" data-id="${ev.id}" style="padding: ${isStackedChild ? '12px 14px' : '16px 18px'}; opacity: 0.5; ${isStackedChild ? 'background: var(--bg-primary); border-radius: 14px; border: 1px solid var(--border-subtle); margin-top: 8px;' : ''} display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0;">
+                        <div style="width: 28px; height: 28px; border-radius: 50%; border: 1.75px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text-tertiary);">
+                            ⊘
+                        </div>
+                        <div style="min-width: 0; flex: 1;">
+                            <div style="font-weight: 600; font-size: ${isStackedChild ? '15px' : '16px'}; color: var(--text-tertiary); text-decoration: line-through; word-wrap: break-word; white-space: normal;">
+                                ${isStackedChild ? `↳ ${ev.name} (Eliminado hoy)` : `${ev.name} (Eliminado hoy)`}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="flex-shrink: 0;">
+                        <button class="btn-ghost btn-restore-habit-home" data-id="${ev.id}" style="padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-subtle); font-size: 11.5px; color: var(--text-primary); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 4px; touch-action: manipulation;">
+                            ${iconSVG('undo', 12)} Restaurar
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
         return `
-            <div class="habit-item-card" data-id="${ev.id}" style="padding: ${isStackedChild ? '12px 14px' : '16px 18px'}; ${isStackedChild ? 'background: var(--bg-primary); border-radius: 14px; border: 1px solid var(--border-subtle); margin-top: 8px;' : ''} display: flex; align-items: center; justify-content: space-between; gap: 14px;">
+            <div class="habit-item-card" data-id="${ev.id}" style="padding: ${isStackedChild ? '12px 14px' : '16px 18px'}; ${isStackedChild ? 'background: var(--bg-primary); border-radius: 14px; border: 1px solid var(--border-subtle); margin-top: 8px;' : ''} display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; box-sizing: border-box;">
                 <div style="display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0;">
                     <button class="btn-toggle-habit" data-id="${ev.id}" data-completed="${ev.completed}" style="width: 28px; height: 28px; border-radius: 50%; border: 1.75px solid ${ev.completed ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${ev.completed ? 'var(--text-primary)' : 'transparent'}; color: ${ev.completed ? 'var(--bg-primary)' : 'transparent'}; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
                         ${iconSVG('check', 14)}
                     </button>
 
                     <div style="min-width: 0; flex: 1;">
-                        <div style="font-weight: 600; font-size: ${isStackedChild ? '15px' : '16px'}; color: ${ev.completed ? 'var(--text-tertiary)' : 'var(--text-primary)'}; ${ev.completed ? 'text-decoration: line-through;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        <div style="font-weight: 600; font-size: ${isStackedChild ? '15px' : '16px'}; color: ${ev.completed ? 'var(--text-tertiary)' : 'var(--text-primary)'}; ${ev.completed ? 'text-decoration: line-through;' : ''} word-wrap: break-word; white-space: normal;">
                             ${isStackedChild ? `↳ ${ev.name}` : ev.name}
                         </div>
                         
@@ -177,7 +199,7 @@ export function render(props = {}) {
                     </div>
                 </div>
 
-                <div style="display: flex; align-items: center; gap: 6px;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
                     <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); padding: 3px 8px; border-radius: 16px; font-size: 11.5px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 4px;">
                         ${iconSVG('flame', 12)} ${ev.streak}d
                     </div>
@@ -783,6 +805,22 @@ export function mount() {
             const id = e.currentTarget.dataset.id;
             await store.toggleTodo(id);
             showToast('Tarea completada', 'success');
+            refreshHomeView();
+        });
+    });
+
+    // Restore habit action
+    document.querySelectorAll('.btn-restore-habit-home').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const rawId = e.currentTarget.dataset.id;
+            const isRep = rawId.includes('_rep_');
+            const habitId = isRep ? rawId.split('_rep_')[0] : rawId;
+            const repIndex = isRep ? rawId.split('_rep_')[1] : null;
+            const completionDateKey = isRep ? store.getTodayString() + '_rep_' + repIndex : store.getTodayString();
+
+            await store.restoreTodayEvent(habitId, completionDateKey);
+            showToast('Hábito restaurado', 'success');
             refreshHomeView();
         });
     });

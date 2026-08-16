@@ -673,6 +673,16 @@ export const store = {
     await store.saveHabit(updatedHabit);
   },
 
+  restoreTodayEvent: async (habitId, date) => {
+    const habit = (state.habits || []).find(h => h.id === habitId);
+    if (!habit) return;
+    
+    const completions = { ...(habit.completions || {}) };
+    delete completions[date];
+    const updatedHabit = { ...habit, completions };
+    await store.saveHabit(updatedHabit);
+  },
+
   skipEvent: async (habitId, date) => {
     const habit = (state.habits || []).find(h => h.id === habitId);
     if (!habit) return;

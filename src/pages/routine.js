@@ -35,8 +35,7 @@ export function render() {
   // Main occurrences
   todayHabits.forEach(h => {
     const status = h.completions?.[todayDate];
-    if (status === 'deleted_today') return;
-
+    const isDeletedToday = status === 'deleted_today';
     const isCompleted = status === 'completed' || status === 'completed_2min';
     const isTwoMin = status === 'completed_2min';
     const isSkipped = status === 'skipped';
@@ -58,7 +57,8 @@ export function render() {
       stackedAfterName: parentHabit?.name || '',
       completed: isCompleted,
       isTwoMin,
-      skipped: isSkipped
+      skipped: isSkipped,
+      deletedToday: isDeletedToday
     });
   });
 
@@ -70,8 +70,7 @@ export function render() {
         if (repDays.includes(todayDayKey)) {
           const repDateKey = todayDate + '_rep_' + idx;
           const status = h.completions?.[repDateKey];
-          if (status === 'deleted_today') return;
-
+          const isDeletedToday = status === 'deleted_today';
           const isCompleted = status === 'completed' || status === 'completed_2min';
           const isTwoMin = status === 'completed_2min';
           const isSkipped = status === 'skipped';
@@ -96,7 +95,8 @@ export function render() {
             stackedAfterName: parentRepLabel,
             completed: isCompleted,
             isTwoMin,
-            skipped: isSkipped
+            skipped: isSkipped,
+            deletedToday: isDeletedToday
           });
         }
       });
@@ -129,15 +129,37 @@ export function render() {
   }
 
   function renderRoutineItemInner(item, isStackedChild = false) {
+    if (item.deletedToday) {
+      return `
+        <div class="habit-item-card-routine" data-id="${item.id}" style="display: flex; align-items: center; justify-content: space-between; padding: ${isStackedChild ? '10px 14px' : '14px 18px'}; margin-top: ${isStackedChild ? '6px' : '0'}; border-radius: 14px; background: ${isStackedChild ? 'var(--bg-primary)' : 'transparent'}; border: ${isStackedChild ? '1px solid var(--border-subtle)' : 'none'}; opacity: 0.5; transition: all 0.2s ease; width: 100%; box-sizing: border-box;">
+          <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1;">
+            <div style="width: 26px; height: 26px; border-radius: 50%; border: 1.75px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text-tertiary);">
+              ⊘
+            </div>
+            <div style="min-width: 0; flex: 1;">
+              <div style="font-weight: 600; font-size: 15px; color: var(--text-tertiary); text-decoration: line-through; word-wrap: break-word; white-space: normal;">
+                ${isStackedChild ? `↳ ${item.name} (Eliminado hoy)` : `${item.name} (Eliminado hoy)`}
+              </div>
+            </div>
+          </div>
+          <div style="flex-shrink: 0; margin-left: 8px;">
+            <button class="btn-ghost btn-restore-habit-routine" data-id="${item.id}" style="padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border-subtle); font-size: 11.5px; color: var(--text-primary); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 4px; touch-action: manipulation;">
+              ${iconSVG('undo', 12)} Restaurar
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
     return `
-      <div class="habit-item-card-routine ${isReorderingRoutine ? '' : 'btn-toggle-routine-today'}" data-id="${item.id}" data-completed="${item.completed}" style="display: flex; align-items: center; justify-content: space-between; padding: ${isStackedChild ? '10px 14px' : '14px 18px'}; margin-top: ${isStackedChild ? '6px' : '0'}; border-radius: 14px; background: ${isStackedChild ? 'var(--bg-primary)' : 'transparent'}; border: ${isStackedChild ? '1px solid var(--border-subtle)' : 'none'}; ${isReorderingRoutine ? '' : 'cursor: pointer;'} opacity: ${item.completed ? '0.75' : '1'}; transition: all 0.2s ease;">
+      <div class="habit-item-card-routine ${isReorderingRoutine ? '' : 'btn-toggle-routine-today'} ${item.completed ? 'completed' : ''}" data-id="${item.id}" data-completed="${item.completed}" style="display: flex; align-items: center; justify-content: space-between; padding: ${isStackedChild ? '10px 14px' : '14px 18px'}; margin-top: ${isStackedChild ? '6px' : '0'}; border-radius: 14px; background: ${isStackedChild ? 'var(--bg-primary)' : 'transparent'}; border: ${isStackedChild ? '1px solid var(--border-subtle)' : 'none'}; ${isReorderingRoutine ? '' : 'cursor: pointer;'} opacity: ${item.completed ? '0.75' : '1'}; transition: all 0.2s ease; width: 100%; box-sizing: border-box;">
         <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1;">
           <div style="width: 26px; height: 26px; border-radius: 50%; border: 1.75px solid ${item.completed ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${item.completed ? (item.isTwoMin ? 'rgba(255,255,255,0.45)' : 'var(--text-primary)') : 'transparent'}; color: ${item.completed ? 'var(--bg-primary)' : 'transparent'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
             ${iconSVG('check', 13)}
           </div>
           <div style="min-width: 0; flex: 1;">
-            <div style="font-weight: 600; font-size: 15px; color: var(--text-primary); ${item.completed ? 'text-decoration: line-through;' : ''}">${isStackedChild ? `↳ ${item.name}` : item.name}</div>
-            ${item.time || item.duration ? `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${iconSVG('clock', 12)} ${item.time ? item.time : ''} ${item.duration ? `(${item.duration} min)` : ''}</div>` : ''}
+            <div style="font-weight: 600; font-size: 15px; color: var(--text-primary); ${item.completed ? 'text-decoration: line-through;' : ''} word-wrap: break-word; white-space: normal;">${isStackedChild ? `↳ ${item.name}` : item.name}</div>
+            ${item.time || item.duration ? `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px; display: flex; align-items: center; gap: 6px;">${iconSVG('clock', 12)} ${item.time ? item.time : ''} ${item.duration ? `(${item.duration} min)` : ''}</div>` : ''}
             ${item.linkedPleasure ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">Ritual previo: ${item.linkedPleasure}</div>` : ''}
             ${item.twoMinuteVersion ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">2 min: ${item.twoMinuteVersion}</div>` : ''}
           </div>
@@ -239,19 +261,25 @@ export function render() {
       const linkedPleasure = h.craving?.linkedPleasure || h.linkedPleasure || '';
       const twoMin = h.response?.twoMinVersion || '';
       return `
-        <div class="glass-card" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; margin-bottom: 10px; border-radius: 14px; border: 1px solid var(--border-subtle);">
-          <div>
-            <div style="font-weight: 600; font-size: 15px; color: var(--text-primary);">${h.name}</div>
+        <div class="glass-card" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; margin-bottom: 10px; border-radius: 14px; border: 1px solid var(--border-subtle); gap: 16px;">
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: 600; font-size: 15px; color: var(--text-primary); word-wrap: break-word; white-space: normal;">${h.name}</div>
             <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${(h.noDuration || h.duration === 0) ? '' : `Duración: ${h.duration} min `}${h.cue?.place ? `• ${h.cue.place}` : ''}</div>
             ${linkedPleasure ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">Ritual previo: ${linkedPleasure}</div>` : ''}
             ${twoMin ? `<div style="font-size: 12px; color: var(--text-tertiary); font-style: italic; margin-top: 2px;">2 min: ${twoMin}</div>` : ''}
           </div>
-          <div style="display: flex; gap: 6px; align-items: center;">
-            <button class="btn-ghost btn-edit-habit-routine" data-id="${h.id}" style="padding: 6px 12px; font-size: 12px; border: 1px solid var(--border-subtle); color: var(--text-primary); border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 220px; flex-shrink: 0;">
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); padding: 8px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; justify-content: center; gap: 6px; text-align: center; box-sizing: border-box;">
+              ${iconSVG('flame', 14)} ${h.streak || 0}d
+            </div>
+            <button class="btn-ghost btn-chain-habit-routine" data-id="${h.id}" style="padding: 8px; font-size: 12px; border: 1px solid var(--border-subtle); color: var(--text-primary); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box; touch-action: manipulation;">
+              ${iconSVG('chain', 14)} Cadena
+            </button>
+            <button class="btn-ghost btn-edit-habit-routine" data-id="${h.id}" style="padding: 8px; font-size: 12px; border: 1px solid var(--border-subtle); color: var(--text-primary); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box; touch-action: manipulation;">
               ${iconSVG('edit', 14)} Editar
             </button>
-            <button class="btn-ghost btn-delete-habit-routine" data-id="${h.id}" data-name="${h.name}" title="Eliminar Hábito" style="padding: 6px 10px; font-size: 12px; border: 1px solid var(--border-subtle); color: #E53E3E; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-              ${iconSVG('trash', 14)}
+            <button class="btn-ghost btn-delete-habit-routine" data-id="${h.id}" data-name="${h.name}" style="padding: 8px; font-size: 12px; border: 1px solid var(--border-subtle); color: #E53E3E; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box; touch-action: manipulation;">
+              ${iconSVG('trash', 14)} Eliminar
             </button>
           </div>
         </div>
@@ -602,6 +630,29 @@ export function mount() {
       const rawId = e.currentTarget.dataset.id;
       const id = rawId.includes('_rep_') ? rawId.split('_rep_')[0] : rawId;
       navigate('/habit/new', { id, from: 'routine' });
+    });
+  });
+
+  document.querySelectorAll('.btn-chain-habit-routine').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const rawId = e.currentTarget.dataset.id;
+      const id = rawId.includes('_rep_') ? rawId.split('_rep_')[0] : rawId;
+      navigate('/chain', { habitId: id });
+    });
+  });
+
+  document.querySelectorAll('.btn-restore-habit-routine').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const rawId = e.currentTarget.dataset.id;
+      const isRep = rawId.includes('_rep_');
+      const habitId = isRep ? rawId.split('_rep_')[0] : rawId;
+      const repIndex = isRep ? rawId.split('_rep_')[1] : null;
+      const completionDateKey = isRep ? store.getTodayString() + '_rep_' + repIndex : store.getTodayString();
+
+      await store.restoreTodayEvent(habitId, completionDateKey);
+      showToast('Hábito restaurado', 'success');
+      refreshRoutineView();
     });
   });
 

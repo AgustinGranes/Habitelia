@@ -17,6 +17,7 @@ import { render as renderFriends, mount as mountFriends } from './pages/friends.
 import { render as renderSettings, mount as mountSettings } from './pages/settings.js';
 import { render as renderCalculator, mount as mountCalculator } from './pages/calculator.js';
 import { render as renderTodo, mount as mountTodo } from './pages/todo.js';
+import { render as renderTimer, mount as mountTimer } from './pages/timer.js';
 import { renderSidebar, mountSidebar, openSidebar, closeSidebar } from './components/sidebar.js';
 
 const routesMap = {
@@ -33,6 +34,7 @@ const routesMap = {
   '/settings': { render: renderSettings, mount: mountSettings },
   '/calculator': { render: renderCalculator, mount: mountCalculator },
   '/todo': { render: renderTodo, mount: mountTodo },
+  '/timer': { render: renderTimer, mount: mountTimer },
 };
 
 // Edge Swipe from Left Gesture to Open Sidebar (preventing browser back gesture)
@@ -115,7 +117,8 @@ const showSplash = () => {
 
 let routerStarted = false;
 
-const renderApp = (routePath, params) => {
+// Exported globally for sidebar direct navigation (bypasses swipe guard)
+const renderApp = window._renderApp = (routePath, params) => {
   try {
     // ROUTE GUARD: If authenticated user lands on /login or /, replace state silently to /home without showing splash or re-rendering
     if (auth.currentUser && (routePath === '/login' || routePath === '/')) {
@@ -188,6 +191,7 @@ const startRouter = () => {
     if (rawPath === '/calculator') return { path: '/calculator', params };
     if (rawPath === '/todo') return { path: '/todo', params };
     if (rawPath === '/settings') return { path: '/settings', params };
+    if (rawPath === '/timer') return { path: '/timer', params };
 
     return { path: '/login', params: {} };
   };
