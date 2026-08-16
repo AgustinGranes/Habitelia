@@ -199,20 +199,33 @@ export function render(props = {}) {
                     </div>
                 </div>
 
-                <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-                    <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); padding: 3px 8px; border-radius: 16px; font-size: 11.5px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 4px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 140px; flex-shrink: 0; align-items: center;">
+                    <!-- 1. Racha -->
+                    <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); padding: 5px; border-radius: 8px; font-size: 11px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; justify-content: center; gap: 4px; box-sizing: border-box; height: 30px;">
                         ${iconSVG('flame', 12)} ${ev.streak}d
                     </div>
-                    ${!ev.completed && !ev.skipped ? `
-                    <button class="btn-ghost btn-skip-habit-home" data-id="${ev.id}" data-name="${ev.name}" title="Saltar Hábito" style="padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border-subtle); font-size: 11.5px; color: var(--text-secondary); cursor: pointer;">
-                        Saltar
-                    </button>` : ''}
-                    ${ev.skipped ? `<span style="font-size: 11.5px; font-weight: 600; color: #E53E3E; background: rgba(229,62,62,0.1); padding: 3px 8px; border-radius: 12px;">Salteado</span>` : ''}
-                    <button class="btn-ghost btn-edit-habit" data-id="${ev.id}" title="Editar" style="padding: 5px; border-radius: 6px; color: var(--text-secondary);">
-                        ${iconSVG('edit', 15)}
+                    
+                    <!-- 2. Saltar o Estado -->
+                    <div style="display: flex; align-items: center; justify-content: center; box-sizing: border-box; height: 30px; width: 100%;">
+                        ${ev.completed ? `
+                            <span style="font-size: 11px; font-weight: 600; color: #2E7D32; background: rgba(46,125,50,0.1); padding: 4px 8px; border-radius: 8px; width: 100%; text-align: center;">Hecho</span>
+                        ` : (ev.skipped ? `
+                            <span style="font-size: 11px; font-weight: 600; color: #E53E3E; background: rgba(229,62,62,0.1); padding: 4px 8px; border-radius: 8px; width: 100%; text-align: center;">Saltado</span>
+                        ` : `
+                            <button class="btn-ghost btn-skip-habit-home" data-id="${ev.id}" data-name="${ev.name}" title="Saltar Hábito" style="padding: 4px 0; border-radius: 8px; border: 1px solid var(--border-subtle); font-size: 11px; color: var(--text-secondary); cursor: pointer; width: 100%; text-align: center; height: 100%; box-sizing: border-box; display: flex; align-items: center; justify-content: center; touch-action: manipulation;">
+                                Saltar
+                            </button>
+                        `)}
+                    </div>
+                    
+                    <!-- 3. Editar -->
+                    <button class="btn-ghost btn-edit-habit" data-id="${ev.id}" title="Editar" style="padding: 5px 0; border-radius: 8px; border: 1px solid var(--border-subtle); color: var(--text-secondary); height: 30px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; touch-action: manipulation; cursor: pointer;">
+                        ${iconSVG('edit', 13)} <span style="font-size: 11px; margin-left: 4px;">Editar</span>
                     </button>
-                    <button class="btn-ghost btn-delete-habit" data-id="${ev.id}" data-name="${ev.name}" title="Eliminar" style="padding: 5px; border-radius: 6px; color: var(--text-tertiary);">
-                        ${iconSVG('trash', 15)}
+                    
+                    <!-- 4. Eliminar -->
+                    <button class="btn-ghost btn-delete-habit" data-id="${ev.id}" data-name="${ev.name}" title="Eliminar" style="padding: 5px 0; border-radius: 8px; border: 1px solid var(--border-subtle); color: var(--text-tertiary); height: 30px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; touch-action: manipulation; cursor: pointer;">
+                        ${iconSVG('trash', 13)} <span style="font-size: 11px; margin-left: 4px;">Eliminar</span>
                     </button>
                 </div>
             </div>

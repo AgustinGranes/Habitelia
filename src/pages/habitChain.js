@@ -121,7 +121,7 @@ function renderMonthlyGrid(habit, year, month) {
       </div>
 
       <!-- Legend -->
-      <div style="display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-top: 16px; font-size: 11px; color: var(--text-secondary);">
+      <div style="display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 16px; margin-top: 16px; font-size: 11.5px; color: var(--text-secondary);">
         <div style="display: flex; align-items: center; gap: 6px;">
           <div style="width: 14px; height: 14px; border-radius: 4px; background: var(--bg-primary); border: 1px solid var(--border-subtle); position: relative; overflow: hidden;">
             <svg width="14" height="14" style="position: absolute; top: 0; left: 0;"><line x1="0" y1="14" x2="14" y2="0" stroke="var(--text-tertiary)" stroke-width="1" opacity="0.4"/></svg>

@@ -85,12 +85,12 @@ function renderTabContent(tab) {
                 <div id="sw-display" style="font-size: 64px; font-weight: 300; font-family: monospace; color: var(--text-primary); margin-bottom: 40px; font-variant-numeric: tabular-nums;">
                     ${formatTime(swElapsedTime, true)}
                 </div>
-                <div style="display: flex; gap: 20px; width: 100%; justify-content: center;">
-                    <button id="sw-reset" style="width: 60px; height: 60px; border-radius: 30px; border: 1px solid var(--border-subtle); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; touch-action: manipulation;">Reset</button>
-                    ${swIsRunning ? 
-                        `<button id="sw-pause" style="width: 80px; height: 80px; border-radius: 40px; border: none; background: #FFF3E0; color: #E65100; font-weight: 600; cursor: pointer; touch-action: manipulation; box-shadow: 0 4px 12px rgba(230,81,0,0.2);">Pausa</button>` :
-                        `<button id="sw-start" style="width: 80px; height: 80px; border-radius: 40px; border: none; background: #E8F5E9; color: #2E7D32; font-weight: 600; cursor: pointer; touch-action: manipulation; box-shadow: 0 4px 12px rgba(46,125,50,0.2);">Iniciar</button>`
-                    }
+                <div style="display: flex; gap: 20px; width: 100%; justify-content: center; align-items: center;">
+                    <button id="sw-reset" style="width: 72px; height: 72px; border-radius: 36px; border: 1px solid var(--border-subtle); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; font-weight: 600; font-size: 14px; touch-action: manipulation; display: flex; align-items: center; justify-content: center;">Reset</button>
+                    
+                    <button id="sw-start" style="width: 72px; height: 72px; border-radius: 36px; border: none; background: #E8F5E9; color: #2E7D32; font-weight: 600; font-size: 14px; cursor: pointer; touch-action: manipulation; box-shadow: 0 4px 12px rgba(46,125,50,0.2); display: ${swIsRunning ? 'none' : 'flex'}; align-items: center; justify-content: center;">Iniciar</button>
+                    
+                    <button id="sw-pause" style="width: 72px; height: 72px; border-radius: 36px; border: none; background: #FFF3E0; color: #E65100; font-weight: 600; font-size: 14px; cursor: pointer; touch-action: manipulation; box-shadow: 0 4px 12px rgba(230,81,0,0.2); display: ${swIsRunning ? 'flex' : 'none'}; align-items: center; justify-content: center;">Pausa</button>
                 </div>
             </div>
         `;
@@ -113,12 +113,12 @@ function renderTabContent(tab) {
                     <div id="tm-progress" style="height: 100%; width: ${progress}%; background: ${tmFinished ? '#E65100' : 'var(--text-primary)'}; transition: width 0.1s linear;"></div>
                 </div>
 
-                <div style="display: flex; gap: 20px; width: 100%; justify-content: center;">
-                    <button id="tm-reset" style="width: 60px; height: 60px; border-radius: 30px; border: 1px solid var(--border-subtle); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; touch-action: manipulation;">Reset</button>
-                    ${tmIsRunning ? 
-                        `<button id="tm-pause" style="width: 80px; height: 80px; border-radius: 40px; border: none; background: #FFF3E0; color: #E65100; font-weight: 600; cursor: pointer; touch-action: manipulation; box-shadow: 0 4px 12px rgba(230,81,0,0.2);">Pausa</button>` :
-                        `<button id="tm-start" style="width: 80px; height: 80px; border-radius: 40px; border: none; background: #E8F5E9; color: #2E7D32; font-weight: 600; cursor: pointer; touch-action: manipulation; box-shadow: 0 4px 12px rgba(46,125,50,0.2);">Iniciar</button>`
-                    }
+                <div style="display: flex; gap: 20px; width: 100%; justify-content: center; align-items: center;">
+                    <button id="tm-reset" style="width: 72px; height: 72px; border-radius: 36px; border: 1px solid var(--border-subtle); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; font-weight: 600; font-size: 14px; touch-action: manipulation; display: flex; align-items: center; justify-content: center;">Reset</button>
+                    
+                    <button id="tm-start" style="width: 72px; height: 72px; border-radius: 36px; border: none; background: #E8F5E9; color: #2E7D32; font-weight: 600; font-size: 14px; cursor: pointer; touch-action: manipulation; box-shadow: 0 4px 12px rgba(46,125,50,0.2); display: ${tmIsRunning ? 'none' : 'flex'}; align-items: center; justify-content: center;">Iniciar</button>
+                    
+                    <button id="tm-pause" style="width: 72px; height: 72px; border-radius: 36px; border: none; background: #FFF3E0; color: #E65100; font-weight: 600; font-size: 14px; cursor: pointer; touch-action: manipulation; box-shadow: 0 4px 12px rgba(230,81,0,0.2); display: ${tmIsRunning ? 'flex' : 'none'}; align-items: center; justify-content: center;">Pausa</button>
                 </div>
             </div>
             <style>
@@ -159,16 +159,16 @@ function renderTabContent(tab) {
                         <div id="pm-display" style="font-size: 48px; font-weight: 300; font-family: monospace; color: var(--text-primary); font-variant-numeric: tabular-nums;">
                             ${formatTime(pmRemainingTime, false)}
                         </div>
-                        <span style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">Ciclo ${pmCycle}</span>
+                        <span id="pm-cycle-label" style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">Ciclo ${pmCycle}</span>
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 20px; width: 100%; justify-content: center;">
-                    <button id="pm-reset" style="width: 60px; height: 60px; border-radius: 30px; border: 1px solid var(--border-subtle); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; touch-action: manipulation;">Reset</button>
-                    ${pmIsRunning ? 
-                        `<button id="pm-pause" style="width: 80px; height: 80px; border-radius: 40px; border: none; background: #FFF3E0; color: #E65100; font-weight: 600; cursor: pointer; touch-action: manipulation; box-shadow: 0 4px 12px rgba(230,81,0,0.2);">Pausa</button>` :
-                        `<button id="pm-start" style="width: 80px; height: 80px; border-radius: 40px; border: none; background: ${pmPhase === 'work' ? '#E8F5E9' : '#E3F2FD'}; color: ${pmPhase === 'work' ? '#2E7D32' : '#1565C0'}; font-weight: 600; cursor: pointer; touch-action: manipulation; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">Iniciar</button>`
-                    }
+                <div style="display: flex; gap: 20px; width: 100%; justify-content: center; align-items: center;">
+                    <button id="pm-reset" style="width: 72px; height: 72px; border-radius: 36px; border: 1px solid var(--border-subtle); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; font-weight: 600; font-size: 14px; touch-action: manipulation; display: flex; align-items: center; justify-content: center;">Reset</button>
+                    
+                    <button id="pm-start" style="width: 72px; height: 72px; border-radius: 36px; border: none; background: ${pmPhase === 'work' ? '#E8F5E9' : '#E3F2FD'}; color: ${pmPhase === 'work' ? '#2E7D32' : '#1565C0'}; font-weight: 600; font-size: 14px; cursor: pointer; touch-action: manipulation; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: ${pmIsRunning ? 'none' : 'flex'}; align-items: center; justify-content: center;">Iniciar</button>
+                    
+                    <button id="pm-pause" style="width: 72px; height: 72px; border-radius: 36px; border: none; background: #FFF3E0; color: #E65100; font-weight: 600; font-size: 14px; cursor: pointer; touch-action: manipulation; box-shadow: 0 4px 12px rgba(230,81,0,0.2); display: ${pmIsRunning ? 'flex' : 'none'}; align-items: center; justify-content: center;">Pausa</button>
                 </div>
             </div>
         `;
@@ -221,23 +221,15 @@ function setupCurrentTabLogic() {
     }
 }
 
-function reRenderButtons() {
-    const container = document.getElementById('tab-content-container');
-    if (container) {
-        container.innerHTML = renderTabContent(currentTab);
-        setupCurrentTabLogic();
-    }
-}
-
 // --- Stopwatch Logic ---
 function setupStopwatch() {
     const btnStart = document.getElementById('sw-start');
     const btnPause = document.getElementById('sw-pause');
     const btnReset = document.getElementById('sw-reset');
     
-    if (btnStart) btnStart.addEventListener('click', startStopwatch);
-    if (btnPause) btnPause.addEventListener('click', pauseStopwatch);
-    if (btnReset) btnReset.addEventListener('click', resetStopwatch);
+    if (btnStart) btnStart.onclick = startStopwatch;
+    if (btnPause) btnPause.onclick = pauseStopwatch;
+    if (btnReset) btnReset.onclick = resetStopwatch;
 
     if (swIsRunning) {
         swRafId = requestAnimationFrame(updateStopwatchUI);
@@ -254,7 +246,11 @@ function startStopwatch() {
             swElapsedTime = Date.now() - swStartTime;
         }, 10);
         swRafId = requestAnimationFrame(updateStopwatchUI);
-        reRenderButtons();
+        
+        const btnStart = document.getElementById('sw-start');
+        const btnPause = document.getElementById('sw-pause');
+        if (btnStart) btnStart.style.display = 'none';
+        if (btnPause) btnPause.style.display = 'flex';
     }
 }
 
@@ -263,7 +259,11 @@ function pauseStopwatch() {
         swIsRunning = false;
         clearInterval(swInterval);
         cancelAnimationFrame(swRafId);
-        reRenderButtons();
+        
+        const btnStart = document.getElementById('sw-start');
+        const btnPause = document.getElementById('sw-pause');
+        if (btnStart) btnStart.style.display = 'flex';
+        if (btnPause) btnPause.style.display = 'none';
     }
 }
 
@@ -273,7 +273,11 @@ function resetStopwatch() {
     cancelAnimationFrame(swRafId);
     swElapsedTime = 0;
     updateStopwatchDisplay();
-    reRenderButtons();
+    
+    const btnStart = document.getElementById('sw-start');
+    const btnPause = document.getElementById('sw-pause');
+    if (btnStart) btnStart.style.display = 'flex';
+    if (btnPause) btnPause.style.display = 'none';
 }
 
 function updateStopwatchUI() {
@@ -296,11 +300,11 @@ function setupTimer() {
     const btnReset = document.getElementById('tm-reset');
     const input = document.getElementById('tm-input');
 
-    if (btnStart) btnStart.addEventListener('click', startTimer);
-    if (btnPause) btnPause.addEventListener('click', pauseTimer);
-    if (btnReset) btnReset.addEventListener('click', resetTimer);
+    if (btnStart) btnStart.onclick = startTimer;
+    if (btnPause) btnPause.onclick = pauseTimer;
+    if (btnReset) btnReset.onclick = resetTimer;
     if (input) {
-        input.addEventListener('change', (e) => {
+        input.onchange = (e) => {
             if (!tmIsRunning) {
                 let mins = parseInt(e.target.value);
                 if (isNaN(mins) || mins < 1) mins = 1;
@@ -311,7 +315,7 @@ function setupTimer() {
                 tmFinished = false;
                 updateTimerDisplay();
             }
-        });
+        };
     }
 
     if (tmIsRunning) {
@@ -334,11 +338,59 @@ function startTimer() {
             }
         }, 50);
         tmRafId = requestAnimationFrame(updateTimerUI);
-        reRenderButtons();
+        
+        const btnStart = document.getElementById('tm-start');
+        const btnPause = document.getElementById('tm-pause');
+        if (btnStart) btnStart.style.display = 'none';
+        if (btnPause) btnPause.style.display = 'flex';
     }
 }
 
-// Visual update handler for Timer
+function pauseTimer() {
+    if (tmIsRunning) {
+        tmIsRunning = false;
+        clearInterval(tmInterval);
+        cancelAnimationFrame(tmRafId);
+        
+        const btnStart = document.getElementById('tm-start');
+        const btnPause = document.getElementById('tm-pause');
+        if (btnStart) btnStart.style.display = 'flex';
+        if (btnPause) btnPause.style.display = 'none';
+    }
+}
+
+function resetTimer() {
+    tmIsRunning = false;
+    clearInterval(tmInterval);
+    cancelAnimationFrame(tmRafId);
+    tmFinished = false;
+    
+    const input = document.getElementById('tm-input');
+    if (input) {
+        tmDuration = parseInt(input.value) * 60 * 1000;
+    }
+    tmRemainingTime = tmDuration;
+    updateTimerDisplay();
+    
+    const btnStart = document.getElementById('tm-start');
+    const btnPause = document.getElementById('tm-pause');
+    if (btnStart) btnStart.style.display = 'flex';
+    if (btnPause) btnPause.style.display = 'none';
+}
+
+function finishTimer() {
+    tmIsRunning = false;
+    clearInterval(tmInterval);
+    cancelAnimationFrame(tmRafId);
+    tmFinished = true;
+    
+    const btnStart = document.getElementById('tm-start');
+    const btnPause = document.getElementById('tm-pause');
+    if (btnStart) btnStart.style.display = 'flex';
+    if (btnPause) btnPause.style.display = 'none';
+    updateTimerDisplay();
+}
+
 function updateTimerUI() {
     if (!tmIsRunning || currentTab !== 'timer') return;
     updateTimerDisplay();
@@ -371,12 +423,12 @@ function setupPomodoro() {
     const workInput = document.getElementById('pm-work-input');
     const breakInput = document.getElementById('pm-break-input');
 
-    if (btnStart) btnStart.addEventListener('click', startPomodoro);
-    if (btnPause) btnPause.addEventListener('click', pausePomodoro);
-    if (btnReset) btnReset.addEventListener('click', resetPomodoro);
+    if (btnStart) btnStart.onclick = startPomodoro;
+    if (btnPause) btnPause.onclick = pausePomodoro;
+    if (btnReset) btnReset.onclick = resetPomodoro;
     
     if (workInput) {
-        workInput.addEventListener('change', (e) => {
+        workInput.onchange = (e) => {
             let mins = parseInt(e.target.value);
             if (isNaN(mins) || mins < 1) mins = 1;
             if (mins > 90) mins = 90;
@@ -386,11 +438,11 @@ function setupPomodoro() {
                 pmRemainingTime = pmWorkDuration;
                 updatePomodoroDisplay();
             }
-        });
+        };
     }
 
     if (breakInput) {
-        breakInput.addEventListener('change', (e) => {
+        breakInput.onchange = (e) => {
             let mins = parseInt(e.target.value);
             if (isNaN(mins) || mins < 1) mins = 1;
             if (mins > 30) mins = 30;
@@ -400,7 +452,7 @@ function setupPomodoro() {
                 pmRemainingTime = pmBreakDuration;
                 updatePomodoroDisplay();
             }
-        });
+        };
     }
 
     if (pmIsRunning) {
@@ -426,7 +478,11 @@ function startPomodoro() {
         }, 50);
         
         pmRafId = requestAnimationFrame(updatePomodoroUI);
-        reRenderButtons();
+        
+        const btnStart = document.getElementById('pm-start');
+        const btnPause = document.getElementById('pm-pause');
+        if (btnStart) btnStart.style.display = 'none';
+        if (btnPause) btnPause.style.display = 'flex';
     }
 }
 
@@ -435,7 +491,11 @@ function pausePomodoro() {
         pmIsRunning = false;
         clearInterval(pmInterval);
         cancelAnimationFrame(pmRafId);
-        reRenderButtons();
+        
+        const btnStart = document.getElementById('pm-start');
+        const btnPause = document.getElementById('pm-pause');
+        if (btnStart) btnStart.style.display = 'flex';
+        if (btnPause) btnPause.style.display = 'none';
     }
 }
 
@@ -448,7 +508,16 @@ function resetPomodoro() {
     pmCycle = 1;
     pmRemainingTime = pmWorkDuration;
     
-    reRenderButtons();
+    updatePomodoroDisplay();
+    
+    const btnStart = document.getElementById('pm-start');
+    const btnPause = document.getElementById('pm-pause');
+    if (btnStart) {
+        btnStart.style.display = 'flex';
+        btnStart.style.background = '#E8F5E9';
+        btnStart.style.color = '#2E7D32';
+    }
+    if (btnPause) btnPause.style.display = 'none';
 }
 
 function switchPomodoroPhase() {
@@ -473,7 +542,29 @@ function switchPomodoroPhase() {
         }
     }, 50);
     
-    reRenderButtons();
+    const btnStart = document.getElementById('pm-start');
+    const btnPause = document.getElementById('pm-pause');
+    if (btnStart) {
+        btnStart.style.display = 'none';
+        btnStart.style.background = pmPhase === 'work' ? '#E8F5E9' : '#E3F2FD';
+        btnStart.style.color = pmPhase === 'work' ? '#2E7D32' : '#1565C0';
+    }
+    if (btnPause) btnPause.style.display = 'flex';
+    
+    const phaseLabel = document.getElementById('pm-phase-label');
+    const cycleLabel = document.getElementById('pm-cycle-label');
+    const circle = document.getElementById('pm-circle');
+    
+    if (phaseLabel) {
+        phaseLabel.textContent = pmPhase === 'work' ? 'Enfoque' : 'Descanso';
+        phaseLabel.style.color = pmPhase === 'work' ? '#2E7D32' : '#1565C0';
+    }
+    if (cycleLabel) {
+        cycleLabel.textContent = `Ciclo ${pmCycle}`;
+    }
+    if (circle) {
+        circle.setAttribute('stroke', pmPhase === 'work' ? '#2E7D32' : '#1565C0');
+    }
 }
 
 function updatePomodoroUI() {
