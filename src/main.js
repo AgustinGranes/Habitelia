@@ -1,5 +1,5 @@
 import './main.css';
-import { onAuthChange } from './firebase.js';
+import { onAuthChange, auth } from './firebase.js';
 import { store } from './store.js';
 import { navigate, getCurrentRoute } from './router.js';
 import { initTheme } from './utils/theme.js';
@@ -17,7 +17,7 @@ import { render as renderFriends, mount as mountFriends } from './pages/friends.
 import { render as renderSettings, mount as mountSettings } from './pages/settings.js';
 import { render as renderCalculator, mount as mountCalculator } from './pages/calculator.js';
 import { render as renderTodo, mount as mountTodo } from './pages/todo.js';
-import { renderSidebar, mountSidebar } from './components/sidebar.js';
+import { renderSidebar, mountSidebar, openSidebar } from './components/sidebar.js';
 
 const routesMap = {
   '/login': { render: renderLogin, mount: mountLogin },
@@ -35,43 +35,45 @@ const routesMap = {
   '/todo': { render: renderTodo, mount: mountTodo },
 };
 
-import { openSidebar } from './components/sidebar.js';
-
-// Edge Swipe from Left Gesture to Open Sidebar
+// Edge Swipe from Left Gesture to Open Sidebar (preventing browser back gesture)
 let touchStartX = 0;
 let touchStartY = 0;
+let isEdgeSwipe = false;
 
 window.addEventListener('touchstart', (e) => {
   if (e.touches && e.touches.length === 1) {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
+    isEdgeSwipe = touchStartX < 90;
   }
 }, { passive: true });
 
 window.addEventListener('touchmove', (e) => {
-  if (e.touches && e.touches.length === 1) {
+  if (e.touches && e.touches.length === 1 && isEdgeSwipe) {
     const currentX = e.touches[0].clientX;
     const currentY = e.touches[0].clientY;
     const diffX = currentX - touchStartX;
     const diffY = currentY - touchStartY;
 
-    if (touchStartX < 90 && diffX > 45 && Math.abs(diffY) < 60) {
+    if (diffX > 30 && Math.abs(diffY) < 60) {
+      if (e.cancelable) e.preventDefault();
       openSidebar();
     }
   }
-}, { passive: true });
+}, { passive: false });
 
 window.addEventListener('touchend', (e) => {
-  if (e.changedTouches && e.changedTouches.length === 1) {
+  if (e.changedTouches && e.changedTouches.length === 1 && isEdgeSwipe) {
     const touchEndX = e.changedTouches[0].clientX;
     const touchEndY = e.changedTouches[0].clientY;
     const diffX = touchEndX - touchStartX;
     const diffY = touchEndY - touchStartY;
 
-    if (touchStartX < 90 && diffX > 45 && Math.abs(diffY) < 60) {
+    if (diffX > 30 && Math.abs(diffY) < 60) {
       openSidebar();
     }
   }
+  isEdgeSwipe = false;
 }, { passive: true });
 
 const getAppContainer = () => document.getElementById('app') || document.body;
@@ -104,6 +106,18 @@ let routerStarted = false;
 
 const renderApp = (routePath, params) => {
   try {
+    // ROUTE GUARD: If authenticated user lands on /login or /, NEVER log out or show login page! Redirect to /home
+    if (auth.currentUser && (routePath === '/login' || routePath === '/')) {
+      const state = store.getState();
+      const localOnboarded = localStorage.getItem(`onboardingCompleted_${auth.currentUser.uid}`) === 'true';
+      const isOnboarded = state.user?.onboardingCompleted === true || localOnboarded;
+      const targetHash = isOnboarded ? '/home' : '/onboarding';
+      if (window.location.hash !== `#${targetHash}`) {
+        window.location.hash = targetHash;
+        return;
+      }
+      routePath = targetHash;
+    }
     store.setState({ currentRoute: routePath });
     const appContainer = getAppContainer();
 

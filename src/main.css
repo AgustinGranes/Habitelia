@@ -47,6 +47,8 @@ html, body {
   line-height: 1.5;
   letter-spacing: -0.01em;
   overflow-x: hidden;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
