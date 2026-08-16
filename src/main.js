@@ -17,7 +17,7 @@ import { render as renderFriends, mount as mountFriends } from './pages/friends.
 import { render as renderSettings, mount as mountSettings } from './pages/settings.js';
 import { render as renderCalculator, mount as mountCalculator } from './pages/calculator.js';
 import { render as renderTodo, mount as mountTodo } from './pages/todo.js';
-import { renderSidebar, mountSidebar, openSidebar } from './components/sidebar.js';
+import { renderSidebar, mountSidebar, openSidebar, closeSidebar } from './components/sidebar.js';
 
 const routesMap = {
   '/login': { render: renderLogin, mount: mountLogin },

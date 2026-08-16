@@ -3,10 +3,33 @@ import { navigate } from '../router.js';
 import { logOut } from '../firebase.js';
 import { iconSVG } from './icons.js';
 
+let _sidebarIsOpen = false;
+
+export function closeSidebar() {
+  _sidebarIsOpen = false;
+  const panel = document.getElementById('sidebar-panel');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (panel) panel.classList.remove('open');
+  if (overlay) {
+    overlay.classList.remove('show');
+    setTimeout(() => {
+      if (!_sidebarIsOpen && overlay) overlay.style.display = 'none';
+    }, 200);
+  }
+  store.setState({ sidebarOpen: false });
+}
+
 export function openSidebar() {
+  if (_sidebarIsOpen) return;
+  _sidebarIsOpen = true;
+
   let overlay = document.getElementById('sidebar-overlay');
   let panel = document.getElementById('sidebar-panel');
+
   if (!overlay || !panel) {
+    document.querySelectorAll('#sidebar-overlay').forEach(el => el.remove());
+    document.querySelectorAll('#sidebar-panel').forEach(el => el.remove());
+
     const appContainer = document.getElementById('app') || document.body;
     const sidebarHTML = renderSidebar();
     appContainer.insertAdjacentHTML('beforeend', sidebarHTML);
@@ -14,6 +37,7 @@ export function openSidebar() {
     overlay = document.getElementById('sidebar-overlay');
     panel = document.getElementById('sidebar-panel');
   }
+
   if (overlay && panel) {
     overlay.style.display = 'block';
     requestAnimationFrame(() => {
@@ -33,8 +57,8 @@ export function renderSidebar() {
     const isActive = (path) => currentRoute === path ? 'active' : '';
 
     return `
-        <div class="sidebar-overlay" id="sidebar-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 100; opacity: 0; transition: opacity 0.25s ease;"></div>
-        <div class="sidebar" id="sidebar-panel" style="position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; z-index: 101; transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; border-right: 1px solid var(--border-subtle); background: var(--bg-surface);">
+        <div class="sidebar-overlay" id="sidebar-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 100; opacity: 0; transition: opacity 0.15s ease;"></div>
+        <div class="sidebar" id="sidebar-panel" style="position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; z-index: 101; transition: left 0.25s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; border-right: 1px solid var(--border-subtle); background: var(--bg-surface);">
             <div class="sidebar-header" style="padding: 32px 24px 24px 24px; border-bottom: 1px solid var(--border-subtle);">
                 <div style="font-family: var(--font-serif); font-size: 26px; color: var(--text-primary); letter-spacing: -0.02em; font-weight: 400; margin-bottom: 16px;">
                     HABITELIA<span class="brand-dot" style="color: var(--text-primary);">.</span>
@@ -97,7 +121,6 @@ export function mountSidebar() {
         currentSidebarUnsub = null;
     }
 
-    // Clean up duplicate sidebars if any
     const overlays = document.querySelectorAll('#sidebar-overlay');
     const panels = document.querySelectorAll('#sidebar-panel');
     if (overlays.length > 1) {
@@ -112,11 +135,18 @@ export function mountSidebar() {
     
     if (!overlay || !panel) return;
 
-    const closeSidebar = () => {
-        store.setState({ sidebarOpen: false });
-    };
+    // Instant close on tap/touch anywhere on overlay
+    overlay.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeSidebar();
+    }, { passive: false });
 
-    overlay.onclick = closeSidebar;
+    overlay.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeSidebar();
+    });
 
     panel.querySelectorAll('.sidebar-nav-item').forEach(item => {
         item.onclick = async (e) => {
@@ -139,17 +169,19 @@ export function mountSidebar() {
     currentSidebarUnsub = store.subscribe(() => {
         const isOpen = store.getState().sidebarOpen;
         if (isOpen) {
+            _sidebarIsOpen = true;
             overlay.style.display = 'block';
             requestAnimationFrame(() => {
                 panel.classList.add('open');
                 overlay.classList.add('show');
             });
         } else {
+            _sidebarIsOpen = false;
             panel.classList.remove('open');
             overlay.classList.remove('show');
             setTimeout(() => {
-                if (!store.getState().sidebarOpen && overlay) overlay.style.display = 'none';
-            }, 250);
+                if (!_sidebarIsOpen && overlay) overlay.style.display = 'none';
+            }, 200);
         }
     });
     
