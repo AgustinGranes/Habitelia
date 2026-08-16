@@ -6,13 +6,17 @@ export const setCurrentRoute = (path, params = {}) => {
   currentRoute = { path, params };
 };
 
-export const navigate = (path, params = {}) => {
+export const navigate = (path, params = {}, replace = false) => {
   let target = path;
   if (params && typeof params === 'object' && Object.keys(params).length > 0) {
     const query = new URLSearchParams(params).toString();
     target = `${path}?${query}`;
   }
-  window.location.hash = target;
+  if (replace) {
+    window.location.replace(`#${target}`);
+  } else {
+    window.location.hash = target;
+  }
 };
 
 export const goBack = () => {

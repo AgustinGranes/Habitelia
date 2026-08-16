@@ -106,22 +106,26 @@ let routerStarted = false;
 
 const renderApp = (routePath, params) => {
   try {
-    // ROUTE GUARD: If authenticated user lands on /login or /, NEVER log out or show login page! Redirect to /home
+    // ROUTE GUARD: If authenticated user lands on /login or /, replace state silently to /home without showing splash or re-rendering
     if (auth.currentUser && (routePath === '/login' || routePath === '/')) {
       const state = store.getState();
       const localOnboarded = localStorage.getItem(`onboardingCompleted_${auth.currentUser.uid}`) === 'true';
       const isOnboarded = state.user?.onboardingCompleted === true || localOnboarded;
-      const targetHash = isOnboarded ? '/home' : '/onboarding';
-      if (window.location.hash !== `#${targetHash}`) {
-        window.location.hash = targetHash;
-        return;
-      }
-      routePath = targetHash;
+      const targetHash = isOnboarded ? '#/home' : '#/onboarding';
+      window.history.replaceState(null, '', targetHash);
+      routePath = isOnboarded ? '/home' : '/onboarding';
     }
+
+    // Skip full DOM re-rendering if current route matches target route and app is already populated
+    const currentRouteInState = store.getState().currentRoute;
+    if (currentRouteInState === routePath && document.getElementById('app')?.children.length > 0) {
+      return;
+    }
+
     store.setState({ currentRoute: routePath });
     const appContainer = getAppContainer();
 
-    const route = routesMap[routePath] || routesMap['/login'];
+    const route = routesMap[routePath] || routesMap['/home'];
     const renderFn = route.render || (() => `<div class="page"></div>`);
     const mountFn = route.mount || (() => {});
     const newHTML = renderFn(params);
@@ -136,14 +140,6 @@ const renderApp = (routePath, params) => {
     }
   } catch (err) {
     console.error('Error rendering route:', routePath, err);
-    // Fallback to login so the user sees something
-    try {
-      const appContainer = getAppContainer();
-      appContainer.innerHTML = renderLogin();
-      mountLogin();
-    } catch (e) {
-      console.error('Fatal render error:', e);
-    }
   }
 };
 
@@ -151,7 +147,6 @@ const startRouter = () => {
   if (routerStarted) return;
   routerStarted = true;
 
-  // Parse hash manually (avoids importing initRouter which fires immediately)
   const parseHash = () => {
     const hash = window.location.hash || '#/login';
     const rawPathWithQuery = hash.slice(1);
@@ -192,17 +187,25 @@ const startRouter = () => {
   };
 
   window.addEventListener('hashchange', handleHashChange);
-  // Render current route now
+  window.addEventListener('popstate', (e) => {
+    if (auth.currentUser) {
+      const hash = window.location.hash;
+      if (!hash || hash === '#/' || hash === '#/login' || hash === '#/onboarding') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        window.history.replaceState(null, '', '#/home');
+      }
+    }
+  }, true);
+
   handleHashChange();
 };
 
 const initialize = () => {
   initTheme();
 
-  // Show splash immediately so screen is never black
   showSplash();
 
-  // Wait for Firebase to resolve auth before starting router
   onAuthChange(async (user) => {
     if (user) {
       await store.loadUserData();
@@ -212,20 +215,18 @@ const initialize = () => {
       const isOnboarded = state.user?.onboardingCompleted === true || localOnboarded;
 
       if (!isOnboarded) {
-        window.location.hash = '/onboarding';
+        window.location.replace('#/onboarding');
       } else {
-        // If already on a valid deep-link route, keep it; otherwise go home
         const hash = window.location.hash;
         if (!hash || hash === '#/' || hash === '#/login' || hash === '#/onboarding') {
-          window.location.hash = '/home';
+          window.location.replace('#/home');
         }
       }
     } else {
       store.setState({ user: null });
-      window.location.hash = '/login';
+      window.location.replace('#/login');
     }
 
-    // Now start the router — only called once
     startRouter();
   });
 };
