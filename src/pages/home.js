@@ -323,8 +323,11 @@ export function render(props = {}) {
     return `
         <div class="page home-page" style="padding: 24px 20px 100px 20px; max-width: 620px; margin: 0 auto; width: 100%; box-sizing: border-box;">
             <!-- Header Editorial -->
-            <header style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; width: 100%;">
-                <div>
+            <header style="display: flex; align-items: flex-start; gap: 14px; margin-bottom: 24px; width: 100%;">
+                <button id="menu-btn" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-primary); width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-sizing: border-box; margin-top: 2px;">
+                    ${iconSVG('menu', 20)}
+                </button>
+                <div style="flex: 1; min-width: 0;">
                     <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 4px;">
                         ${formattedDate}
                     </div>
@@ -333,9 +336,6 @@ export function render(props = {}) {
                         Estás convirtiéndote en: "${identity}"
                     </div>
                 </div>
-                <button id="menu-btn" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-primary); width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-sizing: border-box; margin-top: 4px;">
-                    ${iconSVG('menu', 20)}
-                </button>
             </header>
 
             <!-- Daily Progress Card (Monochrome) -->

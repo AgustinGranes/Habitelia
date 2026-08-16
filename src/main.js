@@ -35,6 +35,8 @@ const routesMap = {
   '/todo': { render: renderTodo, mount: mountTodo },
 };
 
+import { openSidebar } from './components/sidebar.js';
+
 // Edge Swipe from Left Gesture to Open Sidebar
 let touchStartX = 0;
 let touchStartY = 0;
@@ -46,6 +48,19 @@ window.addEventListener('touchstart', (e) => {
   }
 }, { passive: true });
 
+window.addEventListener('touchmove', (e) => {
+  if (e.touches && e.touches.length === 1) {
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+    const diffX = currentX - touchStartX;
+    const diffY = currentY - touchStartY;
+
+    if (touchStartX < 90 && diffX > 45 && Math.abs(diffY) < 60) {
+      openSidebar();
+    }
+  }
+}, { passive: true });
+
 window.addEventListener('touchend', (e) => {
   if (e.changedTouches && e.changedTouches.length === 1) {
     const touchEndX = e.changedTouches[0].clientX;
@@ -53,8 +68,8 @@ window.addEventListener('touchend', (e) => {
     const diffX = touchEndX - touchStartX;
     const diffY = touchEndY - touchStartY;
 
-    if (touchStartX < 40 && diffX > 60 && Math.abs(diffY) < 50) {
-      store.setState({ sidebarOpen: true });
+    if (touchStartX < 90 && diffX > 45 && Math.abs(diffY) < 60) {
+      openSidebar();
     }
   }
 }, { passive: true });

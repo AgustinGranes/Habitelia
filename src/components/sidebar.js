@@ -3,6 +3,27 @@ import { navigate } from '../router.js';
 import { logOut } from '../firebase.js';
 import { iconSVG } from './icons.js';
 
+export function openSidebar() {
+  let overlay = document.getElementById('sidebar-overlay');
+  let panel = document.getElementById('sidebar-panel');
+  if (!overlay || !panel) {
+    const appContainer = document.getElementById('app') || document.body;
+    const sidebarHTML = renderSidebar();
+    appContainer.insertAdjacentHTML('beforeend', sidebarHTML);
+    mountSidebar();
+    overlay = document.getElementById('sidebar-overlay');
+    panel = document.getElementById('sidebar-panel');
+  }
+  if (overlay && panel) {
+    overlay.style.display = 'block';
+    requestAnimationFrame(() => {
+      panel.classList.add('open');
+      overlay.classList.add('show');
+    });
+  }
+  store.setState({ sidebarOpen: true });
+}
+
 export function renderSidebar() {
     const state = store.getState();
     const name = state.user?.displayName || state.user?.name || 'Viajero';

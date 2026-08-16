@@ -105,14 +105,14 @@ export function render() {
   if (habits.length === 0) {
     return `
       <div class="page habit-chain-page" style="padding: 24px 20px 100px 20px; max-width: 720px; margin: 0 auto; width: 100%; box-sizing: border-box;">
-        <header style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; width: 100%;">
-          <div>
+        <header style="display: flex; align-items: flex-start; gap: 14px; margin-bottom: 28px; width: 100%;">
+          <button id="menu-btn" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-primary); width: 44px; height: 44px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;">
+            ${iconSVG('menu', 20)}
+          </button>
+          <div style="flex: 1; min-width: 0;">
             <h1 class="editorial-title" style="margin: 0; font-size: 32px;">Mi Cadena<span style="color: var(--text-secondary);">.</span></h1>
             <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Nunca rompas la cadena</div>
           </div>
-          <button id="menu-btn" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-primary); width: 44px; height: 44px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-            ${iconSVG('menu', 20)}
-          </button>
         </header>
 
         <div class="glass-card" style="text-align: center; padding: 48px 24px; border-radius: 20px;">
@@ -141,14 +141,14 @@ export function render() {
 
   return `
     <div class="page habit-chain-page" style="padding: 24px 20px 100px 20px; max-width: 720px; margin: 0 auto; width: 100%; box-sizing: border-box;">
-      <header style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; width: 100%;">
-        <div>
+      <header style="display: flex; align-items: flex-start; gap: 14px; margin-bottom: 28px; width: 100%;">
+        <button id="menu-btn" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-primary); width: 44px; height: 44px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;">
+          ${iconSVG('menu', 20)}
+        </button>
+        <div style="flex: 1; min-width: 0;">
           <h1 class="editorial-title" style="margin: 0; font-size: 32px;">Mi Cadena<span style="color: var(--text-secondary);">.</span></h1>
           <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Visualización mensual de constancia</div>
         </div>
-        <button id="menu-btn" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-primary); width: 44px; height: 44px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-          ${iconSVG('menu', 20)}
-        </button>
       </header>
 
       <div style="margin-bottom: 24px;">
