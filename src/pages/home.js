@@ -174,8 +174,10 @@ export function render(props = {}) {
         return `
             <div class="habit-item-card" data-id="${ev.id}" style="padding: ${isStackedChild ? '12px 14px' : '16px 18px'}; ${isStackedChild ? 'background: var(--bg-primary); border-radius: 14px; border: 1px solid var(--border-subtle); margin-top: 8px;' : ''} display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; box-sizing: border-box;">
                 <div style="display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0;">
-                    <button class="btn-toggle-habit" data-id="${ev.id}" data-completed="${ev.completed}" style="width: 28px; height: 28px; border-radius: 50%; border: 1.75px solid ${ev.completed ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${ev.completed ? 'var(--text-primary)' : 'transparent'}; color: ${ev.completed ? 'var(--bg-primary)' : 'transparent'}; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
-                        ${iconSVG('check', 14)}
+                    <button class="btn-toggle-habit" data-id="${ev.id}" data-completed="${ev.completed}" data-skipped="${ev.skipped}" style="width: 28px; height: 28px; border-radius: 50%; border: 1.75px solid ${ev.completed ? 'var(--text-primary)' : (ev.skipped ? 'var(--text-tertiary)' : 'var(--border-subtle)')}; background: ${ev.completed ? 'var(--text-primary)' : 'transparent'}; color: ${ev.completed ? 'var(--bg-primary)' : 'transparent'}; cursor: ${ev.skipped ? 'not-allowed' : 'pointer'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative; overflow: hidden; transition: all 0.2s ease;">
+                        ${ev.skipped ? `
+                            <svg width="28" height="28" style="position: absolute; top: 0; left: 0; pointer-events: none;"><line x1="0" y1="28" x2="28" y2="0" stroke="var(--text-secondary)" stroke-width="2"/></svg>
+                        ` : (ev.completed ? iconSVG('check', 14) : '')}
                     </button>
 
                     <div style="min-width: 0; flex: 1;">
@@ -750,6 +752,12 @@ export function mount() {
             const repIndex = isRep ? rawId.split('_rep_')[1] : null;
             const completionDateKey = isRep ? store.getTodayString() + '_rep_' + repIndex : store.getTodayString();
             const isCompleted = e.currentTarget.dataset.completed === 'true';
+            const isSkipped = e.currentTarget.dataset.skipped === 'true';
+
+            if (isSkipped) {
+                showToast('Hábito saltado. Desmárcalo para poder completarlo.', 'warning');
+                return;
+            }
 
             if (isCompleted) {
                 await store.uncompleteEvent(habitId, completionDateKey);

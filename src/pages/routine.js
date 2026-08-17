@@ -155,10 +155,12 @@ export function render() {
     }
 
     return `
-      <div class="habit-item-card-routine ${isReorderingRoutine ? '' : 'btn-toggle-routine-today'} ${item.completed ? 'completed' : ''}" data-id="${item.id}" data-completed="${item.completed}" style="display: flex; align-items: center; justify-content: space-between; padding: ${isStackedChild ? '10px 14px' : '14px 18px'}; margin-top: ${isStackedChild ? '6px' : '0'}; border-radius: 14px; background: ${isStackedChild ? 'var(--bg-primary)' : 'transparent'}; border: ${isStackedChild ? '1px solid var(--border-subtle)' : 'none'}; ${isReorderingRoutine ? '' : 'cursor: pointer;'} opacity: ${item.completed ? '0.75' : '1'}; transition: all 0.2s ease; width: 100%; box-sizing: border-box;">
+      <div class="habit-item-card-routine ${isReorderingRoutine ? '' : 'btn-toggle-routine-today'} ${item.completed ? 'completed' : ''}" data-id="${item.id}" data-completed="${item.completed}" data-skipped="${item.skipped}" style="display: flex; align-items: center; justify-content: space-between; padding: ${isStackedChild ? '10px 14px' : '14px 18px'}; margin-top: ${isStackedChild ? '6px' : '0'}; border-radius: 14px; background: ${isStackedChild ? 'var(--bg-primary)' : 'transparent'}; border: ${isStackedChild ? '1px solid var(--border-subtle)' : 'none'}; ${isReorderingRoutine ? '' : (item.skipped ? 'cursor: default;' : 'cursor: pointer;')} opacity: ${item.completed ? '0.75' : '1'}; transition: all 0.2s ease; width: 100%; box-sizing: border-box;">
         <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1;">
-          <div style="width: 26px; height: 26px; border-radius: 50%; border: 1.75px solid ${item.completed ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${item.completed ? (item.isTwoMin ? 'rgba(255,255,255,0.45)' : 'var(--text-primary)') : 'transparent'}; color: ${item.completed ? 'var(--bg-primary)' : 'transparent'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            ${iconSVG('check', 13)}
+          <div style="width: 26px; height: 26px; border-radius: 50%; border: 1.75px solid ${item.completed ? 'var(--text-primary)' : (item.skipped ? 'var(--text-tertiary)' : 'var(--border-subtle)')}; background: ${item.completed ? (item.isTwoMin ? 'rgba(255,255,255,0.45)' : 'var(--text-primary)') : 'transparent'}; color: ${item.completed ? 'var(--bg-primary)' : 'transparent'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative; overflow: hidden;">
+            ${item.skipped ? `
+              <svg width="26" height="26" style="position: absolute; top: 0; left: 0; pointer-events: none;"><line x1="0" y1="26" x2="26" y2="0" stroke="var(--text-secondary)" stroke-width="2"/></svg>
+            ` : (item.completed ? iconSVG('check', 13) : '')}
           </div>
           <div style="min-width: 0; flex: 1;">
             <div style="font-weight: 600; font-size: 15px; color: var(--text-primary); ${item.completed ? 'text-decoration: line-through;' : ''} word-wrap: break-word; white-space: normal;">${isStackedChild ? `↳ ${item.name}` : item.name}</div>
@@ -579,6 +581,12 @@ export function mount() {
       const repIndex = isRep ? rawId.split('_rep_')[1] : null;
       const completionDateKey = isRep ? store.getTodayString() + '_rep_' + repIndex : store.getTodayString();
       const isCompleted = e.currentTarget.dataset.completed === 'true';
+      const isSkipped = e.currentTarget.dataset.skipped === 'true';
+
+      if (isSkipped) {
+        showToast('Hábito saltado. Desmárcalo para poder completarlo.', 'warning');
+        return;
+      }
 
       if (isCompleted) {
         await store.uncompleteEvent(habitId, completionDateKey);
