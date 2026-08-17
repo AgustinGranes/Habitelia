@@ -299,6 +299,20 @@ function focusAndPlaceCaretAtStart(el) {
   }
 }
 
+// Helper to focus and select all text inside an element (ideal for new To-Dos with default "Tarea" text)
+function focusAndSelectAll(el) {
+  try {
+    el.focus();
+  } catch (err) {}
+  try {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } catch (err) {}
+}
+
 // Background title scraper helper (combats CORS using allorigins.win)
 async function fetchPageTitle(url) {
   try {
@@ -469,19 +483,19 @@ function mountNoteDetail(noteId) {
           return;
         }
 
-        // Case 2: Inside a To-Do item -> Create next To-Do item below
+        // Case 2: Inside a To-Do item -> Create next To-Do item below with "Tarea"
         if (todoRow) {
           e.preventDefault();
           const newRow = document.createElement('div');
           newRow.className = 'todo-row';
           newRow.style.cssText = 'display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;';
-          newRow.innerHTML = `<input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary); flex-shrink: 0;"> <div class="todo-text" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea"><br></div>`;
+          newRow.innerHTML = `<input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary); flex-shrink: 0;"> <div class="todo-text" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;">Tarea</div>`;
           
           todoRow.parentNode.insertBefore(newRow, todoRow.nextSibling);
           
           const newTextDiv = newRow.querySelector('.todo-text');
           if (newTextDiv) {
-            focusAndPlaceCaretAtStart(newTextDiv);
+            focusAndSelectAll(newTextDiv);
           }
           triggerAutosave();
           return;
@@ -696,7 +710,7 @@ function mountNoteDetail(noteId) {
       let blockHtml = '';
       switch (type) {
         case 'todo':
-          blockHtml = `<div class="todo-row" style="display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;"><input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary); flex-shrink: 0;"> <div class="todo-text" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea"><br></div></div>`;
+          blockHtml = `<div class="todo-row" style="display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;"><input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary); flex-shrink: 0;"> <div class="todo-text" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;">Tarea</div></div>`;
           break;
         case 'h1':
           blockHtml = `<h1 style="font-size: 26px; font-weight: 800; font-family: var(--font-serif); color: var(--text-primary); margin: 20px 0 8px 0; outline: none;">Encabezado 1</h1>`;
@@ -712,6 +726,15 @@ function mountNoteDetail(noteId) {
       insertHTMLAtCursor(blockHtml, deleteRange);
       triggerAutosave();
       if (slashMenu) slashMenu.style.display = 'none';
+
+      if (type === 'todo') {
+        const rows = contentEditor.querySelectorAll('.todo-row');
+        const lastRow = rows[rows.length - 1];
+        const lastText = lastRow?.querySelector('.todo-text');
+        if (lastText) {
+          focusAndSelectAll(lastText);
+        }
+      }
     });
   });
 
