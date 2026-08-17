@@ -148,7 +148,7 @@ function renderNoteDetail(note) {
       <div id="note-editor-wrapper" style="position: relative; width: 100%;">
         <input type="text" id="note-title-input" value="${note.title || ''}" placeholder="Título de la nota..." style="border: none; background: transparent; font-size: 28px; font-weight: 800; font-family: var(--font-serif); color: var(--text-primary); width: 100%; outline: none; padding: 0; box-sizing: border-box;" maxlength="80">
         
-        <textarea id="note-content-input" placeholder="Comienza a escribir aquí. Escribe / para insertar bloques como en Notion..." style="border: none; background: transparent; font-size: 15px; font-family: var(--font-sans); color: var(--text-secondary); width: 100%; min-height: 350px; resize: none; outline: none; line-height: 1.6; padding: 0; margin-top: 18px; box-sizing: border-box;"></textarea>
+        <div id="note-content-editor" contenteditable="true" placeholder="Comienza a escribir aquí. Escribe / para insertar bloques..." style="border: none; background: transparent; font-size: 15px; font-family: var(--font-sans); color: var(--text-secondary); width: 100%; min-height: 380px; outline: none; line-height: 1.6; padding: 0; margin-top: 18px; box-sizing: border-box; overflow-y: auto;"></div>
 
         <!-- Notion Slash Suggestions Dropdown -->
         <div id="notion-slash-menu" style="display: none; position: absolute; background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 2200; width: 230px; max-height: 260px; overflow-y: auto; padding: 6px; left: 0; top: 0;">
@@ -157,7 +157,7 @@ function renderNoteDetail(note) {
             <span style="font-size: 16px;">☑️</span>
             <div>
               <div style="font-weight: 600;">Lista de Tareas</div>
-              <div style="font-size: 10px; color: var(--text-secondary);">Hacer seguimiento</div>
+              <div style="font-size: 10px; color: var(--text-secondary);">Hacer seguimiento interactivo</div>
             </div>
           </div>
           <div class="slash-item" data-type="h1" style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; font-size: 13px; color: var(--text-primary); cursor: pointer; transition: background 0.15s ease;">
@@ -219,7 +219,7 @@ function renderNoteDetail(note) {
             <span style="font-size: 15px;">🔗</span>
             <div>
               <div style="font-weight: 600;">Mencionar Enlace</div>
-              <div style="font-size: 10px; color: var(--text-secondary);">Insertar botón visual</div>
+              <div style="font-size: 10px; color: var(--text-secondary);">Favicon + título + hipervínculo</div>
             </div>
           </button>
           <button id="btn-paste-normal" class="slash-item" style="background: transparent; border: none; text-align: left; padding: 8px 10px; border-radius: 8px; color: var(--text-secondary); font-size: 12.5px; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; transition: background 0.15s ease; outline: none; -webkit-appearance: none; appearance: none;">
@@ -230,12 +230,6 @@ function renderNoteDetail(note) {
             </div>
           </button>
         </div>
-      </div>
-
-      <!-- Preview Mode Wrapper -->
-      <div id="note-preview-wrapper" style="display: none; min-height: 350px; width: 100%;">
-        <h1 id="note-preview-title" style="font-size: 28px; font-weight: 800; font-family: var(--font-serif); color: var(--text-primary); border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px; margin-bottom: 18px; line-height: 1.2;"></h1>
-        <div id="note-preview-body" style="padding-bottom: 60px;"></div>
       </div>
 
       <!-- Floating Cover Customizer Drawer / Modal Overlay -->
@@ -281,62 +275,55 @@ function renderNoteDetail(note) {
   `;
 }
 
-// Light Custom Markdown + HTML details renderer
-function renderMarkdown(text) {
-  if (!text) return '<p style="color: var(--text-tertiary); font-style: italic;">Sin contenido...</p>';
-  
-  const lines = text.split('\n');
-  const parsedLines = lines.map((line, index) => {
-    let trimmed = line.trim();
+// Helper to insert HTML elements at caret position inside contenteditable
+function insertHTMLAtCursor(html) {
+  const sel = window.getSelection();
+  if (sel.getRangeAt && sel.rangeCount) {
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
     
-    // Pass raw HTML tags for details and summaries
-    if (trimmed.startsWith('<details') || trimmed.startsWith('</details') || trimmed.startsWith('<summary') || trimmed.startsWith('</summary')) {
-      return line;
+    const el = document.createElement("div");
+    el.innerHTML = html;
+    const frag = document.createDocumentFragment();
+    let node;
+    let lastNode;
+    while ((node = el.firstChild)) {
+      lastNode = frag.appendChild(node);
     }
+    range.insertNode(frag);
+    
+    if (lastNode) {
+      const newRange = range.cloneRange();
+      newRange.setStartAfter(lastNode);
+      newRange.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+    }
+  }
+}
 
-    // Parse markdown links (mentions format support)
-    const linkRegex = /\[(.*?)\]\((.*?)\)/g;
-    if (linkRegex.test(line)) {
-      line = line.replace(linkRegex, (match, linkText, href) => {
-        if (linkText.startsWith('🔗')) {
-          return `<a href="${href}" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; background: rgba(255,255,255,0.08); border: 1px solid var(--border-subtle); color: var(--text-primary); text-decoration: none; font-size: 13.5px; font-weight: 600; transition: all 0.2s ease; user-select: text;">${linkText}</a>`;
-        }
-        return `<a href="${href}" target="_blank" style="color: var(--text-primary); text-decoration: underline; user-select: text;">${linkText}</a>`;
-      });
-      trimmed = line.trim();
-    }
+// Background title scraper helper (combats CORS using allorigins.win)
+async function fetchPageTitle(url) {
+  try {
+    const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+    if (!response.ok) return null;
+    const json = await response.json();
+    const html = json.contents;
+    if (!html) return null;
 
-    // Headings
-    if (trimmed.startsWith('# ')) {
-      return `<h1 style="font-size: 24px; font-weight: 800; margin: 20px 0 10px 0; font-family: var(--font-serif); border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px; color: var(--text-primary);">${trimmed.slice(2)}</h1>`;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const titleTag = doc.querySelector('title');
+    if (titleTag && titleTag.textContent) {
+      let title = titleTag.textContent.trim();
+      title = title.replace(/\s+[-|•:_]\s+.*$/, '');
+      if (title.length > 80) title = title.substring(0, 77) + '...';
+      return title;
     }
-    if (trimmed.startsWith('## ')) {
-      return `<h2 style="font-size: 20px; font-weight: 700; margin: 16px 0 8px 0; font-family: var(--font-serif); color: var(--text-primary);">${trimmed.slice(3)}</h2>`;
-    }
-    if (trimmed.startsWith('### ')) {
-      return `<h3 style="font-size: 16px; font-weight: 600; margin: 14px 0 6px 0; font-family: var(--font-serif); color: var(--text-primary);">${trimmed.slice(4)}</h3>`;
-    }
-
-    // Checkboxes
-    if (trimmed.startsWith('- [ ] ') || trimmed.startsWith('- [] ')) {
-      const content = trimmed.replace(/^-\s*\[\s*\]\s*/, '');
-      return `<div style="display: flex; align-items: center; gap: 10px; margin: 8px 0;"><input type="checkbox" class="preview-todo-checkbox" data-line-index="${index}" style="width: 16px; height: 16px; accent-color: var(--text-primary); cursor: pointer; flex-shrink: 0;"> <span style="font-size: 14.5px; color: var(--text-primary);">${content}</span></div>`;
-    }
-    if (trimmed.startsWith('- [x] ') || trimmed.startsWith('- [X] ')) {
-      const content = trimmed.replace(/^-\s*\[\s*[xX]\s*\]\s*/, '');
-      return `<div style="display: flex; align-items: center; gap: 10px; margin: 8px 0;"><input type="checkbox" checked class="preview-todo-checkbox" data-line-index="${index}" style="width: 16px; height: 16px; accent-color: var(--text-primary); cursor: pointer; flex-shrink: 0;"> <span style="font-size: 14.5px; color: var(--text-tertiary); text-decoration: line-through;">${content}</span></div>`;
-    }
-
-    // Bullet points
-    if (trimmed.startsWith('- ')) {
-      return `<li style="margin: 4px 0 4px 20px; font-size: 14.5px; color: var(--text-secondary);">${trimmed.slice(2)}</li>`;
-    }
-
-    // Paragraph
-    return trimmed ? `<p style="font-size: 14.5px; color: var(--text-secondary); margin: 6px 0; line-height: 1.6;">${line}</p>` : '<div style="height: 10px;"></div>';
-  });
-
-  return parsedLines.join('\n');
+  } catch (err) {
+    console.error('Error fetching page title:', err);
+  }
+  return null;
 }
 
 export function mount(params = {}) {
@@ -403,15 +390,15 @@ function mountNotesList() {
 
 function mountNoteDetail(noteId) {
   const titleInput = document.getElementById('note-title-input');
-  const contentInput = document.getElementById('note-content-input');
+  const contentEditor = document.getElementById('note-content-editor');
   const slashMenu = document.getElementById('notion-slash-menu');
   const linkTooltip = document.getElementById('link-mention-tooltip');
   
-  // Fill content input value directly on mount (since html templates encode it)
+  // Fill content editor innerHTML directly on mount
   const state = store.getState();
   const activeNote = state.notes?.find(n => n.id === noteId);
-  if (activeNote && contentInput) {
-    contentInput.value = activeNote.content || '';
+  if (activeNote && contentEditor) {
+    contentEditor.innerHTML = activeNote.content || '';
   }
 
   // Autosave setup
@@ -425,7 +412,7 @@ function mountNoteDetail(noteId) {
         const updated = {
           ...currentNote,
           title: titleInput.value.trim() || 'Sin título',
-          content: contentInput.value
+          content: contentEditor.innerHTML
         };
         await store.saveNote(updated);
       }
@@ -433,35 +420,92 @@ function mountNoteDetail(noteId) {
   };
 
   titleInput?.addEventListener('input', triggerAutosave);
-  contentInput?.addEventListener('input', triggerAutosave);
+  contentEditor?.addEventListener('input', triggerAutosave);
 
-  // Notion-style slash command logic
-  contentInput?.addEventListener('input', () => {
-    const caretPos = contentInput.selectionStart;
-    const textBeforeCaret = contentInput.value.substring(0, caretPos);
-    
-    // Trigger slash suggestions if slash typed at start of line or after space
-    const isSlash = textBeforeCaret.endsWith('/');
-    const isStartOfLine = textBeforeCaret.length === 1 || 
-                          textBeforeCaret[textBeforeCaret.length - 2] === '\n' || 
-                          textBeforeCaret[textBeforeCaret.length - 2] === ' ';
-    
-    if (isSlash && isStartOfLine && slashMenu) {
-      const lines = textBeforeCaret.split('\n');
-      const currentLineIndex = lines.length;
-      const caretY = currentLineIndex * 24 + 10;
-      const caretX = Math.min(contentInput.clientWidth - 240, 20);
+  // Sync checkbox state changes inside editor to persist 'checked' attributes in innerHTML
+  contentEditor?.addEventListener('click', (e) => {
+    if (e.target && e.target.type === 'checkbox') {
+      if (e.target.checked) {
+        e.target.setAttribute('checked', 'checked');
+      } else {
+        e.target.removeAttribute('checked');
+      }
+      triggerAutosave();
+    }
+  });
 
-      slashMenu.style.top = `${caretY}px`;
-      slashMenu.style.left = `${caretX}px`;
-      slashMenu.style.display = 'block';
-    } else if (slashMenu) {
-      slashMenu.style.display = 'none';
+  // Checkbox keydown interceptor for "Enter" key list expansion
+  contentEditor?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const selection = window.getSelection();
+      if (selection.rangeCount) {
+        const range = selection.getRangeAt(0);
+        let node = range.startContainer;
+        
+        let todoTextDiv = null;
+        while (node && node !== contentEditor) {
+          if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('todo-text')) {
+            todoTextDiv = node;
+            break;
+          }
+          node = node.parentNode;
+        }
+
+        if (todoTextDiv) {
+          e.preventDefault(); // Stop default paragraph creation
+          
+          const todoRow = todoTextDiv.closest('.todo-row');
+          if (todoRow) {
+            const newRow = document.createElement('div');
+            newRow.className = 'todo-row';
+            newRow.style.cssText = 'display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;';
+            newRow.innerHTML = `<input type="checkbox" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary);"> <div class="todo-text" contenteditable="true" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea"></div>`;
+            
+            todoRow.parentNode.insertBefore(newRow, todoRow.nextSibling);
+            
+            const newTextDiv = newRow.querySelector('.todo-text');
+            if (newTextDiv) {
+              newTextDiv.focus();
+            }
+            triggerAutosave();
+          }
+        }
+      }
+    }
+  });
+
+  // Notion-style slash command logic (using exact pixel caret positioning)
+  contentEditor?.addEventListener('input', () => {
+    const selection = window.getSelection();
+    if (selection.rangeCount && slashMenu) {
+      const range = selection.getRangeAt(0);
+      const text = range.startContainer.textContent || '';
+      const offset = range.startOffset;
+      const textBeforeCursor = text.substring(0, offset);
+
+      const isSlash = textBeforeCursor.endsWith('/');
+      const isStartOfLine = textBeforeCursor.length === 1 || 
+                            textBeforeCursor[textBeforeCursor.length - 2] === ' ' || 
+                            textBeforeCursor[textBeforeCursor.length - 2] === '\u00A0';
+
+      if (isSlash && isStartOfLine) {
+        const rect = range.getBoundingClientRect();
+        const editorRect = contentEditor.getBoundingClientRect();
+        
+        const caretY = rect.bottom - editorRect.top + contentEditor.scrollTop + 4;
+        const caretX = Math.min(contentEditor.clientWidth - 240, Math.max(0, rect.left - editorRect.left));
+
+        slashMenu.style.top = `${caretY}px`;
+        slashMenu.style.left = `${caretX}px`;
+        slashMenu.style.display = 'block';
+      } else {
+        slashMenu.style.display = 'none';
+      }
     }
   });
 
   // Intercept Link Pasting for Mention Tooltip
-  contentInput?.addEventListener('paste', (e) => {
+  contentEditor?.addEventListener('paste', (e) => {
     const pastedText = (e.clipboardData || window.clipboardData).getData('text');
     const urlPattern = /^(https?:\/\/[^\s]+)$/i;
 
@@ -474,172 +518,131 @@ function mountNoteDetail(noteId) {
         if (domain.startsWith('www.')) domain = domain.slice(4);
       } catch (err) {}
 
-      const caretPos = contentInput.selectionStart;
-      const textBeforeCaret = contentInput.value.substring(0, caretPos);
-      const lines = textBeforeCaret.split('\n');
-      const currentLineIndex = lines.length;
-      const caretY = currentLineIndex * 24 + 10;
-      const caretX = Math.min(contentInput.clientWidth - 200, 20);
+      const selection = window.getSelection();
+      if (selection.rangeCount) {
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        const editorRect = contentEditor.getBoundingClientRect();
+        
+        const caretY = rect.bottom - editorRect.top + contentEditor.scrollTop + 4;
+        const caretX = Math.min(contentEditor.clientWidth - 200, Math.max(0, rect.left - editorRect.left));
 
-      linkTooltip.style.top = `${caretY}px`;
-      linkTooltip.style.left = `${caretX}px`;
-      linkTooltip.style.display = 'flex';
+        linkTooltip.style.top = `${caretY}px`;
+        linkTooltip.style.left = `${caretX}px`;
+        linkTooltip.style.display = 'flex';
 
-      // Setup actions
-      const pasteMention = document.getElementById('btn-paste-mention');
-      const pasteNormal = document.getElementById('btn-paste-normal');
+        // Setup actions
+        const pasteMention = document.getElementById('btn-paste-mention');
+        const pasteNormal = document.getElementById('btn-paste-normal');
 
-      const newPasteMention = pasteMention.cloneNode(true);
-      const newPasteNormal = pasteNormal.cloneNode(true);
-      pasteMention.parentNode.replaceChild(newPasteMention, pasteMention);
-      pasteNormal.parentNode.replaceChild(newPasteNormal, pasteNormal);
+        const newPasteMention = pasteMention.cloneNode(true);
+        const newPasteNormal = pasteNormal.cloneNode(true);
+        pasteMention.parentNode.replaceChild(newPasteMention, pasteMention);
+        pasteNormal.parentNode.replaceChild(newPasteNormal, pasteNormal);
 
-      newPasteMention.addEventListener('click', (evClick) => {
-        evClick.stopPropagation();
-        const val = contentInput.value;
-        const before = val.substring(0, caretPos);
-        const after = val.substring(caretPos);
-        const mention = `[🔗 ${domain}](${url})`;
+        newPasteMention.addEventListener('click', async (evClick) => {
+          evClick.stopPropagation();
+          
+          const loadingHtml = `<a class="link-mention loading" href="${url}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: var(--text-primary); text-decoration: none; font-size: 13px; font-weight: 500; vertical-align: middle; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: text; margin: 2px 0;">
+            <img src="https://www.google.com/s2/favicons?sz=32&domain=${domain}" style="width: 16px; height: 16px; border-radius: 3px; object-fit: contain; flex-shrink: 0; display: inline-block; vertical-align: middle;" onerror="this.style.display='none'">
+            <span style="color: var(--text-secondary); font-weight: 400; flex-shrink: 0;">${domain}</span>
+            <span style="width: 1px; height: 12px; background: var(--border-subtle); margin: 0 2px;"></span>
+            <span class="mention-title" style="font-weight: 600; color: var(--text-primary);">Cargando título...</span>
+          </a>&nbsp;`;
 
-        contentInput.value = before + mention + after;
-        contentInput.setSelectionRange(caretPos + mention.length, caretPos + mention.length);
-        contentInput.focus();
-        triggerAutosave();
-        linkTooltip.style.display = 'none';
-      });
+          insertHTMLAtCursor(loadingHtml);
+          triggerAutosave();
+          linkTooltip.style.display = 'none';
 
-      newPasteNormal.addEventListener('click', (evClick) => {
-        evClick.stopPropagation();
-        const val = contentInput.value;
-        const before = val.substring(0, caretPos);
-        const after = val.substring(caretPos);
+          // Fetch page title asynchronously
+          const fetchedTitle = await fetchPageTitle(url);
+          const finalTitle = fetchedTitle ? fetchedTitle : 'Enlace';
+          
+          const allMentions = contentEditor.querySelectorAll('.link-mention.loading');
+          allMentions.forEach(el => {
+            if (el.getAttribute('href') === url) {
+              el.classList.remove('loading');
+              const titleSpan = el.querySelector('.mention-title');
+              if (titleSpan) titleSpan.textContent = finalTitle;
+            }
+          });
+          triggerAutosave();
+        });
 
-        contentInput.value = before + url + after;
-        contentInput.setSelectionRange(caretPos + url.length, caretPos + url.length);
-        contentInput.focus();
-        triggerAutosave();
-        linkTooltip.style.display = 'none';
-      });
+        newPasteNormal.addEventListener('click', (evClick) => {
+          evClick.stopPropagation();
+          const linkHtml = `<a href="${url}" target="_blank" style="color: var(--text-primary); text-decoration: underline;">${url}</a>&nbsp;`;
+          insertHTMLAtCursor(linkHtml);
+          triggerAutosave();
+          linkTooltip.style.display = 'none';
+        });
+      }
     }
   });
 
   // Global hide dropdowns if clicked elsewhere
   document.addEventListener('click', (e) => {
-    if (slashMenu && !slashMenu.contains(e.target) && e.target !== contentInput) {
+    if (slashMenu && !slashMenu.contains(e.target) && e.target !== contentEditor) {
       slashMenu.style.display = 'none';
     }
-    if (linkTooltip && !linkTooltip.contains(e.target) && e.target !== contentInput) {
+    if (linkTooltip && !linkTooltip.contains(e.target) && e.target !== contentEditor) {
       linkTooltip.style.display = 'none';
     }
   });
 
   // Handle slash items clicks
   document.querySelectorAll('.slash-item').forEach(item => {
-    // Only target Basic items, not link tooltip buttons
     if (item.id === 'btn-paste-mention' || item.id === 'btn-paste-normal') return;
     
     item.addEventListener('click', (e) => {
       e.stopPropagation();
       const type = item.dataset.type;
-      const caretPos = contentInput.selectionStart;
-      const value = contentInput.value;
-      const before = value.substring(0, caretPos - 1);
-      const after = value.substring(caretPos);
 
-      let template = '';
-      let selectionOffset = 0;
-      let selectionLength = 0;
+      // Delete the slash character in contenteditable
+      const sel = window.getSelection();
+      if (sel.rangeCount) {
+        const range = sel.getRangeAt(0);
+        range.setStart(range.startContainer, range.startOffset - 1);
+        range.deleteContents();
+      }
 
+      let blockHtml = '';
       switch (type) {
         case 'todo':
-          template = '- [ ] Tarea';
-          selectionOffset = 6;
-          selectionLength = 5;
+          blockHtml = `<div class="todo-row" style="display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;"><input type="checkbox" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary);"> <div class="todo-text" contenteditable="true" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea">Tarea</div></div>`;
           break;
         case 'h1':
-          template = '# Título 1';
-          selectionOffset = 2;
-          selectionLength = 8;
+          blockHtml = `<h1 style="font-size: 24px; font-weight: 800; font-family: var(--font-serif); color: var(--text-primary); margin: 18px 0 6px 0; outline: none;" contenteditable="true">Título 1</h1>`;
           break;
         case 'h2':
-          template = '## Título 2';
-          selectionOffset = 3;
-          selectionLength = 8;
+          blockHtml = `<h2 style="font-size: 20px; font-weight: 700; font-family: var(--font-serif); color: var(--text-primary); margin: 14px 0 4px 0; outline: none;" contenteditable="true">Título 2</h2>`;
           break;
         case 'h3':
-          template = '### Título 3';
-          selectionOffset = 4;
-          selectionLength = 8;
+          blockHtml = `<h3 style="font-size: 16px; font-weight: 600; font-family: var(--font-serif); color: var(--text-primary); margin: 12px 0 4px 0; outline: none;" contenteditable="true">Título 3</h3>`;
           break;
         case 'toggle_h1':
-          template = '<details>\n  <summary><b>Encabezado 1</b></summary>\n  Contenido aquí\n</details>\n';
-          selectionOffset = 22;
-          selectionLength = 12;
+          blockHtml = `<details style="margin: 12px 0; outline: none;"><summary style="font-size: 24px; font-weight: 800; font-family: var(--font-serif); color: var(--text-primary); cursor: pointer; outline: none;" contenteditable="true">Desplegable H1</summary><div style="padding-left: 16px; outline: none; margin-top: 4px; color: var(--text-secondary);" contenteditable="true">Contenido aquí...</div></details>`;
           break;
         case 'toggle_h2':
-          template = '<details>\n  <summary><b>Encabezado 2</b></summary>\n  Contenido aquí\n</details>\n';
-          selectionOffset = 22;
-          selectionLength = 12;
+          blockHtml = `<details style="margin: 10px 0; outline: none;"><summary style="font-size: 20px; font-weight: 700; font-family: var(--font-serif); color: var(--text-primary); cursor: pointer; outline: none;" contenteditable="true">Desplegable H2</summary><div style="padding-left: 16px; outline: none; margin-top: 4px; color: var(--text-secondary);" contenteditable="true">Contenido aquí...</div></details>`;
           break;
         case 'toggle_h3':
-          template = '<details>\n  <summary><b>Encabezado 3</b></summary>\n  Contenido aquí\n</details>\n';
-          selectionOffset = 22;
-          selectionLength = 12;
+          blockHtml = `<details style="margin: 8px 0; outline: none;"><summary style="font-size: 16px; font-weight: 600; font-family: var(--font-serif); color: var(--text-primary); cursor: pointer; outline: none;" contenteditable="true">Desplegable H3</summary><div style="padding-left: 16px; outline: none; margin-top: 4px; color: var(--text-secondary);" contenteditable="true">Contenido aquí...</div></details>`;
           break;
         case 'toggle_normal':
-          template = '<details>\n  <summary>Desplegable</summary>\n  Contenido aquí\n</details>\n';
-          selectionOffset = 22;
-          selectionLength = 11;
+          blockHtml = `<details style="margin: 6px 0; outline: none;"><summary style="cursor: pointer; color: var(--text-primary); outline: none;" contenteditable="true">Desplegable</summary><div style="padding-left: 16px; outline: none; margin-top: 4px; color: var(--text-secondary);" contenteditable="true">Contenido aquí...</div></details>`;
           break;
       }
 
-      contentInput.value = before + template + after;
-      const newCursor = before.length + selectionOffset;
-      contentInput.setSelectionRange(newCursor, newCursor + selectionLength);
-      contentInput.focus();
-
+      insertHTMLAtCursor(blockHtml);
       triggerAutosave();
       if (slashMenu) slashMenu.style.display = 'none';
     });
   });
 
-  // Tab editor / preview switching
+  // Tab editor / preview switching (Visual toggle editing)
   const tabEdit = document.getElementById('tab-edit');
   const tabPreview = document.getElementById('tab-preview');
-  const editorWrapper = document.getElementById('note-editor-wrapper');
-  const previewWrapper = document.getElementById('note-preview-wrapper');
-  const previewTitle = document.getElementById('note-preview-title');
-  const previewBody = document.getElementById('note-preview-body');
-
-  const setupPreviewCheckboxes = () => {
-    document.querySelectorAll('.preview-todo-checkbox').forEach(chk => {
-      chk.addEventListener('change', async () => {
-        const lineIndex = parseInt(chk.dataset.lineIndex);
-        const lines = contentInput.value.split('\n');
-        let line = lines[lineIndex];
-        
-        if (chk.checked) {
-          line = line.replace(/^-\s*\[\s*\]\s*/, '- [x] ');
-        } else {
-          line = line.replace(/^-\s*\[\s*[xX]\s*\]\s*/, '- [ ] ');
-        }
-        
-        lines[lineIndex] = line;
-        contentInput.value = lines.join('\n');
-        
-        // Save
-        const state = store.getState();
-        const currentNote = state.notes?.find(n => n.id === noteId);
-        if (currentNote) {
-          await store.saveNote({ ...currentNote, content: contentInput.value });
-        }
-        
-        // Refresh preview layout
-        previewBody.innerHTML = renderMarkdown(contentInput.value);
-        setupPreviewCheckboxes();
-      });
-    });
-  };
 
   tabEdit?.addEventListener('click', () => {
     tabEdit.classList.add('active');
@@ -649,9 +652,9 @@ function mountNoteDetail(noteId) {
     tabPreview.style.background = 'transparent';
     tabPreview.style.color = 'var(--text-secondary)';
     
-    editorWrapper.style.display = 'block';
-    previewWrapper.style.display = 'none';
-    contentInput.focus();
+    contentEditor.setAttribute('contenteditable', 'true');
+    titleInput.removeAttribute('readonly');
+    contentEditor.focus();
   });
 
   tabPreview?.addEventListener('click', () => {
@@ -662,12 +665,8 @@ function mountNoteDetail(noteId) {
     tabEdit.style.background = 'transparent';
     tabEdit.style.color = 'var(--text-secondary)';
     
-    editorWrapper.style.display = 'none';
-    previewWrapper.style.display = 'block';
-    
-    previewTitle.textContent = titleInput.value.trim() || 'Sin título';
-    previewBody.innerHTML = renderMarkdown(contentInput.value);
-    setupPreviewCheckboxes();
+    contentEditor.setAttribute('contenteditable', 'false');
+    titleInput.setAttribute('readonly', 'true');
   });
 
   // Back button

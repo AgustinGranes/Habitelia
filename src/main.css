@@ -336,3 +336,10 @@ input[type="month"].modal-field::-webkit-date-and-time-value {
 .slash-item:hover {
   background: var(--bg-surface-hover) !important;
 }
+
+#note-content-editor:empty::before, .todo-text:empty::before {
+  content: attr(placeholder);
+  color: var(--text-tertiary);
+  pointer-events: none;
+  display: block;
+}
