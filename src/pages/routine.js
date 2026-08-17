@@ -699,6 +699,21 @@ export function mount() {
     });
   });
 
+  document.querySelectorAll('.btn-unskip-habit-routine').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const rawId = e.currentTarget.dataset.id;
+      const isRep = rawId.includes('_rep_');
+      const habitId = isRep ? rawId.split('_rep_')[0] : rawId;
+      const repIndex = isRep ? rawId.split('_rep_')[1] : null;
+      const completionDateKey = isRep ? store.getTodayString() + '_rep_' + repIndex : store.getTodayString();
+
+      await store.unskipEvent(habitId, completionDateKey);
+      showToast('Salteado quitado. OVR restaurado.', 'success');
+      refreshRoutineView();
+    });
+  });
+
   // Save Today's Routine
   document.getElementById('btn-save-today-routine')?.addEventListener('click', () => {
     const state = store.getState();

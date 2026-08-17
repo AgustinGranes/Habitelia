@@ -729,6 +729,66 @@ export const store = {
     };
     
     await store.saveHabit(updatedHabit);
+
+    // Revert OVR Progress (-1 habit counter / points)
+    if (state.driverProfile && state.driverProfile.active) {
+      let counter = state.driverProfile.completedHabitsCounter || 0;
+      let ovr = state.driverProfile.ovr || 50;
+
+      if (counter > 0) {
+        counter = counter - 1;
+      } else {
+        counter = 9;
+        ovr = Math.max(10, ovr - 1);
+      }
+
+      const team = getTeamForOVR(ovr);
+      const teamsHistory = Array.from(new Set([...(state.driverProfile.teamsHistory || []), team]));
+      const marketValue = calculateMarketValue(ovr, state.driverProfile.titlesDriver || 0, state.driverProfile.titlesConstructor || 0);
+
+      const newDriverProfile = {
+        ...state.driverProfile,
+        completedHabitsCounter: counter,
+        ovr,
+        marketValue,
+        teamsHistory
+      };
+
+      await store.saveDriverProfile(newDriverProfile);
+    }
+  },
+
+  unskipEvent: async (habitId, date) => {
+    const habit = (state.habits || []).find(h => h.id === habitId);
+    if (!habit) return;
+    
+    const completions = { ...(habit.completions || {}) };
+    delete completions[date];
+    
+    const updatedHabit = {
+      ...habit,
+      completions
+    };
+    
+    await store.saveHabit(updatedHabit);
+
+    // Restore Driver OVR Point (+1 OVR)
+    if (state.driverProfile && state.driverProfile.active) {
+      let ovr = Math.min(99, (state.driverProfile.ovr || 50) + 1);
+      const team = getTeamForOVR(ovr);
+      const teamsHistory = Array.from(new Set([...(state.driverProfile.teamsHistory || []), team]));
+      const marketValue = calculateMarketValue(ovr, state.driverProfile.titlesDriver || 0, state.driverProfile.titlesConstructor || 0);
+
+      const newDriverProfile = {
+        ...state.driverProfile,
+        ovr,
+        marketValue,
+        teamsHistory
+      };
+
+      await store.saveDriverProfile(newDriverProfile);
+      showTelemetryRadioPopup(1, ovr, team);
+    }
   },
 
   saveCalcExpenses: async (newList) => {

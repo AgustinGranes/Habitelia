@@ -151,20 +151,32 @@ function openTodoModal(existingTodo = null) {
           <input type="text" id="todo-name" class="input" placeholder="Ej. Comprar cuaderno, Enviar correo..." value="${existingTodo?.name || ''}" style="width: 100%; min-height: 46px;">
         </div>
 
-        <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
-          <div style="flex: 1; min-width: 140px;">
+        <style>
+          .todo-form-grid {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+          }
+          @media (max-width: 480px) {
+            .todo-form-grid {
+              flex-direction: column;
+            }
+          }
+        </style>
+        <div class="todo-form-grid">
+          <div style="flex: 1; min-width: 0;">
             <label class="form-label" style="display: flex; align-items: center; gap: 6px;">
               Fecha de Finalización
               <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 400;">(opcional)</span>
             </label>
-            <input type="date" id="todo-date" class="input" value="${existingTodo?.dueDate || ''}" style="width: 100%; min-height: 44px;">
+            <input type="date" id="todo-date" class="input" value="${existingTodo?.dueDate || ''}" style="width: 100%; min-height: 44px; box-sizing: border-box;">
           </div>
-          <div style="flex: 1; min-width: 140px;">
+          <div style="flex: 1; min-width: 0;">
             <label class="form-label" style="display: flex; align-items: center; gap: 6px;">
               Horario
               <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 400;">(opcional)</span>
             </label>
-            <input type="time" id="todo-time" class="input" value="${existingTodo?.time || ''}" style="width: 100%; min-height: 44px;">
+            <input type="time" id="todo-time" class="input" value="${existingTodo?.time || ''}" style="width: 100%; min-height: 44px; box-sizing: border-box;">
           </div>
         </div>
 

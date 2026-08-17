@@ -48,6 +48,32 @@ function formatTime(ms, includeCentiseconds = false) {
     return `${formattedMinutes}:${formattedSeconds}`;
 }
 
+// --- Alarm Sound ---
+function playAlarmSound() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const playBeep = (startTime, duration, frequency) => {
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(frequency, startTime);
+            gainNode.gain.setValueAtTime(0, startTime);
+            gainNode.gain.linearRampToValueAtTime(0.4, startTime + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        };
+        const now = audioCtx.currentTime;
+        playBeep(now, 0.25, 880);
+        playBeep(now + 0.35, 0.25, 880);
+        playBeep(now + 0.7, 0.4, 880);
+    } catch (e) {
+        console.error('Failed to play alarm sound:', e);
+    }
+}
+
 // --- Render ---
 export function render(params) {
     return `
@@ -384,6 +410,8 @@ function finishTimer() {
     cancelAnimationFrame(tmRafId);
     tmFinished = true;
     
+    playAlarmSound();
+    
     const btnStart = document.getElementById('tm-start');
     const btnPause = document.getElementById('tm-pause');
     if (btnStart) btnStart.style.display = 'flex';
@@ -522,6 +550,8 @@ function resetPomodoro() {
 
 function switchPomodoroPhase() {
     clearInterval(pmInterval);
+    
+    playAlarmSound();
     
     if (pmPhase === 'work') {
         pmPhase = 'break';

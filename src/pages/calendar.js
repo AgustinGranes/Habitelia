@@ -98,6 +98,18 @@ export function getHabitsForDate(dateStr, habits = [], routines = [], todos = []
     return false;
   });
 
+  const sortByTime = (a, b) => {
+    const timeA = a.time || '';
+    const timeB = b.time || '';
+    if (timeA && !timeB) return -1;
+    if (!timeA && timeB) return 1;
+    if (!timeA && !timeB) return 0;
+    return timeA.localeCompare(timeB);
+  };
+
+  occurrences.sort(sortByTime);
+  dayTodos.sort(sortByTime);
+
   return { habits: occurrences, todos: dayTodos };
 }
 

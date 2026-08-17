@@ -210,7 +210,9 @@ export function render(props = {}) {
                         ${ev.completed ? `
                             <span style="font-size: 11px; font-weight: 600; color: #2E7D32; background: rgba(46,125,50,0.1); padding: 4px 8px; border-radius: 8px; width: 100%; text-align: center;">Hecho</span>
                         ` : (ev.skipped ? `
-                            <span style="font-size: 11px; font-weight: 600; color: #E53E3E; background: rgba(229,62,62,0.1); padding: 4px 8px; border-radius: 8px; width: 100%; text-align: center;">Saltado</span>
+                            <button class="btn-ghost btn-unskip-habit-home" data-id="${ev.id}" data-name="${ev.name}" title="Quitar Salteado" style="font-size: 11px; font-weight: 600; color: #E53E3E; background: rgba(229,62,62,0.1); border: 1px dashed #E53E3E; padding: 4px 0; border-radius: 8px; width: 100%; text-align: center; cursor: pointer; height: 100%; box-sizing: border-box; display: flex; align-items: center; justify-content: center; touch-action: manipulation;">
+                                Saltado
+                            </button>
                         ` : `
                             <button class="btn-ghost btn-skip-habit-home" data-id="${ev.id}" data-name="${ev.name}" title="Saltar Hábito" style="padding: 4px 0; border-radius: 8px; border: 1px solid var(--border-subtle); font-size: 11px; color: var(--text-secondary); cursor: pointer; width: 100%; text-align: center; height: 100%; box-sizing: border-box; display: flex; align-items: center; justify-content: center; touch-action: manipulation;">
                                 Saltar
@@ -862,6 +864,22 @@ export function mount() {
             showSkipHabitModal(habitId, name, () => {
                 refreshHomeView();
             });
+        });
+    });
+
+    // Unskip habit action
+    document.querySelectorAll('.btn-unskip-habit-home').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const rawId = e.currentTarget.dataset.id;
+            const isRep = rawId.includes('_rep_');
+            const habitId = isRep ? rawId.split('_rep_')[0] : rawId;
+            const repIndex = isRep ? rawId.split('_rep_')[1] : null;
+            const completionDateKey = isRep ? store.getTodayString() + '_rep_' + repIndex : store.getTodayString();
+            
+            await store.unskipEvent(habitId, completionDateKey);
+            showToast('Salteado quitado. OVR restaurado.', 'success');
+            refreshHomeView();
         });
     });
     
