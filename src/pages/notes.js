@@ -504,9 +504,24 @@ function mountNoteDetail(noteId) {
           return;
         }
 
-        // Case 3: Inside a To-Do item -> Create next To-Do item below with "Tarea"
+        // Case 3: Inside a To-Do item
         if (todoRow) {
           e.preventDefault();
+          const textDiv = todoRow.querySelector('.todo-text');
+          const txt = (textDiv ? textDiv.textContent : '').trim().replace(/[\u200B\u00A0\s]/g, '');
+
+          // If the To-Do is empty -> convert it to a regular blank line
+          if (txt === '') {
+            const newBlock = document.createElement('div');
+            newBlock.style.cssText = 'min-height: 24px; outline: none; margin: 6px 0;';
+            newBlock.innerHTML = '<br>';
+            todoRow.parentNode.replaceChild(newBlock, todoRow);
+            focusAndPlaceCaretAtStart(newBlock);
+            triggerAutosave();
+            return;
+          }
+
+          // If the To-Do has text -> create next To-Do item below with "Tarea"
           const newRow = document.createElement('div');
           newRow.className = 'todo-row';
           newRow.style.cssText = 'display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;';
@@ -530,13 +545,16 @@ function mountNoteDetail(noteId) {
       if (selection.rangeCount) {
         const range = selection.getRangeAt(0);
         let targetEl = range.startContainer;
-        if (targetEl.nodeType === Node.TEXT_NODE) {
+        if (targetEl === contentEditor && range.startOffset < contentEditor.childNodes.length) {
+          targetEl = contentEditor.childNodes[range.startOffset];
+        } else if (targetEl.nodeType === Node.TEXT_NODE) {
           targetEl = targetEl.parentNode;
         }
         
         let anchor = targetEl.closest('a');
+        let todoRow = targetEl.closest('.todo-row');
 
-        // If cursor is inside or right after an anchor link -> delete the entire block atomically
+        // 1. If cursor is inside or right after an anchor link -> delete the entire block atomically
         if (!anchor && range.collapsed) {
           if (range.startOffset === 0) {
             let prev = range.startContainer.previousSibling;
@@ -567,6 +585,22 @@ function mountNoteDetail(noteId) {
           
           triggerAutosave();
           return;
+        }
+
+        // 2. If backspacing on an empty To-Do -> remove the To-Do row and replace it with a clean blank line
+        if (todoRow && range.collapsed) {
+          const textDiv = todoRow.querySelector('.todo-text');
+          const txt = (textDiv ? textDiv.textContent : '').trim().replace(/[\u200B\u00A0\s]/g, '');
+          if (txt === '') {
+            e.preventDefault();
+            const newBlock = document.createElement('div');
+            newBlock.style.cssText = 'min-height: 24px; outline: none; margin: 6px 0;';
+            newBlock.innerHTML = '<br>';
+            todoRow.parentNode.replaceChild(newBlock, todoRow);
+            focusAndPlaceCaretAtStart(newBlock);
+            triggerAutosave();
+            return;
+          }
         }
       }
     }
