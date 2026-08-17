@@ -463,12 +463,15 @@ function mountNoteDetail(noteId) {
       if (selection.rangeCount) {
         const range = selection.getRangeAt(0);
         let targetEl = range.startContainer;
-        if (targetEl.nodeType === Node.TEXT_NODE) {
+        if (targetEl === contentEditor && range.startOffset < contentEditor.childNodes.length) {
+          targetEl = contentEditor.childNodes[range.startOffset];
+        } else if (targetEl.nodeType === Node.TEXT_NODE) {
           targetEl = targetEl.parentNode;
         }
 
         const headingNode = targetEl.closest('h1, h2, h3');
         const todoRow = targetEl.closest('.todo-row');
+        const anchorNode = targetEl.closest('a');
 
         // Case 1: Inside a Heading -> Breakout to a clean normal line below
         if (headingNode) {
@@ -483,7 +486,25 @@ function mountNoteDetail(noteId) {
           return;
         }
 
-        // Case 2: Inside a To-Do item -> Create next To-Do item below with "Tarea"
+        // Case 2: On a link that is NOT inside a To-Do -> Break to a normal line below
+        if (anchorNode && !todoRow) {
+          e.preventDefault();
+          const newBlock = document.createElement('div');
+          newBlock.style.cssText = 'min-height: 24px; outline: none; margin: 6px 0;';
+          newBlock.innerHTML = '<br>';
+          
+          const parentBlock = (anchorNode.parentElement === contentEditor) ? anchorNode : anchorNode.closest('div, p');
+          if (parentBlock && parentBlock.parentNode) {
+            parentBlock.parentNode.insertBefore(newBlock, parentBlock.nextSibling);
+          } else {
+            contentEditor.appendChild(newBlock);
+          }
+          focusAndPlaceCaretAtStart(newBlock);
+          triggerAutosave();
+          return;
+        }
+
+        // Case 3: Inside a To-Do item -> Create next To-Do item below with "Tarea"
         if (todoRow) {
           e.preventDefault();
           const newRow = document.createElement('div');
@@ -501,7 +522,7 @@ function mountNoteDetail(noteId) {
           return;
         }
 
-        // Case 3: In normal space/paragraph -> standard browser Enter creates another normal blank line!
+        // Case 4: In normal space/paragraph -> standard browser Enter creates another normal blank line!
       }
     }
 
