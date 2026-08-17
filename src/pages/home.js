@@ -43,7 +43,7 @@ export function render(props = {}) {
         const isDeletedToday = status === 'deleted_today';
         const isCompleted = status === 'completed' || status === 'completed_2min';
         const isSkipped = status === 'skipped';
-        const streak = h.streak || 0;
+        const streak = store.calculateHabitStreak(h);
         const linkedPleasure = h.noPleasure ? '' : (h.craving?.linkedPleasure || h.linkedPleasure || '');
         const habitTime = (h.cue?.timePerDay && h.cue.timePerDay[todayDayKey]) || (h.cue?.time ? h.cue.time : null);
         const duration = (h.noDuration || h.duration === 0) ? 0 : (h.duration || 0);
@@ -78,7 +78,7 @@ export function render(props = {}) {
                     const isDeletedToday = status === 'deleted_today';
                     const isCompleted = status === 'completed' || status === 'completed_2min';
                     const isSkipped = status === 'skipped';
-                    const streak = h.streak || 0;
+                    const streak = store.calculateHabitStreak(h);
                     const linkedPleasure = h.noPleasure ? '' : (h.craving?.linkedPleasure || h.linkedPleasure || '');
                     const duration = (h.noDuration || h.duration === 0) ? 0 : (h.duration || 0);
                     const twoMinuteVersion = h.noTwoMin ? '' : (h.response?.twoMinVersion || '');

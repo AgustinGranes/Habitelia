@@ -60,7 +60,7 @@ export function render() {
       isTwoMin,
       skipped: isSkipped,
       deletedToday: isDeletedToday,
-      streak: h.streak || 0
+      streak: store.calculateHabitStreak(h)
     });
   });
 
@@ -99,7 +99,7 @@ export function render() {
             isTwoMin,
             skipped: isSkipped,
             deletedToday: isDeletedToday,
-            streak: h.streak || 0
+            streak: store.calculateHabitStreak(h)
           });
         }
       });
@@ -290,7 +290,7 @@ export function render() {
           </div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 220px; flex-shrink: 0;">
             <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); padding: 8px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; justify-content: center; gap: 6px; text-align: center; box-sizing: border-box;">
-              ${iconSVG('flame', 14)} ${h.streak || 0}d
+              ${iconSVG('flame', 14)} ${store.calculateHabitStreak(h)}d
             </div>
             <button class="btn-ghost btn-chain-habit-routine" data-id="${h.id}" style="padding: 8px; font-size: 12px; border: 1px solid var(--border-subtle); color: var(--text-primary); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box; touch-action: manipulation;">
               ${iconSVG('chain', 14)} Cadena

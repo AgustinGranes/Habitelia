@@ -9,30 +9,7 @@ let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 
 function calculateScheduledStreak(habit) {
-    if (!habit.completions) return 0;
-    const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-    const isDaily = !habit.frequency || habit.frequency.type === 'daily';
-    const scheduledDays = isDaily ? dayKeys : (habit.frequency.days || dayKeys);
-    
-    let streak = 0;
-    let checkDate = new Date();
-    // Go back day by day, only counting scheduled days
-    for (let i = 0; i < 365; i++) {
-        const dateStr = checkDate.toISOString().split('T')[0];
-        const dayKey = dayKeys[checkDate.getDay()];
-        
-        if (scheduledDays.includes(dayKey)) {
-            // This was a scheduled day
-            if (habit.completions[dateStr] === 'completed' || habit.completions[dateStr] === 'completed_2min') {
-                streak++;
-            } else {
-                break; // Chain broken
-            }
-        }
-        // Non-scheduled days are simply skipped (don't break chain)
-        checkDate.setDate(checkDate.getDate() - 1);
-    }
-    return streak;
+  return store.calculateHabitStreak(habit);
 }
 
 function renderMonthlyGrid(habit, year, month) {

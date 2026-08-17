@@ -626,6 +626,64 @@ export const store = {
     }
   },
 
+  // Dynamic and unified streak calculator based on completions and scheduled days
+  calculateHabitStreak: (habit) => {
+    if (!habit || !habit.completions) return 0;
+
+    const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    const isDaily = !habit.frequency || habit.frequency.type === 'daily';
+    const scheduledDays = isDaily ? dayKeys : (Array.isArray(habit.frequency.days) ? habit.frequency.days : dayKeys);
+
+    const formatYMD = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
+    const now = new Date();
+    const todayStr = formatYMD(now);
+    const todayDayKey = dayKeys[now.getDay()];
+    const isTodayScheduled = scheduledDays.includes(todayDayKey);
+    const todayStatus = habit.completions[todayStr];
+
+    // If today is skipped -> streak is broken (0)
+    if (todayStatus === 'skipped') {
+      return 0;
+    }
+
+    let streak = 0;
+    let checkDate = new Date();
+
+    if (isTodayScheduled) {
+      if (todayStatus === 'completed' || todayStatus === 'completed_2min') {
+        streak++;
+      }
+    }
+
+    // Step back to check previous days
+    checkDate.setDate(checkDate.getDate() - 1);
+
+    for (let i = 0; i < 365; i++) {
+      const dateStr = formatYMD(checkDate);
+      const dayKey = dayKeys[checkDate.getDay()];
+
+      if (scheduledDays.includes(dayKey)) {
+        const status = habit.completions[dateStr];
+        if (status === 'completed' || status === 'completed_2min') {
+          streak++;
+        } else {
+          // If a past scheduled day was skipped, deleted, or uncompleted, the streak breaks
+          break;
+        }
+      }
+      // Non-scheduled days are simply ignored (neither add nor break streak)
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    return streak;
+  },
+
   completeEvent: async (habitId, date, mode = 'completed') => {
     const habit = (state.habits || []).find(h => h.id === habitId);
     if (!habit) return { streakBroken: false, newStreak: 0 };
@@ -633,9 +691,10 @@ export const store = {
     const statusVal = mode === 'completed_2min' ? 'completed_2min' : 'completed';
     const completions = { ...(habit.completions || {}), [date]: statusVal };
     
-    let streak = (habit.streak || 0) + 1;
-    let maxStreak = Math.max(habit.maxStreak || 0, streak);
-    let totalCompletions = (habit.totalCompletions || 0) + 1;
+    const tempHabit = { ...habit, completions };
+    const streak = store.calculateHabitStreak(tempHabit);
+    const maxStreak = Math.max(habit.maxStreak || 0, streak);
+    const totalCompletions = (habit.totalCompletions || 0) + 1;
     
     const updatedHabit = {
       ...habit,
@@ -686,7 +745,9 @@ export const store = {
     if (!habit) return;
     
     const completions = { ...(habit.completions || {}), [date]: 'deleted_today' };
-    const updatedHabit = { ...habit, completions, streak: 0 };
+    const tempHabit = { ...habit, completions };
+    const streak = store.calculateHabitStreak(tempHabit);
+    const updatedHabit = { ...habit, completions, streak };
     await store.saveHabit(updatedHabit);
   },
 
@@ -696,7 +757,9 @@ export const store = {
     
     const completions = { ...(habit.completions || {}) };
     delete completions[date];
-    const updatedHabit = { ...habit, completions };
+    const tempHabit = { ...habit, completions };
+    const streak = store.calculateHabitStreak(tempHabit);
+    const updatedHabit = { ...habit, completions, streak };
     await store.saveHabit(updatedHabit);
   },
 
@@ -705,7 +768,9 @@ export const store = {
     if (!habit) return;
     
     const completions = { ...(habit.completions || {}), [date]: 'skipped' };
-    const updatedHabit = { ...habit, completions, streak: 0 };
+    const tempHabit = { ...habit, completions };
+    const streak = store.calculateHabitStreak(tempHabit);
+    const updatedHabit = { ...habit, completions, streak };
     
     await store.saveHabit(updatedHabit);
 
@@ -735,7 +800,8 @@ export const store = {
     const completions = { ...(habit.completions || {}) };
     delete completions[date];
     
-    const streak = Math.max(0, (habit.streak || 1) - 1);
+    const tempHabit = { ...habit, completions };
+    const streak = store.calculateHabitStreak(tempHabit);
     const totalCompletions = Math.max(0, (habit.totalCompletions || 1) - 1);
     
     const updatedHabit = {
@@ -782,9 +848,13 @@ export const store = {
     const completions = { ...(habit.completions || {}) };
     delete completions[date];
     
+    const tempHabit = { ...habit, completions };
+    const streak = store.calculateHabitStreak(tempHabit);
+
     const updatedHabit = {
       ...habit,
-      completions
+      completions,
+      streak
     };
     
     await store.saveHabit(updatedHabit);
