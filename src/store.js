@@ -39,6 +39,10 @@ function getInitialLocalData() {
 
     const rawCalc = localStorage.getItem('calc_expenses_v1') || localStorage.getItem('calc_expenses_guest');
     if (rawCalc) calcExpenses = JSON.parse(rawCalc);
+
+    let notes = [];
+    const rawNotes = localStorage.getItem('notes_v1') || localStorage.getItem('notes_guest');
+    if (rawNotes) notes = JSON.parse(rawNotes);
   } catch (e) {
     console.error('Error loading initial local storage:', e);
   }
@@ -69,7 +73,8 @@ function getInitialLocalData() {
     routines: Array.isArray(routines) ? routines : [],
     todos: Array.isArray(todos) ? todos : [],
     calcExpenses,
-    driverProfile
+    driverProfile,
+    notes: Array.isArray(notes) ? notes : []
   };
 }
 
@@ -82,6 +87,7 @@ const initialState = {
   todos: initialData.todos,
   calcExpenses: initialData.calcExpenses,
   driverProfile: initialData.driverProfile,
+  notes: initialData.notes || [],
   todaySchedule: null,
   currentRoute: '/login',
   loading: false,
@@ -144,6 +150,7 @@ export const store = {
     state.calcExpenses = [];
     state.driverProfile = null;
     state.todaySchedule = null;
+    state.notes = [];
   },
   
   loadUserData: async () => {
@@ -156,6 +163,7 @@ export const store = {
         const rawRoutines = localStorage.getItem('routines_guest');
         const rawTodos = localStorage.getItem('todos_guest');
         const rawCalc = localStorage.getItem('calc_expenses_guest');
+        const rawNotes = localStorage.getItem('notes_guest');
 
         store.setState({
           user: rawUser ? JSON.parse(rawUser) : null,
@@ -163,6 +171,7 @@ export const store = {
           routines: rawRoutines ? JSON.parse(rawRoutines) : [],
           todos: rawTodos ? JSON.parse(rawTodos) : [],
           calcExpenses: rawCalc ? JSON.parse(rawCalc) : [],
+          notes: rawNotes ? JSON.parse(rawNotes) : [],
           driverProfile: null,
           todaySchedule: null
         });
@@ -174,6 +183,7 @@ export const store = {
       const remoteRoutines = await getCollection(`users/${uid}/routines`);
       const remoteTodos = await getCollection(`users/${uid}/todos`);
       const remoteExpenses = await getDocument(`users/${uid}/calculator/main`);
+      const remoteNotes = await getCollection(`users/${uid}/notes`);
       const todayDate = store.getTodayString();
       const todaySchedule = await getDocument(`users/${uid}/schedules/${todayDate}`);
       const remoteDriverDoc = await getDocument(`users/${uid}/driverProfile/main`);
@@ -182,6 +192,7 @@ export const store = {
       const mergedRoutines = remoteRoutines || [];
       const mergedTodos = remoteTodos || [];
       const mergedCalcExpenses = remoteExpenses && remoteExpenses.expenses ? remoteExpenses.expenses : [];
+      const mergedNotes = (remoteNotes || []).filter(n => !n.deleted);
       const driverProfile = remoteDriverDoc || { active: false, ovr: 50 };
 
       const localOnboarded = localStorage.getItem(`onboardingCompleted_${uid}`) === 'true';
@@ -218,6 +229,8 @@ export const store = {
         localStorage.setItem('calc_expenses_v1', JSON.stringify(mergedCalcExpenses));
         localStorage.setItem(`driver_profile_${uid}`, JSON.stringify(driverProfile));
         localStorage.setItem('driver_profile_v1', JSON.stringify(driverProfile));
+        localStorage.setItem(`notes_${uid}`, JSON.stringify(mergedNotes));
+        localStorage.setItem('notes_v1', JSON.stringify(mergedNotes));
       } catch (e) {}
 
       store.setState({
@@ -226,6 +239,7 @@ export const store = {
         routines: mergedRoutines,
         todos: mergedTodos,
         calcExpenses: mergedCalcExpenses,
+        notes: mergedNotes,
         driverProfile,
         todaySchedule
       });
@@ -251,6 +265,9 @@ export const store = {
         });
         mergedTodos.forEach(t => {
           saveDocument(`users/${uid}/todos/${t.id}`, t).catch(e => console.error(e));
+        });
+        mergedNotes.forEach(n => {
+          saveDocument(`users/${uid}/notes/${n.id}`, n).catch(e => console.error(e));
         });
       }
     } catch (error) {
@@ -805,6 +822,59 @@ export const store = {
     }
   },
 
+  saveNote: async (note) => {
+    const uid = auth.currentUser?.uid || 'guest';
+    const id = note.id || store.generateId();
+    const noteToSave = {
+      ...note,
+      id,
+      createdAt: note.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const existingIndex = (state.notes || []).findIndex(n => n.id === id);
+    let newNotes = [...(state.notes || [])];
+    if (existingIndex > -1) {
+      newNotes[existingIndex] = noteToSave;
+    } else {
+      newNotes.push(noteToSave);
+    }
+
+    try {
+      localStorage.setItem('notes_v1', JSON.stringify(newNotes));
+      localStorage.setItem(`notes_${uid}`, JSON.stringify(newNotes));
+      if (!auth.currentUser) {
+        localStorage.setItem('notes_guest', JSON.stringify(newNotes));
+      }
+    } catch (e) {}
+
+    store.setState({ notes: newNotes });
+
+    if (auth.currentUser) {
+      saveDocument(`users/${uid}/notes/${id}`, noteToSave).catch(e => console.error('Error saving note to cloud:', e));
+    }
+    return noteToSave;
+  },
+
+  deleteNote: async (noteId) => {
+    const uid = auth.currentUser?.uid || 'guest';
+    const newNotes = (state.notes || []).filter(n => n.id !== noteId);
+
+    try {
+      localStorage.setItem('notes_v1', JSON.stringify(newNotes));
+      localStorage.setItem(`notes_${uid}`, JSON.stringify(newNotes));
+      if (!auth.currentUser) {
+        localStorage.setItem('notes_guest', JSON.stringify(newNotes));
+      }
+    } catch (e) {}
+
+    store.setState({ notes: newNotes });
+
+    if (auth.currentUser) {
+      deleteDocument(`users/${uid}/notes/${noteId}`).catch(e => console.error('Error deleting note from cloud:', e));
+    }
+  },
+
   syncAllDataToCloud: async () => {
     if (!auth.currentUser) return false;
     const uid = auth.currentUser.uid;
@@ -828,6 +898,9 @@ export const store = {
       }
       for (const t of (currentState.todos || [])) {
         await saveDocument(`users/${uid}/todos/${t.id}`, t);
+      }
+      for (const n of (currentState.notes || [])) {
+        await saveDocument(`users/${uid}/notes/${n.id}`, n);
       }
       return true;
     } catch (e) {

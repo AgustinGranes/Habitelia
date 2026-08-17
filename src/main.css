@@ -314,3 +314,21 @@ input[type="month"].modal-field::-webkit-date-and-time-value {
   max-width: 290px !important;
   pointer-events: none !important;
 }
+
+/* ==========================================================================
+   NOTES PAGE & CARDS CUSTOM STYLINGS
+   ========================================================================== */
+.note-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.cover-preset-option:hover, .emoji-preset-option:hover {
+  transform: scale(1.08);
+}

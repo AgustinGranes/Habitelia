@@ -18,6 +18,7 @@ import { render as renderSettings, mount as mountSettings } from './pages/settin
 import { render as renderCalculator, mount as mountCalculator } from './pages/calculator.js';
 import { render as renderTodo, mount as mountTodo } from './pages/todo.js';
 import { render as renderTimer, mount as mountTimer } from './pages/timer.js';
+import { render as renderNotes, mount as mountNotes } from './pages/notes.js';
 import { renderSidebar, mountSidebar, openSidebar, closeSidebar } from './components/sidebar.js';
 
 const routesMap = {
@@ -35,6 +36,7 @@ const routesMap = {
   '/calculator': { render: renderCalculator, mount: mountCalculator },
   '/todo': { render: renderTodo, mount: mountTodo },
   '/timer': { render: renderTimer, mount: mountTimer },
+  '/notes': { render: renderNotes, mount: mountNotes },
 };
 
 // Edge Swipe from Left Gesture to Open Sidebar (preventing browser back gesture)
