@@ -51,7 +51,7 @@ function renderNotesList(notes) {
       </div>
       <h3 class="editorial-title" style="font-size: 22px; margin-bottom: 8px;">Aún no tienes notas</h3>
       <p style="color: var(--text-secondary); font-size: 13.5px; max-width: 320px; margin: 0 auto 20px auto; line-height: 1.5;">
-        Crea anotaciones rápidas, encabezados y resúmenes con sincronización en tiempo real.
+        Crea anotaciones rápidas, listas de tareas y encabezados con sincronización en tiempo real.
       </p>
       <button id="btn-create-note-empty" class="btn-primary" style="max-width: 200px; margin: 0 auto;">
         ${iconSVG('plus', 16)} Nueva Nota
@@ -145,11 +145,19 @@ function renderNoteDetail(note) {
       <div id="note-editor-wrapper" style="position: relative; width: 100%;">
         <input type="text" id="note-title-input" value="${note.title || ''}" placeholder="Título de la nota..." style="border: none; background: transparent; font-size: 28px; font-weight: 800; font-family: var(--font-serif); color: var(--text-primary); width: 100%; outline: none; padding: 0; box-sizing: border-box;" maxlength="80">
         
-        <div id="note-content-editor" contenteditable="true" placeholder="Comienza a escribir aquí. Escribe / para encabezados..." style="border: none; background: transparent; font-size: 15px; font-family: var(--font-sans); color: var(--text-secondary); width: 100%; min-height: 380px; outline: none; line-height: 1.6; padding: 0; margin-top: 18px; box-sizing: border-box; overflow-y: auto;"></div>
+        <div id="note-content-editor" contenteditable="true" placeholder="Comienza a escribir aquí. Escribe / para insertar bloques..." style="border: none; background: transparent; font-size: 15px; font-family: var(--font-sans); color: var(--text-secondary); width: 100%; min-height: 380px; outline: none; line-height: 1.6; padding: 0; margin-top: 18px; box-sizing: border-box; overflow-y: auto;"></div>
 
-        <!-- Slash Suggestions Dropdown (Only Headings) -->
-        <div id="notion-slash-menu" style="display: none; position: absolute; background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 2200; width: 220px; padding: 6px; left: 0; top: 0;">
-          <div style="font-size: 9px; font-weight: 700; color: var(--text-tertiary); padding: 6px 10px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border-subtle); margin-bottom: 4px;">Encabezados</div>
+        <!-- Slash Suggestions Dropdown -->
+        <div id="notion-slash-menu" style="display: none; position: absolute; background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 2200; width: 230px; padding: 6px; left: 0; top: 0;">
+          <div style="font-size: 9px; font-weight: 700; color: var(--text-tertiary); padding: 6px 10px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border-subtle); margin-bottom: 4px;">Bloques Básicos</div>
+          
+          <div class="slash-item" data-type="todo" style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; font-size: 13px; color: var(--text-primary); cursor: pointer; transition: background 0.15s ease;">
+            <span style="font-size: 16px;">☑️</span>
+            <div>
+              <div style="font-weight: 600;">Lista de Tareas</div>
+              <div style="font-size: 10px; color: var(--text-secondary);">Hacer seguimiento interactivo</div>
+            </div>
+          </div>
           
           <div class="slash-item" data-type="h1" style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; font-size: 13px; color: var(--text-primary); cursor: pointer; transition: background 0.15s ease;">
             <span style="font-size: 15px; font-weight: 800; color: var(--text-primary); width: 22px;">H1</span>
@@ -174,6 +182,25 @@ function renderNoteDetail(note) {
               <div style="font-size: 10px; color: var(--text-secondary);">Título pequeño</div>
             </div>
           </div>
+        </div>
+
+        <!-- Notion Link Mention Tooltip Dropdown -->
+        <div id="link-mention-tooltip" style="display: none; position: absolute; background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 2300; padding: 6px; flex-direction: column; gap: 4px; width: 195px; left: 0; top: 0;">
+          <div style="font-size: 9px; font-weight: 700; color: var(--text-tertiary); padding: 6px 10px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border-subtle); margin-bottom: 4px;">Enlace Detectado</div>
+          <button id="btn-paste-mention" class="slash-item" style="background: transparent; border: none; text-align: left; padding: 8px 10px; border-radius: 8px; color: var(--text-primary); font-size: 12.5px; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; transition: background 0.15s ease; outline: none; -webkit-appearance: none; appearance: none;">
+            <span style="font-size: 15px;">🔗</span>
+            <div>
+              <div style="font-weight: 600;">Mencionar Enlace</div>
+              <div style="font-size: 10px; color: var(--text-secondary);">Favicon + título + hipervínculo</div>
+            </div>
+          </button>
+          <button id="btn-paste-normal" class="slash-item" style="background: transparent; border: none; text-align: left; padding: 8px 10px; border-radius: 8px; color: var(--text-secondary); font-size: 12.5px; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; transition: background 0.15s ease; outline: none; -webkit-appearance: none; appearance: none;">
+            <span style="font-size: 15px;">📄</span>
+            <div>
+              <div style="font-weight: 600;">Pegar Texto Plano</div>
+              <div style="font-size: 10px; color: var(--text-secondary);">Dirección URL normal</div>
+            </div>
+          </button>
         </div>
 
       </div>
@@ -222,10 +249,10 @@ function renderNoteDetail(note) {
 }
 
 // Helper to insert HTML elements at caret position inside contenteditable
-function insertHTMLAtCursor(html) {
+function insertHTMLAtCursor(html, specificRange = null) {
   const sel = window.getSelection();
-  if (sel.getRangeAt && sel.rangeCount) {
-    const range = sel.getRangeAt(0);
+  const range = specificRange || (sel.getRangeAt && sel.rangeCount ? sel.getRangeAt(0) : null);
+  if (range) {
     range.deleteContents();
     
     const el = document.createElement("div");
@@ -239,7 +266,7 @@ function insertHTMLAtCursor(html) {
     range.insertNode(frag);
     
     if (lastNode) {
-      const newRange = range.cloneRange();
+      const newRange = document.createRange();
       newRange.setStartAfter(lastNode);
       newRange.collapse(true);
       sel.removeAllRanges();
@@ -269,6 +296,25 @@ function focusAndPlaceCaretAtStart(el) {
       sel.removeAllRanges();
       sel.addRange(range);
     } catch (e2) {}
+  }
+}
+
+// Background title scraper helper (combats CORS using allorigins.win)
+async function fetchPageTitle(url) {
+  try {
+    const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+    if (!response.ok) return null;
+    const data = await response.json();
+    const html = data.contents;
+    if (!html) return null;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const title = doc.querySelector('title')?.textContent || 
+                  doc.querySelector('meta[property="og:title"]')?.getAttribute('content') ||
+                  doc.querySelector('meta[name="twitter:title"]')?.getAttribute('content');
+    return title ? title.trim() : null;
+  } catch (e) {
+    return null;
   }
 }
 
@@ -314,12 +360,41 @@ function mountNoteDetail(noteId) {
   const titleInput = document.getElementById('note-title-input');
   const contentEditor = document.getElementById('note-content-editor');
   const slashMenu = document.getElementById('notion-slash-menu');
+  const linkTooltip = document.getElementById('link-mention-tooltip');
   
   // Fill content editor innerHTML directly on mount
   const state = store.getState();
   const activeNote = state.notes?.find(n => n.id === noteId);
   if (activeNote && contentEditor) {
-    contentEditor.innerHTML = activeNote.content || '';
+    const rawContent = activeNote.content || '';
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = rawContent;
+    
+    // Remove contenteditable from nested elements (except links, which must be contenteditable="false")
+    tempDiv.querySelectorAll('[contenteditable]').forEach(el => {
+      if (el.tagName !== 'A') {
+        el.removeAttribute('contenteditable');
+      } else {
+        el.setAttribute('contenteditable', 'false');
+      }
+    });
+
+    // Make sure all links in the document are non-editable atomic blocks
+    tempDiv.querySelectorAll('a').forEach(el => {
+      el.setAttribute('contenteditable', 'false');
+    });
+
+    // Clean up any extra divs inside todo-row
+    tempDiv.querySelectorAll('.todo-row').forEach(row => {
+      const texts = row.querySelectorAll('.todo-text');
+      if (texts.length > 1) {
+        for (let i = 1; i < texts.length; i++) {
+          texts[i].remove();
+        }
+      }
+    });
+
+    contentEditor.innerHTML = tempDiv.innerHTML;
   }
 
   // Autosave setup
@@ -343,7 +418,30 @@ function mountNoteDetail(noteId) {
   titleInput?.addEventListener('input', triggerAutosave);
   contentEditor?.addEventListener('input', triggerAutosave);
 
-  // Keydown interceptor for "Enter" key on Headings (H1, H2, H3) -> creates clean line below
+  // Click listener for links (to open in new tab) and checkbox toggling
+  contentEditor?.addEventListener('click', (e) => {
+    const link = e.target.closest('a');
+    if (link) {
+      const href = link.getAttribute('href');
+      if (href) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.open(href, '_blank');
+        return;
+      }
+    }
+
+    if (e.target && e.target.type === 'checkbox') {
+      if (e.target.checked) {
+        e.target.setAttribute('checked', 'checked');
+      } else {
+        e.target.removeAttribute('checked');
+      }
+      triggerAutosave();
+    }
+  });
+
+  // Keydown interceptor for "Enter" (To-Do creation & Heading breakout) and "Backspace" (atomic link deletion)
   contentEditor?.addEventListener('keydown', (e) => {
     const selection = window.getSelection();
     
@@ -356,8 +454,9 @@ function mountNoteDetail(noteId) {
         }
 
         const headingNode = targetEl.closest('h1, h2, h3');
+        const todoRow = targetEl.closest('.todo-row');
 
-        // Inside a Heading -> Breakout to a clean normal line below
+        // Case 1: Inside a Heading -> Breakout to a clean normal line below
         if (headingNode) {
           e.preventDefault();
           const newBlock = document.createElement('div');
@@ -369,11 +468,76 @@ function mountNoteDetail(noteId) {
           triggerAutosave();
           return;
         }
+
+        // Case 2: Inside a To-Do item -> Create next To-Do item below
+        if (todoRow) {
+          e.preventDefault();
+          const newRow = document.createElement('div');
+          newRow.className = 'todo-row';
+          newRow.style.cssText = 'display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;';
+          newRow.innerHTML = `<input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary); flex-shrink: 0;"> <div class="todo-text" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea"><br></div>`;
+          
+          todoRow.parentNode.insertBefore(newRow, todoRow.nextSibling);
+          
+          const newTextDiv = newRow.querySelector('.todo-text');
+          if (newTextDiv) {
+            focusAndPlaceCaretAtStart(newTextDiv);
+          }
+          triggerAutosave();
+          return;
+        }
+
+        // Case 3: In normal space/paragraph -> standard browser Enter creates another normal blank line!
+      }
+    }
+
+    if (e.key === 'Backspace') {
+      if (selection.rangeCount) {
+        const range = selection.getRangeAt(0);
+        let targetEl = range.startContainer;
+        if (targetEl.nodeType === Node.TEXT_NODE) {
+          targetEl = targetEl.parentNode;
+        }
+        
+        let anchor = targetEl.closest('a');
+
+        // If cursor is inside or right after an anchor link -> delete the entire block atomically
+        if (!anchor && range.collapsed) {
+          if (range.startOffset === 0) {
+            let prev = range.startContainer.previousSibling;
+            if (prev && prev.tagName === 'A') {
+              anchor = prev;
+            }
+          } else if (range.startContainer.nodeType === Node.TEXT_NODE) {
+            const text = range.startContainer.textContent;
+            const offset = range.startOffset;
+            if (offset === 1 && (text[0] === ' ' || text[0] === '\u00A0' || text[0] === '\u200B')) {
+              let prev = range.startContainer.previousSibling;
+              if (prev && prev.tagName === 'A') {
+                anchor = prev;
+              }
+            }
+          }
+        }
+
+        if (anchor) {
+          e.preventDefault();
+          let nextSibling = anchor.nextSibling;
+          anchor.parentNode.removeChild(anchor);
+          
+          if (nextSibling && nextSibling.nodeType === Node.TEXT_NODE && 
+              (nextSibling.textContent === ' ' || nextSibling.textContent === '\u00A0' || nextSibling.textContent === '\u200B')) {
+            nextSibling.parentNode.removeChild(nextSibling);
+          }
+          
+          triggerAutosave();
+          return;
+        }
       }
     }
   });
 
-  // Slash command logic for Headings only
+  // Slash command logic for To-Dos and Headings
   contentEditor?.addEventListener('input', () => {
     const selection = window.getSelection();
     if (selection.rangeCount && slashMenu) {
@@ -398,7 +562,7 @@ function mountNoteDetail(noteId) {
         const editorRect = contentEditor.getBoundingClientRect();
         
         const caretY = rect.bottom - editorRect.top + contentEditor.scrollTop + 4;
-        const caretX = Math.min(contentEditor.clientWidth - 230, Math.max(0, rect.left - editorRect.left));
+        const caretX = Math.min(contentEditor.clientWidth - 240, Math.max(0, rect.left - editorRect.left));
 
         slashMenu.style.top = `${caretY}px`;
         slashMenu.style.left = `${caretX}px`;
@@ -409,34 +573,131 @@ function mountNoteDetail(noteId) {
     }
   });
 
-  // Global hide slash menu if clicked elsewhere
+  // Intercept Link Pasting for Mention Tooltip (works anywhere, including inside To-Dos)
+  let savedPasteRange = null;
+  contentEditor?.addEventListener('paste', (e) => {
+    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+    const urlPattern = /^(https?:\/\/[^\s]+)$/i;
+
+    if (urlPattern.test(pastedText.trim()) && linkTooltip) {
+      e.preventDefault(); // Intercept default pasting
+      const url = pastedText.trim();
+      let domain = 'Enlace';
+      try {
+        domain = new URL(url).hostname;
+        if (domain.startsWith('www.')) domain = domain.slice(4);
+      } catch (err) {}
+
+      const selection = window.getSelection();
+      if (selection.rangeCount) {
+        const range = selection.getRangeAt(0);
+        savedPasteRange = range.cloneRange();
+        
+        // Collapsed range bounding box hack
+        const dummy = document.createElement('span');
+        dummy.innerHTML = '&#8203;';
+        range.insertNode(dummy);
+        const rect = dummy.getBoundingClientRect();
+        dummy.parentNode.removeChild(dummy);
+
+        const editorRect = contentEditor.getBoundingClientRect();
+        
+        const caretY = rect.bottom - editorRect.top + contentEditor.scrollTop + 4;
+        const caretX = Math.min(contentEditor.clientWidth - 200, Math.max(0, rect.left - editorRect.left));
+
+        linkTooltip.style.top = `${caretY}px`;
+        linkTooltip.style.left = `${caretX}px`;
+        linkTooltip.style.display = 'flex';
+
+        // Setup actions
+        const pasteMention = document.getElementById('btn-paste-mention');
+        const pasteNormal = document.getElementById('btn-paste-normal');
+
+        const newPasteMention = pasteMention.cloneNode(true);
+        const newPasteNormal = pasteNormal.cloneNode(true);
+        pasteMention.parentNode.replaceChild(newPasteMention, pasteMention);
+        pasteNormal.parentNode.replaceChild(newPasteNormal, pasteNormal);
+
+        newPasteMention.addEventListener('click', async (evClick) => {
+          evClick.stopPropagation();
+          
+          const loadingHtml = `<a class="link-mention loading" href="${url}" target="_blank" contenteditable="false" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: var(--text-primary); text-decoration: none; font-size: 13px; font-weight: 500; vertical-align: middle; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: text; margin: 2px 0;">
+            <img src="https://www.google.com/s2/favicons?sz=32&domain=${domain}" style="width: 16px; height: 16px; border-radius: 3px; object-fit: contain; flex-shrink: 0; display: inline-block; vertical-align: middle;" onerror="this.style.display='none'">
+            <span style="color: var(--text-secondary); font-weight: 400; flex-shrink: 0;">${domain}</span>
+            <span style="width: 1px; height: 12px; background: var(--border-subtle); margin: 0 2px;"></span>
+            <span class="mention-title" style="font-weight: 600; color: var(--text-primary);">Cargando título...</span>
+          </a>&nbsp;`;
+
+          insertHTMLAtCursor(loadingHtml, savedPasteRange);
+          triggerAutosave();
+          linkTooltip.style.display = 'none';
+
+          // Fetch page title asynchronously
+          const fetchedTitle = await fetchPageTitle(url);
+          const finalTitle = fetchedTitle ? fetchedTitle : 'Enlace';
+          
+          const allMentions = contentEditor.querySelectorAll('.link-mention.loading');
+          allMentions.forEach(el => {
+            if (el.getAttribute('href') === url) {
+              el.classList.remove('loading');
+              const titleSpan = el.querySelector('.mention-title');
+              if (titleSpan) titleSpan.textContent = finalTitle;
+            }
+          });
+          triggerAutosave();
+        });
+
+        newPasteNormal.addEventListener('click', (evClick) => {
+          evClick.stopPropagation();
+          const linkHtml = `<a href="${url}" target="_blank" contenteditable="false" style="color: var(--text-primary); text-decoration: underline;">${url}</a>&nbsp;`;
+          insertHTMLAtCursor(linkHtml, savedPasteRange);
+          triggerAutosave();
+          linkTooltip.style.display = 'none';
+        });
+      }
+    }
+  });
+
+  // Global hide dropdowns if clicked elsewhere
   document.addEventListener('click', (e) => {
     if (slashMenu && !slashMenu.contains(e.target) && e.target !== contentEditor) {
       slashMenu.style.display = 'none';
     }
+    if (linkTooltip && !linkTooltip.contains(e.target) && e.target !== contentEditor) {
+      linkTooltip.style.display = 'none';
+    }
   });
 
-  // Prevent focus loss when clicking inside slash menu
+  // Prevent focus loss when clicking inside slash menu or link tooltip
   slashMenu?.addEventListener('mousedown', (e) => {
     e.preventDefault();
   });
+  linkTooltip?.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+  });
 
-  // Handle slash items clicks for Headings (H1, H2, H3)
+  // Handle slash items clicks for To-Dos and Headings
   document.querySelectorAll('.slash-item').forEach(item => {
+    if (item.id === 'btn-paste-mention' || item.id === 'btn-paste-normal') return;
+
     item.addEventListener('click', (e) => {
       e.stopPropagation();
       const type = item.dataset.type;
 
       // Delete the slash character in contenteditable
       const sel = window.getSelection();
+      let deleteRange = null;
       if (sel.rangeCount) {
-        const range = sel.getRangeAt(0);
-        range.setStart(range.startContainer, range.startOffset - 1);
-        range.deleteContents();
+        deleteRange = sel.getRangeAt(0);
+        deleteRange.setStart(deleteRange.startContainer, deleteRange.startOffset - 1);
+        deleteRange.deleteContents();
       }
 
       let blockHtml = '';
       switch (type) {
+        case 'todo':
+          blockHtml = `<div class="todo-row" style="display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;"><input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary); flex-shrink: 0;"> <div class="todo-text" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea"><br></div></div>`;
+          break;
         case 'h1':
           blockHtml = `<h1 style="font-size: 26px; font-weight: 800; font-family: var(--font-serif); color: var(--text-primary); margin: 20px 0 8px 0; outline: none;">Encabezado 1</h1>`;
           break;
@@ -448,7 +709,7 @@ function mountNoteDetail(noteId) {
           break;
       }
 
-      insertHTMLAtCursor(blockHtml);
+      insertHTMLAtCursor(blockHtml, deleteRange);
       triggerAutosave();
       if (slashMenu) slashMenu.style.display = 'none';
     });
