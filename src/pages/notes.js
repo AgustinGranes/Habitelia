@@ -211,6 +211,25 @@ function renderNoteDetail(note) {
             </div>
           </div>
         </div>
+
+        <!-- Notion Link Mention Tooltip Dropdown -->
+        <div id="link-mention-tooltip" style="display: none; position: absolute; background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 2300; padding: 6px; flex-direction: column; gap: 4px; width: 195px; left: 0; top: 0;">
+          <div style="font-size: 9px; font-weight: 700; color: var(--text-tertiary); padding: 6px 10px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border-subtle); margin-bottom: 4px;">Enlace Detectado</div>
+          <button id="btn-paste-mention" class="slash-item" style="background: transparent; border: none; text-align: left; padding: 8px 10px; border-radius: 8px; color: var(--text-primary); font-size: 12.5px; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; transition: background 0.15s ease; outline: none; -webkit-appearance: none; appearance: none;">
+            <span style="font-size: 15px;">🔗</span>
+            <div>
+              <div style="font-weight: 600;">Mencionar Enlace</div>
+              <div style="font-size: 10px; color: var(--text-secondary);">Insertar botón visual</div>
+            </div>
+          </button>
+          <button id="btn-paste-normal" class="slash-item" style="background: transparent; border: none; text-align: left; padding: 8px 10px; border-radius: 8px; color: var(--text-secondary); font-size: 12.5px; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; transition: background 0.15s ease; outline: none; -webkit-appearance: none; appearance: none;">
+            <span style="font-size: 15px;">📄</span>
+            <div>
+              <div style="font-weight: 600;">Pegar Texto Plano</div>
+              <div style="font-size: 10px; color: var(--text-secondary);">Dirección URL normal</div>
+            </div>
+          </button>
+        </div>
       </div>
 
       <!-- Preview Mode Wrapper -->
@@ -273,6 +292,18 @@ function renderMarkdown(text) {
     // Pass raw HTML tags for details and summaries
     if (trimmed.startsWith('<details') || trimmed.startsWith('</details') || trimmed.startsWith('<summary') || trimmed.startsWith('</summary')) {
       return line;
+    }
+
+    // Parse markdown links (mentions format support)
+    const linkRegex = /\[(.*?)\]\((.*?)\)/g;
+    if (linkRegex.test(line)) {
+      line = line.replace(linkRegex, (match, linkText, href) => {
+        if (linkText.startsWith('🔗')) {
+          return `<a href="${href}" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; background: rgba(255,255,255,0.08); border: 1px solid var(--border-subtle); color: var(--text-primary); text-decoration: none; font-size: 13.5px; font-weight: 600; transition: all 0.2s ease; user-select: text;">${linkText}</a>`;
+        }
+        return `<a href="${href}" target="_blank" style="color: var(--text-primary); text-decoration: underline; user-select: text;">${linkText}</a>`;
+      });
+      trimmed = line.trim();
     }
 
     // Headings
@@ -374,6 +405,7 @@ function mountNoteDetail(noteId) {
   const titleInput = document.getElementById('note-title-input');
   const contentInput = document.getElementById('note-content-input');
   const slashMenu = document.getElementById('notion-slash-menu');
+  const linkTooltip = document.getElementById('link-mention-tooltip');
   
   // Fill content input value directly on mount (since html templates encode it)
   const state = store.getState();
@@ -428,15 +460,84 @@ function mountNoteDetail(noteId) {
     }
   });
 
-  // Global hide slash menu if focus lost or clicked elsewhere
+  // Intercept Link Pasting for Mention Tooltip
+  contentInput?.addEventListener('paste', (e) => {
+    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+    const urlPattern = /^(https?:\/\/[^\s]+)$/i;
+
+    if (urlPattern.test(pastedText.trim()) && linkTooltip) {
+      e.preventDefault(); // Intercept default pasting
+      const url = pastedText.trim();
+      let domain = 'Enlace';
+      try {
+        domain = new URL(url).hostname;
+        if (domain.startsWith('www.')) domain = domain.slice(4);
+      } catch (err) {}
+
+      const caretPos = contentInput.selectionStart;
+      const textBeforeCaret = contentInput.value.substring(0, caretPos);
+      const lines = textBeforeCaret.split('\n');
+      const currentLineIndex = lines.length;
+      const caretY = currentLineIndex * 24 + 10;
+      const caretX = Math.min(contentInput.clientWidth - 200, 20);
+
+      linkTooltip.style.top = `${caretY}px`;
+      linkTooltip.style.left = `${caretX}px`;
+      linkTooltip.style.display = 'flex';
+
+      // Setup actions
+      const pasteMention = document.getElementById('btn-paste-mention');
+      const pasteNormal = document.getElementById('btn-paste-normal');
+
+      const newPasteMention = pasteMention.cloneNode(true);
+      const newPasteNormal = pasteNormal.cloneNode(true);
+      pasteMention.parentNode.replaceChild(newPasteMention, pasteMention);
+      pasteNormal.parentNode.replaceChild(newPasteNormal, pasteNormal);
+
+      newPasteMention.addEventListener('click', (evClick) => {
+        evClick.stopPropagation();
+        const val = contentInput.value;
+        const before = val.substring(0, caretPos);
+        const after = val.substring(caretPos);
+        const mention = `[🔗 ${domain}](${url})`;
+
+        contentInput.value = before + mention + after;
+        contentInput.setSelectionRange(caretPos + mention.length, caretPos + mention.length);
+        contentInput.focus();
+        triggerAutosave();
+        linkTooltip.style.display = 'none';
+      });
+
+      newPasteNormal.addEventListener('click', (evClick) => {
+        evClick.stopPropagation();
+        const val = contentInput.value;
+        const before = val.substring(0, caretPos);
+        const after = val.substring(caretPos);
+
+        contentInput.value = before + url + after;
+        contentInput.setSelectionRange(caretPos + url.length, caretPos + url.length);
+        contentInput.focus();
+        triggerAutosave();
+        linkTooltip.style.display = 'none';
+      });
+    }
+  });
+
+  // Global hide dropdowns if clicked elsewhere
   document.addEventListener('click', (e) => {
     if (slashMenu && !slashMenu.contains(e.target) && e.target !== contentInput) {
       slashMenu.style.display = 'none';
+    }
+    if (linkTooltip && !linkTooltip.contains(e.target) && e.target !== contentInput) {
+      linkTooltip.style.display = 'none';
     }
   });
 
   // Handle slash items clicks
   document.querySelectorAll('.slash-item').forEach(item => {
+    // Only target Basic items, not link tooltip buttons
+    if (item.id === 'btn-paste-mention' || item.id === 'btn-paste-normal') return;
+    
     item.addEventListener('click', (e) => {
       e.stopPropagation();
       const type = item.dataset.type;

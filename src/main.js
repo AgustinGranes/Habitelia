@@ -134,11 +134,14 @@ const renderApp = window._renderApp = (routePath, params) => {
 
     // Skip full DOM re-rendering if current route matches target route and app is already populated
     const currentRouteInState = store.getState().currentRoute;
-    if (currentRouteInState === routePath && document.getElementById('app')?.children.length > 0) {
+    const currentParamsInState = store.getState().currentParams;
+    if (currentRouteInState === routePath && 
+        JSON.stringify(currentParamsInState) === JSON.stringify(params) && 
+        document.getElementById('app')?.children.length > 0) {
       return;
     }
 
-    store.setState({ currentRoute: routePath });
+    store.setState({ currentRoute: routePath, currentParams: params });
     const appContainer = getAppContainer();
 
     const route = routesMap[routePath] || routesMap['/home'];
