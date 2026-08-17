@@ -419,7 +419,25 @@ function mountNoteDetail(noteId) {
   const state = store.getState();
   const activeNote = state.notes?.find(n => n.id === noteId);
   if (activeNote && contentEditor) {
-    contentEditor.innerHTML = activeNote.content || '';
+    const rawContent = activeNote.content || '';
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = rawContent;
+    
+    // Remove contenteditable from nested elements (except links, which must be contenteditable="false")
+    tempDiv.querySelectorAll('[contenteditable]').forEach(el => {
+      if (el.tagName !== 'A') {
+        el.removeAttribute('contenteditable');
+      } else {
+        el.setAttribute('contenteditable', 'false');
+      }
+    });
+
+    // Make sure all links in the document are non-editable atomic blocks
+    tempDiv.querySelectorAll('a').forEach(el => {
+      el.setAttribute('contenteditable', 'false');
+    });
+
+    contentEditor.innerHTML = tempDiv.innerHTML;
   }
 
   // Autosave setup
@@ -443,7 +461,7 @@ function mountNoteDetail(noteId) {
   titleInput?.addEventListener('input', triggerAutosave);
   contentEditor?.addEventListener('input', triggerAutosave);
 
-  // Click listener for links (normal and mentions) to open in new tab, and checkbox toggling
+  // Click listener for links, checkboxes, and toggle summaries
   contentEditor?.addEventListener('click', (e) => {
     const link = e.target.closest('a');
     if (link) {
@@ -452,6 +470,23 @@ function mountNoteDetail(noteId) {
         e.preventDefault();
         e.stopPropagation();
         window.open(href, '_blank');
+        return;
+      }
+    }
+
+    const summary = e.target.closest('summary');
+    if (summary) {
+      const details = summary.closest('details');
+      if (details) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (details.hasAttribute('open')) {
+          details.removeAttribute('open');
+        } else {
+          details.setAttribute('open', 'open');
+        }
+        focusAndPlaceCaretAtEnd(summary);
+        triggerAutosave();
         return;
       }
     }
@@ -705,7 +740,7 @@ function mountNoteDetail(noteId) {
         newPasteMention.addEventListener('click', async (evClick) => {
           evClick.stopPropagation();
           
-          const loadingHtml = `<a class="link-mention loading" href="${url}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: var(--text-primary); text-decoration: none; font-size: 13px; font-weight: 500; vertical-align: middle; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: text; margin: 2px 0;">
+          const loadingHtml = `<a class="link-mention loading" href="${url}" target="_blank" contenteditable="false" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: var(--text-primary); text-decoration: none; font-size: 13px; font-weight: 500; vertical-align: middle; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: text; margin: 2px 0;">
             <img src="https://www.google.com/s2/favicons?sz=32&domain=${domain}" style="width: 16px; height: 16px; border-radius: 3px; object-fit: contain; flex-shrink: 0; display: inline-block; vertical-align: middle;" onerror="this.style.display='none'">
             <span style="color: var(--text-secondary); font-weight: 400; flex-shrink: 0;">${domain}</span>
             <span style="width: 1px; height: 12px; background: var(--border-subtle); margin: 0 2px;"></span>
@@ -733,7 +768,7 @@ function mountNoteDetail(noteId) {
 
         newPasteNormal.addEventListener('click', (evClick) => {
           evClick.stopPropagation();
-          const linkHtml = `<a href="${url}" target="_blank" style="color: var(--text-primary); text-decoration: underline;">${url}</a>&nbsp;`;
+          const linkHtml = `<a href="${url}" target="_blank" contenteditable="false" style="color: var(--text-primary); text-decoration: underline;">${url}</a>&nbsp;`;
           insertHTMLAtCursor(linkHtml);
           triggerAutosave();
           linkTooltip.style.display = 'none';
