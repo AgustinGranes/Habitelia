@@ -299,6 +299,30 @@ function insertHTMLAtCursor(html) {
   }
 }
 
+// Helper to place cursor at the end of an element
+function focusAndPlaceCaretAtEnd(el) {
+  try {
+    el.focus();
+  } catch (err) {}
+  try {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false); // false means collapse to end
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } catch (err) {
+    try {
+      const range = document.createRange();
+      range.selectNode(el);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } catch (e2) {}
+  }
+}
+
 // Background title scraper helper (combats CORS using allorigins.win)
 async function fetchPageTitle(url) {
   try {
@@ -442,7 +466,7 @@ function mountNoteDetail(noteId) {
     }
   });
 
-  // Keydown interceptor for "Enter" key list expansion/breakouts and "Backspace" key atomic link deletion
+  // Keydown interceptor for "Enter" key list expansion/breakouts and "Backspace" key atomic block/link deletion
   contentEditor?.addEventListener('keydown', (e) => {
     const selection = window.getSelection();
     
@@ -453,6 +477,7 @@ function mountNoteDetail(noteId) {
         
         let headingNode = null;
         let summaryNode = null;
+        let detailsNode = null;
         let todoTextDiv = null;
         
         while (node && node !== contentEditor) {
@@ -463,6 +488,9 @@ function mountNoteDetail(noteId) {
             if (node.tagName === 'SUMMARY') {
               summaryNode = node;
             }
+            if (node.tagName === 'DETAILS') {
+              detailsNode = node;
+            }
             if (node.classList.contains('todo-text')) {
               todoTextDiv = node;
             }
@@ -470,7 +498,7 @@ function mountNoteDetail(noteId) {
           node = node.parentNode;
         }
 
-        // Case A: Inside a todo item
+        // Case A: Inside a todo item -> Insert next todo underneath
         if (todoTextDiv) {
           e.preventDefault(); // Stop default paragraph creation
           const todoRow = todoTextDiv.closest('.todo-row');
@@ -478,18 +506,13 @@ function mountNoteDetail(noteId) {
             const newRow = document.createElement('div');
             newRow.className = 'todo-row';
             newRow.style.cssText = 'display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;';
-            newRow.innerHTML = `<input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary);"> <div class="todo-text" contenteditable="true" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea"></div>`;
+            newRow.innerHTML = `<input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary);"> <div class="todo-text" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea"></div>`;
             
             todoRow.parentNode.insertBefore(newRow, todoRow.nextSibling);
             
             const newTextDiv = newRow.querySelector('.todo-text');
             if (newTextDiv) {
-              newTextDiv.focus();
-              const newRange = document.createRange();
-              newRange.selectNodeContents(newTextDiv);
-              newRange.collapse(true);
-              selection.removeAllRanges();
-              selection.addRange(newRange);
+              focusAndPlaceCaretAtEnd(newTextDiv);
             }
             triggerAutosave();
           }
@@ -504,33 +527,18 @@ function mountNoteDetail(noteId) {
           newBlock.innerHTML = '<br>';
           
           headingNode.parentNode.insertBefore(newBlock, headingNode.nextSibling);
-          
-          newBlock.focus();
-          const newRange = document.createRange();
-          newRange.selectNodeContents(newBlock);
-          newRange.collapse(true);
-          selection.removeAllRanges();
-          selection.addRange(newRange);
-          
+          focusAndPlaceCaretAtEnd(newBlock);
           triggerAutosave();
           return;
         }
 
         // Case C: Inside a Summary (Toggle title) -> Jump inside the content div
-        if (summaryNode) {
+        if (summaryNode && detailsNode) {
           e.preventDefault();
-          const details = summaryNode.closest('details');
-          if (details) {
-            details.setAttribute('open', 'true');
-            const contentDiv = details.querySelector('div[contenteditable]');
-            if (contentDiv) {
-              contentDiv.focus();
-              const newRange = document.createRange();
-              newRange.selectNodeContents(contentDiv);
-              newRange.collapse(true);
-              selection.removeAllRanges();
-              selection.addRange(newRange);
-            }
+          detailsNode.setAttribute('open', 'true');
+          const contentDiv = detailsNode.querySelector('.toggle-content');
+          if (contentDiv) {
+            focusAndPlaceCaretAtEnd(contentDiv);
           }
           return;
         }
@@ -541,18 +549,27 @@ function mountNoteDetail(noteId) {
       if (selection.rangeCount) {
         const range = selection.getRangeAt(0);
         let node = range.startContainer;
-        let anchor = null;
         
-        // 1. If cursor is inside an anchor tag
+        let anchor = null;
+        let summaryNode = null;
+        let detailsNode = null;
+        
         while (node && node !== contentEditor) {
-          if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'A') {
-            anchor = node;
-            break;
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.tagName === 'A') {
+              anchor = node;
+            }
+            if (node.tagName === 'SUMMARY') {
+              summaryNode = node;
+            }
+            if (node.tagName === 'DETAILS') {
+              detailsNode = node;
+            }
           }
           node = node.parentNode;
         }
 
-        // 2. If cursor is right after an anchor tag
+        // 1. If cursor is inside or right after an anchor link -> delete the entire block atomically
         if (!anchor && range.collapsed) {
           if (range.startOffset === 0) {
             let prev = range.startContainer.previousSibling;
@@ -582,6 +599,25 @@ function mountNoteDetail(noteId) {
           }
           
           triggerAutosave();
+          return;
+        }
+
+        // 2. If cursor is inside an empty toggle summary -> delete the entire details block
+        if (summaryNode && detailsNode) {
+          const txt = summaryNode.textContent.trim().replace(/[\u200B\u00A0\s]/g, '');
+          if (txt === '') {
+            e.preventDefault();
+            let prevSibling = detailsNode.previousSibling;
+            detailsNode.parentNode.removeChild(detailsNode);
+            
+            if (prevSibling) {
+              focusAndPlaceCaretAtEnd(prevSibling);
+            } else {
+              contentEditor.focus();
+            }
+            triggerAutosave();
+            return;
+          }
         }
       }
     }
@@ -743,28 +779,28 @@ function mountNoteDetail(noteId) {
       let blockHtml = '';
       switch (type) {
         case 'todo':
-          blockHtml = `<div class="todo-row" style="display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;"><input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary);"> <div class="todo-text" contenteditable="true" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea">Tarea</div></div>`;
+          blockHtml = `<div class="todo-row" style="display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;"><input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary);"> <div class="todo-text" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea">Tarea</div></div>`;
           break;
         case 'h1':
-          blockHtml = `<h1 style="font-size: 24px; font-weight: 800; font-family: var(--font-serif); color: var(--text-primary); margin: 18px 0 6px 0; outline: none;" contenteditable="true">Título 1</h1>`;
+          blockHtml = `<h1 style="font-size: 24px; font-weight: 800; font-family: var(--font-serif); color: var(--text-primary); margin: 18px 0 6px 0; outline: none;">Título 1</h1>`;
           break;
         case 'h2':
-          blockHtml = `<h2 style="font-size: 20px; font-weight: 700; font-family: var(--font-serif); color: var(--text-primary); margin: 14px 0 4px 0; outline: none;" contenteditable="true">Título 2</h2>`;
+          blockHtml = `<h2 style="font-size: 20px; font-weight: 700; font-family: var(--font-serif); color: var(--text-primary); margin: 14px 0 4px 0; outline: none;">Título 2</h2>`;
           break;
         case 'h3':
-          blockHtml = `<h3 style="font-size: 16px; font-weight: 600; font-family: var(--font-serif); color: var(--text-primary); margin: 12px 0 4px 0; outline: none;" contenteditable="true">Título 3</h3>`;
+          blockHtml = `<h3 style="font-size: 16px; font-weight: 600; font-family: var(--font-serif); color: var(--text-primary); margin: 12px 0 4px 0; outline: none;">Título 3</h3>`;
           break;
         case 'toggle_h1':
-          blockHtml = `<details style="margin: 14px 0; padding: 10px 16px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); outline: none;"><summary style="font-size: 24px; font-weight: 800; font-family: var(--font-serif); color: var(--text-primary); cursor: pointer; outline: none; padding: 4px 0;" contenteditable="true">Desplegable H1</summary><div style="padding: 10px 0 4px 16px; outline: none; color: var(--text-secondary); border-top: 1px solid rgba(255,255,255,0.05); margin-top: 8px;" contenteditable="true">Contenido aquí...</div></details>`;
+          blockHtml = `<details style="margin: 14px 0; padding: 10px 16px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); outline: none;"><summary style="font-size: 24px; font-weight: 800; font-family: var(--font-serif); color: var(--text-primary); cursor: pointer; outline: none; padding: 4px 0;">Desplegable H1</summary><div style="padding: 10px 0 4px 16px; outline: none; color: var(--text-secondary); border-top: 1px solid rgba(255,255,255,0.05); margin-top: 8px;" class="toggle-content">Contenido aquí...</div></details>`;
           break;
         case 'toggle_h2':
-          blockHtml = `<details style="margin: 12px 0; padding: 8px 14px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); outline: none;"><summary style="font-size: 20px; font-weight: 700; font-family: var(--font-serif); color: var(--text-primary); cursor: pointer; outline: none; padding: 4px 0;" contenteditable="true">Desplegable H2</summary><div style="padding: 8px 0 4px 14px; outline: none; color: var(--text-secondary); border-top: 1px solid rgba(255,255,255,0.05); margin-top: 6px;" contenteditable="true">Contenido aquí...</div></details>`;
+          blockHtml = `<details style="margin: 12px 0; padding: 8px 14px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); outline: none;"><summary style="font-size: 20px; font-weight: 700; font-family: var(--font-serif); color: var(--text-primary); cursor: pointer; outline: none; padding: 4px 0;">Desplegable H2</summary><div style="padding: 8px 0 4px 14px; outline: none; color: var(--text-secondary); border-top: 1px solid rgba(255,255,255,0.05); margin-top: 6px;" class="toggle-content">Contenido aquí...</div></details>`;
           break;
         case 'toggle_h3':
-          blockHtml = `<details style="margin: 10px 0; padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); outline: none;"><summary style="font-size: 16px; font-weight: 600; font-family: var(--font-serif); color: var(--text-primary); cursor: pointer; outline: none; padding: 4px 0;" contenteditable="true">Desplegable H3</summary><div style="padding: 6px 0 4px 12px; outline: none; color: var(--text-secondary); border-top: 1px solid rgba(255,255,255,0.05); margin-top: 6px;" contenteditable="true">Contenido aquí...</div></details>`;
+          blockHtml = `<details style="margin: 10px 0; padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); outline: none;"><summary style="font-size: 16px; font-weight: 600; font-family: var(--font-serif); color: var(--text-primary); cursor: pointer; outline: none; padding: 4px 0;">Desplegable H3</summary><div style="padding: 6px 0 4px 12px; outline: none; color: var(--text-secondary); border-top: 1px solid rgba(255,255,255,0.05); margin-top: 6px;" class="toggle-content">Contenido aquí...</div></details>`;
           break;
         case 'toggle_normal':
-          blockHtml = `<details style="margin: 8px 0; padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); outline: none;"><summary style="font-size: 14.5px; color: var(--text-primary); cursor: pointer; outline: none; padding: 4px 0;" contenteditable="true">Desplegable</summary><div style="padding: 6px 0 4px 12px; outline: none; color: var(--text-secondary); border-top: 1px solid rgba(255,255,255,0.05); margin-top: 6px;" contenteditable="true">Contenido aquí...</div></details>`;
+          blockHtml = `<details style="margin: 8px 0; padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); outline: none;"><summary style="font-size: 14.5px; color: var(--text-primary); cursor: pointer; outline: none; padding: 4px 0;">Desplegable</summary><div style="padding: 6px 0 4px 12px; outline: none; color: var(--text-secondary); border-top: 1px solid rgba(255,255,255,0.05); margin-top: 6px;" class="toggle-content">Contenido aquí...</div></details>`;
           break;
       }
 
