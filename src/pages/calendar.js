@@ -133,6 +133,7 @@ export function render() {
   }
   
   const today = new Date();
+  const todayStr = store.getTodayString();
   const state = store.getState();
   const habits = state.habits || [];
   const routines = state.routines || [];
