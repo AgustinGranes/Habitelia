@@ -194,6 +194,7 @@ const startRouter = () => {
     if (rawPath === '/todo') return { path: '/todo', params };
     if (rawPath === '/settings') return { path: '/settings', params };
     if (rawPath === '/timer') return { path: '/timer', params };
+    if (rawPath === '/notes') return { path: '/notes', params };
 
     return { path: '/login', params: {} };
   };
