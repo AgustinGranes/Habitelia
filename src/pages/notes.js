@@ -506,12 +506,13 @@ function mountNoteDetail(noteId) {
 
         // Case 3: Inside a To-Do item
         if (todoRow) {
-          e.preventDefault();
-          const textDiv = todoRow.querySelector('.todo-text');
+          const hasCheckbox = !!todoRow.querySelector('input[type="checkbox"]');
+          const textDiv = todoRow.querySelector('.todo-text') || todoRow;
           const txt = (textDiv ? textDiv.textContent : '').trim().replace(/[\u200B\u00A0\s]/g, '');
 
-          // If the To-Do is empty -> convert it to a regular blank line
-          if (txt === '') {
+          // If it doesn't have a checkbox or text is empty -> convert it to a regular blank line
+          if (!hasCheckbox || txt === '') {
+            e.preventDefault();
             const newBlock = document.createElement('div');
             newBlock.style.cssText = 'min-height: 24px; outline: none; margin: 6px 0;';
             newBlock.innerHTML = '<br>';
@@ -521,7 +522,8 @@ function mountNoteDetail(noteId) {
             return;
           }
 
-          // If the To-Do has text -> create next To-Do item below with "Tarea"
+          // If it has a checkbox and text -> create next To-Do item below with "Tarea"
+          e.preventDefault();
           const newRow = document.createElement('div');
           newRow.className = 'todo-row';
           newRow.style.cssText = 'display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;';
@@ -587,15 +589,17 @@ function mountNoteDetail(noteId) {
           return;
         }
 
-        // 2. If backspacing on an empty To-Do -> remove the To-Do row and replace it with a clean blank line
+        // 2. If backspacing at the start of a To-Do or on an empty To-Do -> unwrap To-Do into a regular paragraph
         if (todoRow && range.collapsed) {
           const textDiv = todoRow.querySelector('.todo-text');
           const txt = (textDiv ? textDiv.textContent : '').trim().replace(/[\u200B\u00A0\s]/g, '');
-          if (txt === '') {
+          const isAtStart = range.startOffset === 0 || targetEl === todoRow || targetEl === textDiv;
+          
+          if (txt === '' || isAtStart) {
             e.preventDefault();
             const newBlock = document.createElement('div');
             newBlock.style.cssText = 'min-height: 24px; outline: none; margin: 6px 0;';
-            newBlock.innerHTML = '<br>';
+            newBlock.innerHTML = (textDiv && textDiv.innerHTML && txt !== '') ? textDiv.innerHTML : '<br>';
             todoRow.parentNode.replaceChild(newBlock, todoRow);
             focusAndPlaceCaretAtStart(newBlock);
             triggerAutosave();
@@ -604,6 +608,19 @@ function mountNoteDetail(noteId) {
         }
       }
     }
+  });
+
+  // Clean up any orphaned todo-row containers without checkboxes
+  contentEditor?.addEventListener('input', () => {
+    contentEditor.querySelectorAll('.todo-row').forEach(row => {
+      if (!row.querySelector('input[type="checkbox"]')) {
+        const text = row.querySelector('.todo-text')?.innerHTML || row.innerHTML || '<br>';
+        const div = document.createElement('div');
+        div.style.cssText = 'min-height: 24px; outline: none; margin: 6px 0;';
+        div.innerHTML = text;
+        row.parentNode.replaceChild(div, row);
+      }
+    });
   });
 
   // Slash command logic for To-Dos and Headings
