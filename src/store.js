@@ -787,7 +787,6 @@ export const store = {
       };
 
       await store.saveDriverProfile(newDriverProfile);
-      showTelemetryRadioPopup(1, ovr, team);
     }
   },
 

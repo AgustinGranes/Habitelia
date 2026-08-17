@@ -101,7 +101,7 @@ function renderMonthlyGrid(habit, year, month) {
   }).join('');
 
   return `
-    <div class="glass-card" style="padding: 24px 20px; border-radius: 18px; overflow-x: auto;">
+    <div class="glass-card" style="padding: 24px 20px; border-radius: 18px;">
       <!-- Month Navigation Header -->
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
         <button id="chain-prev-month" class="btn-secondary" style="width: 36px; height: 36px; min-height: 36px; padding: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
@@ -116,8 +116,10 @@ function renderMonthlyGrid(habit, year, month) {
       </div>
 
       <!-- Scrollable Horizontal Grid of All Days -->
-      <div style="display: flex; gap: 6px; min-width: max-content; padding-top: 10px; padding-bottom: 12px;">
-        ${columnsHtml}
+      <div style="width: 100%; overflow-x: auto; padding-top: 10px; padding-bottom: 12px; -webkit-overflow-scrolling: touch;">
+        <div style="display: flex; gap: 6px; min-width: max-content;">
+          ${columnsHtml}
+        </div>
       </div>
 
       <!-- Legend -->

@@ -6,6 +6,7 @@ import { iconSVG } from '../components/icons.js';
 import { renderSidebar, mountSidebar } from '../components/sidebar.js';
 import { showDeleteHabitModal } from '../components/deleteHabitModal.js';
 import { showSkipHabitModal } from '../components/skipHabitModal.js';
+import { showUnskipHabitModal } from '../components/unskipHabitModal.js';
 import { showInstallPromptIfNeeded } from '../components/installPrompt.js';
 
 let isReorderingHome = false;
@@ -869,17 +870,18 @@ export function mount() {
 
     // Unskip habit action
     document.querySelectorAll('.btn-unskip-habit-home').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
+        btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const rawId = e.currentTarget.dataset.id;
+            const name = e.currentTarget.dataset.name || 'Hábito';
             const isRep = rawId.includes('_rep_');
             const habitId = isRep ? rawId.split('_rep_')[0] : rawId;
             const repIndex = isRep ? rawId.split('_rep_')[1] : null;
             const completionDateKey = isRep ? store.getTodayString() + '_rep_' + repIndex : store.getTodayString();
             
-            await store.unskipEvent(habitId, completionDateKey);
-            showToast('Salteado quitado. OVR restaurado.', 'success');
-            refreshHomeView();
+            showUnskipHabitModal(habitId, name, completionDateKey, () => {
+                refreshHomeView();
+            });
         });
     });
     
