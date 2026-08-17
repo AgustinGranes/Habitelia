@@ -332,3 +332,7 @@ input[type="month"].modal-field::-webkit-date-and-time-value {
 .cover-preset-option:hover, .emoji-preset-option:hover {
   transform: scale(1.08);
 }
+
+.slash-item:hover {
+  background: var(--bg-surface-hover) !important;
+}
