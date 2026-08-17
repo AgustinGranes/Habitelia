@@ -1,6 +1,6 @@
 import { store } from '../store.js';
 import { iconSVG } from '../components/icons.js';
-import { renderSidebar, mountSidebar } from '../components/sidebar.js';
+import { renderSidebar, mountSidebar, openSidebar } from '../components/sidebar.js';
 
 // Pre-defined premium covers (colors and gradients)
 const PREMIUM_COVERS = [
@@ -343,6 +343,10 @@ export function mount(params = {}) {
 
 function mountNotesList() {
   mountSidebar();
+
+  document.getElementById('menu-btn')?.addEventListener('click', () => {
+    openSidebar();
+  });
 
   const triggerCreateNote = async () => {
     const randomColor = PREMIUM_COVERS[Math.floor(Math.random() * PREMIUM_COVERS.length)];
