@@ -299,6 +299,35 @@ function insertHTMLAtCursor(html) {
   }
 }
 
+// Helper to place cursor at the start of an element
+function focusAndPlaceCaretAtStart(el) {
+  try {
+    el.focus();
+  } catch (err) {}
+  try {
+    const range = document.createRange();
+    if (el.firstChild) {
+      range.setStart(el, 0);
+      range.collapse(true);
+    } else {
+      range.selectNodeContents(el);
+      range.collapse(true);
+    }
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } catch (err) {
+    try {
+      const range = document.createRange();
+      range.selectNode(el);
+      range.collapse(true);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } catch (e2) {}
+  }
+}
+
 // Helper to place cursor at the end of an element
 function focusAndPlaceCaretAtEnd(el) {
   try {
@@ -461,25 +490,6 @@ function mountNoteDetail(noteId) {
   titleInput?.addEventListener('input', triggerAutosave);
   contentEditor?.addEventListener('input', triggerAutosave);
 
-  // Mousedown listener for summary click expand/collapse (handles clicking summary text cleanly)
-  contentEditor?.addEventListener('mousedown', (e) => {
-    const summary = e.target.closest('summary');
-    if (summary) {
-      const details = summary.closest('details');
-      if (details) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (details.hasAttribute('open')) {
-          details.removeAttribute('open');
-        } else {
-          details.setAttribute('open', 'open');
-        }
-        focusAndPlaceCaretAtEnd(summary);
-        triggerAutosave();
-      }
-    }
-  });
-
   // Click listener for links (normal and mentions) and checkbox toggling
   contentEditor?.addEventListener('click', (e) => {
     const link = e.target.closest('a');
@@ -515,32 +525,26 @@ function mountNoteDetail(noteId) {
           targetEl = targetEl.parentNode;
         }
 
-        const todoTextDiv = targetEl.closest('.todo-text') || (targetEl.closest('.todo-row')?.querySelector('.todo-text'));
-        const todoRow = targetEl.closest('.todo-row');
-        const headingNode = targetEl.closest('h1, h2, h3');
         const summaryNode = targetEl.closest('summary');
         const detailsNode = targetEl.closest('details');
+        const headingNode = targetEl.closest('h1, h2, h3');
+        const todoRow = targetEl.closest('.todo-row');
         const toggleContent = targetEl.closest('.toggle-content');
 
-        // Case A: Inside a todo item -> Insert next todo underneath
-        if (todoRow) {
-          e.preventDefault(); // Stop default paragraph creation
-          const newRow = document.createElement('div');
-          newRow.className = 'todo-row';
-          newRow.style.cssText = 'display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;';
-          newRow.innerHTML = `<input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary);"> <div class="todo-text" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea"></div>`;
+        // Priority 1: Inside a Summary (Toggle title) -> Create a blank line OUTSIDE and AFTER the desplegable
+        if (summaryNode && detailsNode) {
+          e.preventDefault();
+          const newBlock = document.createElement('div');
+          newBlock.style.cssText = 'min-height: 24px; outline: none; margin: 6px 0;';
+          newBlock.innerHTML = '<br>';
           
-          todoRow.parentNode.insertBefore(newRow, todoRow.nextSibling);
-          
-          const newTextDiv = newRow.querySelector('.todo-text');
-          if (newTextDiv) {
-            focusAndPlaceCaretAtEnd(newTextDiv);
-          }
+          detailsNode.parentNode.insertBefore(newBlock, detailsNode.nextSibling);
+          focusAndPlaceCaretAtStart(newBlock);
           triggerAutosave();
           return;
         }
 
-        // Case B: Inside a Heading (H1, H2, H3) -> Breakout to a normal paragraph below
+        // Priority 2: Inside a Heading (H1, H2, H3) -> Breakout to a normal blank line below
         if (headingNode) {
           e.preventDefault();
           const newBlock = document.createElement('div');
@@ -548,24 +552,30 @@ function mountNoteDetail(noteId) {
           newBlock.innerHTML = '<br>';
           
           headingNode.parentNode.insertBefore(newBlock, headingNode.nextSibling);
-          focusAndPlaceCaretAtEnd(newBlock);
+          focusAndPlaceCaretAtStart(newBlock);
           triggerAutosave();
           return;
         }
 
-        // Case C: Inside a Summary (Toggle title) -> Jump inside the content div
-        if (summaryNode && detailsNode) {
+        // Priority 3: Inside a todo item -> Insert next todo underneath and focus on the left
+        if (todoRow) {
           e.preventDefault();
-          detailsNode.setAttribute('open', 'open');
-          detailsNode.open = true;
-          const contentDiv = detailsNode.querySelector('.toggle-content');
-          if (contentDiv) {
-            focusAndPlaceCaretAtEnd(contentDiv);
+          const newRow = document.createElement('div');
+          newRow.className = 'todo-row';
+          newRow.style.cssText = 'display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;';
+          newRow.innerHTML = `<input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary);"> <div class="todo-text" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea"><br></div>`;
+          
+          todoRow.parentNode.insertBefore(newRow, todoRow.nextSibling);
+          
+          const newTextDiv = newRow.querySelector('.todo-text');
+          if (newTextDiv) {
+            focusAndPlaceCaretAtStart(newTextDiv);
           }
+          triggerAutosave();
           return;
         }
 
-        // Case D: Inside toggle content and it is empty -> Breakout of toggle details to a normal line below
+        // Priority 4: Inside toggle content and it is empty -> Breakout of toggle details to a normal line below
         if (toggleContent && detailsNode) {
           const txt = toggleContent.textContent.trim().replace(/[\u200B\u00A0\s]/g, '');
           if (txt === '') {
@@ -575,7 +585,7 @@ function mountNoteDetail(noteId) {
             newBlock.innerHTML = '<br>';
             
             detailsNode.parentNode.insertBefore(newBlock, detailsNode.nextSibling);
-            focusAndPlaceCaretAtEnd(newBlock);
+            focusAndPlaceCaretAtStart(newBlock);
             triggerAutosave();
             return;
           }
@@ -805,7 +815,7 @@ function mountNoteDetail(noteId) {
       let blockHtml = '';
       switch (type) {
         case 'todo':
-          blockHtml = `<div class="todo-row" style="display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;"><input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary);"> <div class="todo-text" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea">Tarea</div></div>`;
+          blockHtml = `<div class="todo-row" style="display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;"><input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary);"> <div class="todo-text" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea"><br></div></div>`;
           break;
         case 'h1':
           blockHtml = `<h1 style="font-size: 24px; font-weight: 800; font-family: var(--font-serif); color: var(--text-primary); margin: 18px 0 6px 0; outline: none;">Título 1</h1>`;
