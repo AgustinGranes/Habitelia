@@ -461,19 +461,8 @@ function mountNoteDetail(noteId) {
   titleInput?.addEventListener('input', triggerAutosave);
   contentEditor?.addEventListener('input', triggerAutosave);
 
-  // Click listener for links, checkboxes, and toggle summaries
-  contentEditor?.addEventListener('click', (e) => {
-    const link = e.target.closest('a');
-    if (link) {
-      const href = link.getAttribute('href');
-      if (href) {
-        e.preventDefault();
-        e.stopPropagation();
-        window.open(href, '_blank');
-        return;
-      }
-    }
-
+  // Mousedown listener for summary click expand/collapse (handles clicking summary text cleanly)
+  contentEditor?.addEventListener('mousedown', (e) => {
     const summary = e.target.closest('summary');
     if (summary) {
       const details = summary.closest('details');
@@ -487,6 +476,19 @@ function mountNoteDetail(noteId) {
         }
         focusAndPlaceCaretAtEnd(summary);
         triggerAutosave();
+      }
+    }
+  });
+
+  // Click listener for links (normal and mentions) and checkbox toggling
+  contentEditor?.addEventListener('click', (e) => {
+    const link = e.target.closest('a');
+    if (link) {
+      const href = link.getAttribute('href');
+      if (href) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.open(href, '_blank');
         return;
       }
     }
@@ -508,49 +510,33 @@ function mountNoteDetail(noteId) {
     if (e.key === 'Enter') {
       if (selection.rangeCount) {
         const range = selection.getRangeAt(0);
-        let node = range.startContainer;
-        
-        let headingNode = null;
-        let summaryNode = null;
-        let detailsNode = null;
-        let todoTextDiv = null;
-        
-        while (node && node !== contentEditor) {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            if (node.tagName === 'H1' || node.tagName === 'H2' || node.tagName === 'H3') {
-              headingNode = node;
-            }
-            if (node.tagName === 'SUMMARY') {
-              summaryNode = node;
-            }
-            if (node.tagName === 'DETAILS') {
-              detailsNode = node;
-            }
-            if (node.classList.contains('todo-text')) {
-              todoTextDiv = node;
-            }
-          }
-          node = node.parentNode;
+        let targetEl = range.startContainer;
+        if (targetEl.nodeType === Node.TEXT_NODE) {
+          targetEl = targetEl.parentNode;
         }
 
+        const todoTextDiv = targetEl.closest('.todo-text') || (targetEl.closest('.todo-row')?.querySelector('.todo-text'));
+        const todoRow = targetEl.closest('.todo-row');
+        const headingNode = targetEl.closest('h1, h2, h3');
+        const summaryNode = targetEl.closest('summary');
+        const detailsNode = targetEl.closest('details');
+        const toggleContent = targetEl.closest('.toggle-content');
+
         // Case A: Inside a todo item -> Insert next todo underneath
-        if (todoTextDiv) {
+        if (todoRow) {
           e.preventDefault(); // Stop default paragraph creation
-          const todoRow = todoTextDiv.closest('.todo-row');
-          if (todoRow) {
-            const newRow = document.createElement('div');
-            newRow.className = 'todo-row';
-            newRow.style.cssText = 'display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;';
-            newRow.innerHTML = `<input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary);"> <div class="todo-text" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea"></div>`;
-            
-            todoRow.parentNode.insertBefore(newRow, todoRow.nextSibling);
-            
-            const newTextDiv = newRow.querySelector('.todo-text');
-            if (newTextDiv) {
-              focusAndPlaceCaretAtEnd(newTextDiv);
-            }
-            triggerAutosave();
+          const newRow = document.createElement('div');
+          newRow.className = 'todo-row';
+          newRow.style.cssText = 'display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;';
+          newRow.innerHTML = `<input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary);"> <div class="todo-text" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea"></div>`;
+          
+          todoRow.parentNode.insertBefore(newRow, todoRow.nextSibling);
+          
+          const newTextDiv = newRow.querySelector('.todo-text');
+          if (newTextDiv) {
+            focusAndPlaceCaretAtEnd(newTextDiv);
           }
+          triggerAutosave();
           return;
         }
 
@@ -570,12 +556,29 @@ function mountNoteDetail(noteId) {
         // Case C: Inside a Summary (Toggle title) -> Jump inside the content div
         if (summaryNode && detailsNode) {
           e.preventDefault();
-          detailsNode.setAttribute('open', 'true');
+          detailsNode.setAttribute('open', 'open');
+          detailsNode.open = true;
           const contentDiv = detailsNode.querySelector('.toggle-content');
           if (contentDiv) {
             focusAndPlaceCaretAtEnd(contentDiv);
           }
           return;
+        }
+
+        // Case D: Inside toggle content and it is empty -> Breakout of toggle details to a normal line below
+        if (toggleContent && detailsNode) {
+          const txt = toggleContent.textContent.trim().replace(/[\u200B\u00A0\s]/g, '');
+          if (txt === '') {
+            e.preventDefault();
+            const newBlock = document.createElement('div');
+            newBlock.style.cssText = 'min-height: 24px; outline: none; margin: 6px 0;';
+            newBlock.innerHTML = '<br>';
+            
+            detailsNode.parentNode.insertBefore(newBlock, detailsNode.nextSibling);
+            focusAndPlaceCaretAtEnd(newBlock);
+            triggerAutosave();
+            return;
+          }
         }
       }
     }
@@ -583,26 +586,14 @@ function mountNoteDetail(noteId) {
     if (e.key === 'Backspace') {
       if (selection.rangeCount) {
         const range = selection.getRangeAt(0);
-        let node = range.startContainer;
-        
-        let anchor = null;
-        let summaryNode = null;
-        let detailsNode = null;
-        
-        while (node && node !== contentEditor) {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            if (node.tagName === 'A') {
-              anchor = node;
-            }
-            if (node.tagName === 'SUMMARY') {
-              summaryNode = node;
-            }
-            if (node.tagName === 'DETAILS') {
-              detailsNode = node;
-            }
-          }
-          node = node.parentNode;
+        let targetEl = range.startContainer;
+        if (targetEl.nodeType === Node.TEXT_NODE) {
+          targetEl = targetEl.parentNode;
         }
+        
+        let anchor = targetEl.closest('a');
+        let summaryNode = targetEl.closest('summary');
+        let detailsNode = targetEl.closest('details');
 
         // 1. If cursor is inside or right after an anchor link -> delete the entire block atomically
         if (!anchor && range.collapsed) {
