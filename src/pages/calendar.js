@@ -17,6 +17,9 @@ function checkHabitFreq(h, dayKey) {
 }
 
 export function getHabitsForDate(dateStr, habits = [], routines = [], todos = []) {
+  const todayStr = store.getTodayString();
+  const isPast = dateStr < todayStr;
+
   const assignedRoutineId = localStorage.getItem(`assigned_routine_${dateStr}`);
   const assignedRoutine = routines.find(r => r.id === assignedRoutineId);
 
@@ -110,7 +113,7 @@ export function getHabitsForDate(dateStr, habits = [], routines = [], todos = []
   occurrences.sort(sortByTime);
   dayTodos.sort(sortByTime);
 
-  return { habits: occurrences, todos: dayTodos };
+  return { habits: isPast ? [] : occurrences, todos: dayTodos };
 }
 
 export function render() {
@@ -138,6 +141,7 @@ export function render() {
   for (let i = 1; i <= daysInMonth; i++) {
     const isToday = today.getDate() === i && today.getMonth() === month && today.getFullYear() === year;
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+    const isPast = dateStr < todayStr;
     const assignedRoutineId = localStorage.getItem(`assigned_routine_${dateStr}`);
     const assignedRoutine = routines.find(r => r.id === assignedRoutineId);
 
@@ -145,29 +149,26 @@ export function render() {
     const habitCount = loadedData.habits.length;
     const hasTodo = loadedData.todos.length > 0;
 
-    let badgeStyle = `font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; margin-top: 4px; display: flex; align-items: center; gap: 3px; transition: all 0.2s ease;`;
+    let badgeHtml = '';
     if (hasTodo) {
-      badgeStyle += ` background: #FFFFFF; color: #000000; border: 1px solid #FFFFFF; box-shadow: 0 0 8px rgba(255,255,255,0.4);`;
+      badgeHtml = `<div style="font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; margin-top: 4px; display: flex; align-items: center; gap: 3px; background: #FFFFFF; color: #000000; border: 1px solid #FFFFFF; box-shadow: 0 0 8px rgba(255,255,255,0.4);" title="${loadedData.todos.length} tareas To-Do">${loadedData.todos.length} TD</div>`;
     } else if (isToday) {
-      badgeStyle += ` background: rgba(0,0,0,0.18); color: var(--accent-inverted); border: 1px solid rgba(0,0,0,0.2);`;
-    } else {
-      badgeStyle += ` background: var(--bg-subtle); color: var(--text-primary); border: 1px solid var(--border-subtle);`;
+      badgeHtml = `<div style="font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; margin-top: 4px; display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.18); color: var(--accent-inverted); border: 1px solid rgba(0,0,0,0.2);" title="${habitCount} hábitos">${habitCount}</div>`;
+    } else if (!isPast && habitCount > 0) {
+      badgeHtml = `<div style="font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; margin-top: 4px; display: flex; align-items: center; gap: 3px; background: var(--bg-subtle); color: var(--text-primary); border: 1px solid var(--border-subtle);" title="${habitCount} hábitos">${habitCount}</div>`;
     }
 
     daysHtml += `
-      <div class="calendar-day ${isToday ? 'today-day' : ''}" data-day="${i}" data-date="${dateStr}" style="min-height: 72px; padding: 6px 4px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; border-radius: 12px; border: 1px solid ${isToday ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${isToday ? 'var(--accent-primary)' : 'var(--bg-primary)'}; color: ${isToday ? 'var(--accent-inverted)' : 'var(--text-primary)'}; cursor: pointer; position: relative; transition: transform 0.15s ease, border-color 0.15s ease;">
+      <div class="calendar-day ${isToday ? 'today-day' : ''} ${isPast ? 'past-day' : ''}" data-day="${i}" data-date="${dateStr}" style="min-height: 72px; padding: 6px 4px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; border-radius: 12px; border: 1px solid ${isToday ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${isToday ? 'var(--accent-primary)' : 'var(--bg-primary)'}; color: ${isToday ? 'var(--accent-inverted)' : (isPast ? 'var(--text-tertiary)' : 'var(--text-primary)')}; opacity: ${isPast && !hasTodo ? '0.65' : '1'}; cursor: pointer; position: relative; transition: transform 0.15s ease, border-color 0.15s ease;">
         <span style="font-weight: ${isToday ? '700' : '600'}; font-size: 14px;">${i}</span>
         
-        ${assignedRoutine ? `
+        ${(!isPast && assignedRoutine) ? `
           <span style="font-size: 9.5px; font-weight: 600; color: ${isToday ? 'var(--accent-inverted)' : 'var(--text-primary)'}; background: ${isToday ? 'rgba(0,0,0,0.12)' : 'var(--bg-subtle)'}; padding: 2px 5px; border-radius: 4px; max-width: 92%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
             ${assignedRoutine.name}
           </span>
         ` : ''}
 
-        <!-- Number of Habits Badge (Pinta blanco si hay To-Do) -->
-        <div style="${badgeStyle}" title="${habitCount} hábitos ${hasTodo ? '(Hay tareas To-Do)' : ''}">
-          ${habitCount}
-        </div>
+        ${badgeHtml}
       </div>
     `;
   }
@@ -222,9 +223,88 @@ export function openDayActionModal(dateStr, dayNum) {
   const assignedRoutineId = localStorage.getItem(`assigned_routine_${dateStr}`);
   const assignedRoutine = routines.find(r => r.id === assignedRoutineId);
 
+  const todayStr = store.getTodayString();
+  const isPast = dateStr < todayStr;
+
   const loadedData = getHabitsForDate(dateStr, habits, routines, todos);
   const loadedHabits = loadedData.habits;
   const loadedTodos = loadedData.todos;
+
+  if (isPast) {
+    const todosListHtml = loadedTodos.length > 0 ? `
+      <div style="margin-top: 6px;">
+        <h4 style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin: 0 0 10px 0; display: flex; align-items: center; gap: 6px;">
+          ${iconSVG('check', 14)} Tareas To-Do registradas (${loadedTodos.length})
+        </h4>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          ${loadedTodos.map(t => `
+            <div style="padding: 10px 14px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 13.5px; color: ${t.completed ? 'var(--text-tertiary)' : 'var(--text-primary)'}; font-weight: 600; ${t.completed ? 'text-decoration: line-through;' : ''}">
+                ${t.name || t.text || t.title || 'Tarea'}
+              </span>
+              <span style="font-size: 10px; font-weight: 800; background: ${t.completed ? 'rgba(46,125,50,0.1)' : '#FFFFFF'}; color: ${t.completed ? '#4CAF50' : '#000000'}; padding: 2px 7px; border-radius: 6px;">
+                ${t.completed ? 'COMPLETADA' : 'TO-DO'}
+              </span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : `
+      <div style="color: var(--text-secondary); font-size: 13px; font-style: italic; text-align: center; padding: 20px 12px;">
+        No hubo tareas To-Do registradas en esta fecha.
+      </div>
+    `;
+
+    const modalHtml = `
+      <div id="day-action-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1500; display: flex; align-items: center; justify-content: center; padding: 20px;">
+        <div class="glass-card" style="width: 100%; max-width: 460px; padding: 26px; border-radius: 24px; border: 1px solid var(--border-subtle); background: var(--bg-surface); max-height: 88vh; overflow-y: auto;">
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+            <div>
+              <h3 class="editorial-title" style="font-size: 22px; margin: 0;">Detalle del Día</h3>
+              <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Fecha: ${dateStr}</div>
+            </div>
+            <button id="close-day-modal" style="background: var(--bg-subtle); border: none; color: var(--text-primary); width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+              ${iconSVG('x', 16)}
+            </button>
+          </div>
+
+          <!-- Past Date Warning Banner -->
+          <div style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--bg-subtle); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text-secondary);">
+              ${iconSVG('clock', 18)}
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 13.5px; color: var(--text-primary);">Fecha pasada</div>
+              <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px; line-height: 1.4;">
+                Este día ya transcurrió. No se puede modificar ni planificar actividades pasadas.
+              </div>
+            </div>
+          </div>
+
+          <!-- To-Dos for the past date -->
+          <div style="margin-bottom: 20px;">
+            ${todosListHtml}
+          </div>
+
+          <button id="btn-close-past-modal" class="btn-secondary" style="width: 100%; min-height: 44px; border-radius: 12px; font-size: 13.5px;">
+            Cerrar
+          </button>
+
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    document.getElementById('close-day-modal')?.addEventListener('click', () => {
+      document.getElementById('day-action-modal')?.remove();
+    });
+    document.getElementById('btn-close-past-modal')?.addEventListener('click', () => {
+      document.getElementById('day-action-modal')?.remove();
+    });
+    return;
+  }
 
   const habitsListHtml = loadedHabits.length > 0 ? loadedHabits.map(h => {
     return `
