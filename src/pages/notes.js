@@ -306,25 +306,15 @@ function focusAndPlaceCaretAtStart(el) {
   } catch (err) {}
   try {
     const range = document.createRange();
-    if (el.firstChild && el.firstChild.nodeType === Node.TEXT_NODE) {
-      range.setStart(el.firstChild, 0);
-      range.collapse(true);
-    } else if (el.firstChild) {
-      range.setStartBefore(el.firstChild);
-      range.collapse(true);
-    } else {
-      const tn = document.createTextNode('\u200B');
-      el.appendChild(tn);
-      range.setStart(tn, 0);
-      range.collapse(true);
-    }
+    range.selectNodeContents(el);
+    range.collapse(true);
     const sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
   } catch (err) {
     try {
       const range = document.createRange();
-      range.selectNode(el);
+      range.setStart(el, 0);
       range.collapse(true);
       const sel = window.getSelection();
       sel.removeAllRanges();
@@ -522,16 +512,6 @@ function mountNoteDetail(noteId) {
       }
     }
 
-    // Only allow summary to toggle if clicked on the arrow marker (first 24px from the left)
-    const summary = e.target.closest('summary');
-    if (summary) {
-      const rect = summary.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      if (clickX > 24) {
-        e.preventDefault(); // Clicked on text or background -> prevent details from expanding/collapsing!
-      }
-    }
-
     if (e.target && e.target.type === 'checkbox') {
       if (e.target.checked) {
         e.target.setAttribute('checked', 'checked');
@@ -586,28 +566,13 @@ function mountNoteDetail(noteId) {
           return;
         }
 
-        // Priority 3: Inside a todo item
+        // Priority 3: Inside a todo item -> Always create next todo underneath
         if (todoRow) {
           e.preventDefault();
-          const textDiv = todoRow.querySelector('.todo-text');
-          const txt = (textDiv ? textDiv.textContent : '').trim().replace(/[\u200B\u00A0\s]/g, '');
-
-          // If the todo is empty, pressing Enter converts it to a regular blank line (exits the todo list)
-          if (txt === '') {
-            const newBlock = document.createElement('div');
-            newBlock.style.cssText = 'min-height: 24px; outline: none; margin: 6px 0;';
-            newBlock.innerHTML = '<br>';
-            todoRow.parentNode.replaceChild(newBlock, todoRow);
-            focusAndPlaceCaretAtStart(newBlock);
-            triggerAutosave();
-            return;
-          }
-
-          // If the todo has content, create a new todo underneath
           const newRow = document.createElement('div');
           newRow.className = 'todo-row';
           newRow.style.cssText = 'display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;';
-          newRow.innerHTML = `<input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary);"> <div class="todo-text" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea">&#8203;</div>`;
+          newRow.innerHTML = `<input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary); flex-shrink: 0;"> <div class="todo-text" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea"><br></div>`;
           
           todoRow.parentNode.insertBefore(newRow, todoRow.nextSibling);
           
