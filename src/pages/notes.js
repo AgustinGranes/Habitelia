@@ -138,11 +138,8 @@ function renderNoteDetail(note) {
 
       </div>
 
-      <!-- Tab Selector: Editar | Vista Previa -->
-      <div style="display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
-        <button id="tab-edit" class="btn-ghost active" style="font-size: 13.5px; padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.06); color: var(--text-primary); cursor: pointer; transition: all 0.15s ease;">Editar</button>
-        <button id="tab-preview" class="btn-ghost" style="font-size: 13.5px; padding: 6px 12px; border-radius: 6px; color: var(--text-secondary); cursor: pointer; transition: all 0.15s ease;">Vista Previa</button>
-      </div>
+      <!-- Separator line -->
+      <div style="margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;"></div>
 
       <!-- Editor Mode Wrapper -->
       <div id="note-editor-wrapper" style="position: relative; width: 100%;">
@@ -445,7 +442,7 @@ function mountNoteDetail(noteId) {
     }
   });
 
-  // Keydown interceptor for "Enter" key list expansion and "Backspace" key atomic link deletion
+  // Keydown interceptor for "Enter" key list expansion/breakouts and "Backspace" key atomic link deletion
   contentEditor?.addEventListener('keydown', (e) => {
     const selection = window.getSelection();
     
@@ -454,33 +451,88 @@ function mountNoteDetail(noteId) {
         const range = selection.getRangeAt(0);
         let node = range.startContainer;
         
+        let headingNode = null;
+        let summaryNode = null;
         let todoTextDiv = null;
+        
         while (node && node !== contentEditor) {
-          if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('todo-text')) {
-            todoTextDiv = node;
-            break;
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.tagName === 'H1' || node.tagName === 'H2' || node.tagName === 'H3') {
+              headingNode = node;
+            }
+            if (node.tagName === 'SUMMARY') {
+              summaryNode = node;
+            }
+            if (node.classList.contains('todo-text')) {
+              todoTextDiv = node;
+            }
           }
           node = node.parentNode;
         }
 
+        // Case A: Inside a todo item
         if (todoTextDiv) {
           e.preventDefault(); // Stop default paragraph creation
-          
           const todoRow = todoTextDiv.closest('.todo-row');
           if (todoRow) {
             const newRow = document.createElement('div');
             newRow.className = 'todo-row';
             newRow.style.cssText = 'display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;';
-            newRow.innerHTML = `<input type="checkbox" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary);"> <div class="todo-text" contenteditable="true" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea"></div>`;
+            newRow.innerHTML = `<input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary);"> <div class="todo-text" contenteditable="true" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea"></div>`;
             
             todoRow.parentNode.insertBefore(newRow, todoRow.nextSibling);
             
             const newTextDiv = newRow.querySelector('.todo-text');
             if (newTextDiv) {
               newTextDiv.focus();
+              const newRange = document.createRange();
+              newRange.selectNodeContents(newTextDiv);
+              newRange.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(newRange);
             }
             triggerAutosave();
           }
+          return;
+        }
+
+        // Case B: Inside a Heading (H1, H2, H3) -> Breakout to a normal paragraph below
+        if (headingNode) {
+          e.preventDefault();
+          const newBlock = document.createElement('div');
+          newBlock.style.cssText = 'min-height: 24px; outline: none; margin: 6px 0;';
+          newBlock.innerHTML = '<br>';
+          
+          headingNode.parentNode.insertBefore(newBlock, headingNode.nextSibling);
+          
+          newBlock.focus();
+          const newRange = document.createRange();
+          newRange.selectNodeContents(newBlock);
+          newRange.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(newRange);
+          
+          triggerAutosave();
+          return;
+        }
+
+        // Case C: Inside a Summary (Toggle title) -> Jump inside the content div
+        if (summaryNode) {
+          e.preventDefault();
+          const details = summaryNode.closest('details');
+          if (details) {
+            details.setAttribute('open', 'true');
+            const contentDiv = details.querySelector('div[contenteditable]');
+            if (contentDiv) {
+              contentDiv.focus();
+              const newRange = document.createRange();
+              newRange.selectNodeContents(contentDiv);
+              newRange.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(newRange);
+            }
+          }
+          return;
         }
       }
     }
@@ -691,7 +743,7 @@ function mountNoteDetail(noteId) {
       let blockHtml = '';
       switch (type) {
         case 'todo':
-          blockHtml = `<div class="todo-row" style="display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;"><input type="checkbox" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary);"> <div class="todo-text" contenteditable="true" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea">Tarea</div></div>`;
+          blockHtml = `<div class="todo-row" style="display: flex; align-items: flex-start; gap: 8px; margin: 6px 0;"><input type="checkbox" tabindex="-1" style="width: 17px; height: 17px; margin-top: 3px; cursor: pointer; accent-color: var(--text-primary);"> <div class="todo-text" contenteditable="true" style="outline: none; flex: 1; border: none; background: transparent; padding: 0;" placeholder="Tarea">Tarea</div></div>`;
           break;
         case 'h1':
           blockHtml = `<h1 style="font-size: 24px; font-weight: 800; font-family: var(--font-serif); color: var(--text-primary); margin: 18px 0 6px 0; outline: none;" contenteditable="true">Título 1</h1>`;
@@ -703,16 +755,16 @@ function mountNoteDetail(noteId) {
           blockHtml = `<h3 style="font-size: 16px; font-weight: 600; font-family: var(--font-serif); color: var(--text-primary); margin: 12px 0 4px 0; outline: none;" contenteditable="true">Título 3</h3>`;
           break;
         case 'toggle_h1':
-          blockHtml = `<details style="margin: 12px 0; outline: none;"><summary style="font-size: 24px; font-weight: 800; font-family: var(--font-serif); color: var(--text-primary); cursor: pointer; outline: none;" contenteditable="true">Desplegable H1</summary><div style="padding-left: 16px; outline: none; margin-top: 4px; color: var(--text-secondary);" contenteditable="true">Contenido aquí...</div></details>`;
+          blockHtml = `<details style="margin: 14px 0; padding: 10px 16px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); outline: none;"><summary style="font-size: 24px; font-weight: 800; font-family: var(--font-serif); color: var(--text-primary); cursor: pointer; outline: none; padding: 4px 0;" contenteditable="true">Desplegable H1</summary><div style="padding: 10px 0 4px 16px; outline: none; color: var(--text-secondary); border-top: 1px solid rgba(255,255,255,0.05); margin-top: 8px;" contenteditable="true">Contenido aquí...</div></details>`;
           break;
         case 'toggle_h2':
-          blockHtml = `<details style="margin: 10px 0; outline: none;"><summary style="font-size: 20px; font-weight: 700; font-family: var(--font-serif); color: var(--text-primary); cursor: pointer; outline: none;" contenteditable="true">Desplegable H2</summary><div style="padding-left: 16px; outline: none; margin-top: 4px; color: var(--text-secondary);" contenteditable="true">Contenido aquí...</div></details>`;
+          blockHtml = `<details style="margin: 12px 0; padding: 8px 14px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); outline: none;"><summary style="font-size: 20px; font-weight: 700; font-family: var(--font-serif); color: var(--text-primary); cursor: pointer; outline: none; padding: 4px 0;" contenteditable="true">Desplegable H2</summary><div style="padding: 8px 0 4px 14px; outline: none; color: var(--text-secondary); border-top: 1px solid rgba(255,255,255,0.05); margin-top: 6px;" contenteditable="true">Contenido aquí...</div></details>`;
           break;
         case 'toggle_h3':
-          blockHtml = `<details style="margin: 8px 0; outline: none;"><summary style="font-size: 16px; font-weight: 600; font-family: var(--font-serif); color: var(--text-primary); cursor: pointer; outline: none;" contenteditable="true">Desplegable H3</summary><div style="padding-left: 16px; outline: none; margin-top: 4px; color: var(--text-secondary);" contenteditable="true">Contenido aquí...</div></details>`;
+          blockHtml = `<details style="margin: 10px 0; padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); outline: none;"><summary style="font-size: 16px; font-weight: 600; font-family: var(--font-serif); color: var(--text-primary); cursor: pointer; outline: none; padding: 4px 0;" contenteditable="true">Desplegable H3</summary><div style="padding: 6px 0 4px 12px; outline: none; color: var(--text-secondary); border-top: 1px solid rgba(255,255,255,0.05); margin-top: 6px;" contenteditable="true">Contenido aquí...</div></details>`;
           break;
         case 'toggle_normal':
-          blockHtml = `<details style="margin: 6px 0; outline: none;"><summary style="cursor: pointer; color: var(--text-primary); outline: none;" contenteditable="true">Desplegable</summary><div style="padding-left: 16px; outline: none; margin-top: 4px; color: var(--text-secondary);" contenteditable="true">Contenido aquí...</div></details>`;
+          blockHtml = `<details style="margin: 8px 0; padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); outline: none;"><summary style="font-size: 14.5px; color: var(--text-primary); cursor: pointer; outline: none; padding: 4px 0;" contenteditable="true">Desplegable</summary><div style="padding: 6px 0 4px 12px; outline: none; color: var(--text-secondary); border-top: 1px solid rgba(255,255,255,0.05); margin-top: 6px;" contenteditable="true">Contenido aquí...</div></details>`;
           break;
       }
 
@@ -722,34 +774,8 @@ function mountNoteDetail(noteId) {
     });
   });
 
-  // Tab editor / preview switching (Visual toggle editing)
-  const tabEdit = document.getElementById('tab-edit');
-  const tabPreview = document.getElementById('tab-preview');
-
-  tabEdit?.addEventListener('click', () => {
-    tabEdit.classList.add('active');
-    tabEdit.style.background = 'rgba(255,255,255,0.06)';
-    tabEdit.style.color = 'var(--text-primary)';
-    tabPreview.classList.remove('active');
-    tabPreview.style.background = 'transparent';
-    tabPreview.style.color = 'var(--text-secondary)';
-    
-    contentEditor.setAttribute('contenteditable', 'true');
-    titleInput.removeAttribute('readonly');
-    contentEditor.focus();
-  });
-
-  tabPreview?.addEventListener('click', () => {
-    tabPreview.classList.add('active');
-    tabPreview.style.background = 'rgba(255,255,255,0.06)';
-    tabPreview.style.color = 'var(--text-primary)';
-    tabEdit.classList.remove('active');
-    tabEdit.style.background = 'transparent';
-    tabEdit.style.color = 'var(--text-secondary)';
-    
-    contentEditor.setAttribute('contenteditable', 'false');
-    titleInput.setAttribute('readonly', 'true');
-  });
+  // Direct visual editor auto-focused on mount
+  contentEditor?.focus();
 
   // Back button
   document.getElementById('btn-back-to-notes')?.addEventListener('click', () => {
