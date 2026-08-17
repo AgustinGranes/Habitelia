@@ -266,13 +266,18 @@ function renderFriendsList() {
                   freqText = `Días: ${h.frequency.days.join(', ').toUpperCase()}`;
                 }
                 return `
-                  <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); padding: 10px 14px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                  <div class="friend-habit-row" data-friend-name="${friendName}" data-habit-id="${h.id}" style="background: var(--bg-primary); border: 1px solid var(--border-subtle); padding: 10px 14px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; transition: background 0.15s ease; user-select: none;">
                     <div>
                       <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary);">${h.name}</div>
                       <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">Frecuencia: ${freqText}</div>
                     </div>
-                    <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); padding: 4px 10px; border-radius: 14px; font-size: 12px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 5px; flex-shrink: 0;">
-                      ${iconSVG('flame', 13)} ${streak} días
+                    <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                      <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); padding: 4px 10px; border-radius: 14px; font-size: 12px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 5px; flex-shrink: 0; height: 26px; box-sizing: border-box;">
+                        ${iconSVG('flame', 13)} ${streak}d
+                      </div>
+                      <button class="btn-ghost btn-view-friend-chain" style="padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border-subtle); font-size: 11.5px; font-weight: 600; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 4px; height: 26px; box-sizing: border-box; touch-action: manipulation;">
+                        ${iconSVG('chain', 12)} Ver
+                      </button>
                     </div>
                   </div>
                 `;
@@ -343,6 +348,23 @@ function bindFriendActionEvents() {
         showToast('Amigo eliminado', 'info');
         loadFriendsData();
       }
+    });
+  });
+
+  document.querySelectorAll('.friend-habit-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const friendName = row.dataset.friendName;
+      const habitId = row.dataset.habitId;
+      const friend = friendsDataList.find(f => {
+        const originalName = f.user?.name || f.user?.displayName || 'Amigo Habitelia';
+        const name = f.alias ? f.alias : originalName;
+        return name === friendName;
+      });
+      if (!friend) return;
+      const habit = (friend.habits || []).find(h => h.id === habitId);
+      if (!habit) return;
+      showFriendHabitChainModal(friendName, habit);
     });
   });
 }
@@ -429,4 +451,161 @@ export function mount(params = {}) {
 }
 
 export function unmount() {
+}
+
+function showFriendHabitChainModal(friendName, habit, year = new Date().getFullYear(), month = new Date().getMonth()) {
+  document.getElementById('friend-chain-modal')?.remove();
+
+  const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  const dayNamesShort = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const isDaily = !habit?.frequency || habit.frequency.type === 'daily';
+  const scheduledDays = isDaily ? dayKeys : (habit.frequency.days || dayKeys);
+
+  const daysData = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(year, month, d);
+    const dayOfWeek = dayNamesShort[dateObj.getDay()];
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const status = habit?.completions?.[dateStr];
+    const isCompletedFull = status === 'completed';
+    const isCompleted2Min = status === 'completed_2min';
+    const dayKey = dayKeys[dateObj.getDay()];
+    const isScheduled = scheduledDays.includes(dayKey);
+    
+    daysData.push({ dayNumber: d, dayOfWeek, dateStr, isCompletedFull, isCompleted2Min, isScheduled });
+  }
+
+  const columnsHtml = daysData.map(item => {
+    const isCompleted = item.isCompletedFull || item.isCompleted2Min;
+    let cellBg = 'var(--bg-primary)';
+    let cellBorder = '1px solid var(--border-subtle)';
+    let checkColor = 'var(--bg-primary)';
+
+    if (item.isCompletedFull) {
+      cellBg = 'var(--text-primary)';
+      cellBorder = '1px solid var(--text-primary)';
+      checkColor = 'var(--bg-primary)';
+    } else if (item.isCompleted2Min) {
+      cellBg = 'rgba(255, 255, 255, 0.45)';
+      cellBorder = '1px solid var(--text-secondary)';
+      checkColor = 'var(--text-primary)';
+    }
+
+    return `
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 32px;">
+        <div style="height: 48px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 4px;">
+          <span style="font-size: 11px; font-weight: 500; color: var(--text-secondary); display: inline-block; transform: rotate(-45deg); transform-origin: center center; white-space: nowrap;">
+            ${item.dayOfWeek} ${item.dayNumber}
+          </span>
+        </div>
+        
+        ${(!item.isScheduled && !isCompleted) ? `
+        <div class="chain-cell not-scheduled" style="width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: var(--bg-primary); border: 1px solid var(--border-subtle); position: relative; overflow: hidden;" title="No programado">
+            <svg width="26" height="26" style="position: absolute; top: 0; left: 0;"><line x1="0" y1="26" x2="26" y2="0" stroke="var(--text-tertiary)" stroke-width="1" opacity="0.4"/></svg>
+        </div>
+        ` : `
+        <div title="${item.dateStr}: ${item.isCompletedFull ? 'Completado' : item.isCompleted2Min ? 'Completado (2 Minutos)' : 'No completado'}" 
+             style="width: 26px; height: 26px; border-radius: 6px; background: ${cellBg}; border: ${cellBorder}; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">
+          ${isCompleted ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${checkColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+        </div>
+        `}
+      </div>
+    `;
+  }).join('');
+
+  const modalHtml = `
+    <div id="friend-chain-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; font-family: var(--font-ui);">
+      <div class="glass-card" style="width: 100%; max-width: 520px; padding: 26px; border-radius: 22px; border: 1px solid var(--border-subtle); background: var(--bg-surface); max-height: 90vh; overflow-y: auto;">
+        
+        <!-- Modal Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+          <div>
+            <h3 class="editorial-title" style="font-size: 20px; margin: 0; color: var(--text-primary);">${habit.name}</h3>
+            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Historial de constancia de <strong>${friendName}</strong></div>
+          </div>
+          <button id="close-friend-chain-modal" style="background: var(--bg-subtle); border: none; color: var(--text-primary); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            ${iconSVG('x', 16)}
+          </button>
+        </div>
+
+        <!-- Month Navigation Header -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+          <button id="friend-chain-prev-month" class="btn-secondary" style="width: 36px; height: 36px; min-height: 36px; padding: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            ${iconSVG('arrowLeft', 16)}
+          </button>
+          <h4 class="editorial-title" style="font-size: 18px; margin: 0; color: var(--text-primary);">
+            ${monthNames[month]} ${year}
+          </h4>
+          <button id="friend-chain-next-month" class="btn-secondary" style="width: 36px; height: 36px; min-height: 36px; padding: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            ${iconSVG('arrowRight', 16)}
+          </button>
+        </div>
+
+        <!-- Scrollable Horizontal Grid of All Days -->
+        <div style="width: 100%; overflow-x: auto; padding-top: 10px; padding-bottom: 12px; -webkit-overflow-scrolling: touch; border: 1px solid var(--border-subtle); border-radius: 12px; background: rgba(0,0,0,0.1); margin-bottom: 20px;">
+          <div style="display: flex; gap: 6px; min-width: max-content; padding: 0 12px;">
+            ${columnsHtml}
+          </div>
+        </div>
+
+        <!-- Legend -->
+        <div style="display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 16px; font-size: 11.5px; color: var(--text-secondary); margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="width: 14px; height: 14px; border-radius: 4px; background: var(--bg-primary); border: 1px solid var(--border-subtle); position: relative; overflow: hidden;">
+              <svg width="14" height="14" style="position: absolute; top: 0; left: 0;"><line x1="0" y1="14" x2="14" y2="0" stroke="var(--text-tertiary)" stroke-width="1" opacity="0.4"/></svg>
+            </div>
+            <span>No programado</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="width: 14px; height: 14px; border-radius: 4px; background: var(--bg-primary); border: 1px solid var(--border-subtle);"></div>
+            <span>No completado</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="width: 14px; height: 14px; border-radius: 4px; background: rgba(255,255,255,0.45); border: 1px solid var(--text-secondary);"></div>
+            <span>2 minutos</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="width: 14px; height: 14px; border-radius: 4px; background: var(--text-primary); border: 1px solid var(--text-primary);"></div>
+            <span>Completado</span>
+          </div>
+        </div>
+
+        <!-- Close Button -->
+        <button id="btn-close-friend-chain" class="btn-secondary" style="width: 100%; min-height: 44px; border-radius: 12px; font-size: 13.5px; font-weight: 600;">
+          Volver a Amigos
+        </button>
+
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  const closeModal = () => document.getElementById('friend-chain-modal')?.remove();
+
+  document.getElementById('close-friend-chain-modal')?.addEventListener('click', closeModal);
+  document.getElementById('btn-close-friend-chain')?.addEventListener('click', closeModal);
+
+  document.getElementById('friend-chain-prev-month')?.addEventListener('click', () => {
+    let nextMonth = month - 1;
+    let nextYear = year;
+    if (nextMonth < 0) {
+      nextMonth = 11;
+      nextYear--;
+    }
+    showFriendHabitChainModal(friendName, habit, nextYear, nextMonth);
+  });
+
+  document.getElementById('friend-chain-next-month')?.addEventListener('click', () => {
+    let nextMonth = month + 1;
+    let nextYear = year;
+    if (nextMonth > 11) {
+      nextMonth = 0;
+      nextYear++;
+    }
+    showFriendHabitChainModal(friendName, habit, nextYear, nextMonth);
+  });
 }
