@@ -422,8 +422,19 @@ function mountNoteDetail(noteId) {
   titleInput?.addEventListener('input', triggerAutosave);
   contentEditor?.addEventListener('input', triggerAutosave);
 
-  // Sync checkbox state changes inside editor to persist 'checked' attributes in innerHTML
+  // Click listener for links (normal and mentions) to open in new tab, and checkbox toggling
   contentEditor?.addEventListener('click', (e) => {
+    const link = e.target.closest('a');
+    if (link) {
+      const href = link.getAttribute('href');
+      if (href) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.open(href, '_blank');
+        return;
+      }
+    }
+
     if (e.target && e.target.type === 'checkbox') {
       if (e.target.checked) {
         e.target.setAttribute('checked', 'checked');
@@ -434,10 +445,11 @@ function mountNoteDetail(noteId) {
     }
   });
 
-  // Checkbox keydown interceptor for "Enter" key list expansion
+  // Keydown interceptor for "Enter" key list expansion and "Backspace" key atomic link deletion
   contentEditor?.addEventListener('keydown', (e) => {
+    const selection = window.getSelection();
+    
     if (e.key === 'Enter') {
-      const selection = window.getSelection();
       if (selection.rangeCount) {
         const range = selection.getRangeAt(0);
         let node = range.startContainer;
@@ -472,6 +484,55 @@ function mountNoteDetail(noteId) {
         }
       }
     }
+
+    if (e.key === 'Backspace') {
+      if (selection.rangeCount) {
+        const range = selection.getRangeAt(0);
+        let node = range.startContainer;
+        let anchor = null;
+        
+        // 1. If cursor is inside an anchor tag
+        while (node && node !== contentEditor) {
+          if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'A') {
+            anchor = node;
+            break;
+          }
+          node = node.parentNode;
+        }
+
+        // 2. If cursor is right after an anchor tag
+        if (!anchor && range.collapsed) {
+          if (range.startOffset === 0) {
+            let prev = range.startContainer.previousSibling;
+            if (prev && prev.tagName === 'A') {
+              anchor = prev;
+            }
+          } else if (range.startContainer.nodeType === Node.TEXT_NODE) {
+            const text = range.startContainer.textContent;
+            const offset = range.startOffset;
+            if (offset === 1 && (text[0] === ' ' || text[0] === '\u00A0' || text[0] === '\u200B')) {
+              let prev = range.startContainer.previousSibling;
+              if (prev && prev.tagName === 'A') {
+                anchor = prev;
+              }
+            }
+          }
+        }
+
+        if (anchor) {
+          e.preventDefault();
+          let nextSibling = anchor.nextSibling;
+          anchor.parentNode.removeChild(anchor);
+          
+          if (nextSibling && nextSibling.nodeType === Node.TEXT_NODE && 
+              (nextSibling.textContent === ' ' || nextSibling.textContent === '\u00A0' || nextSibling.textContent === '\u200B')) {
+            nextSibling.parentNode.removeChild(nextSibling);
+          }
+          
+          triggerAutosave();
+        }
+      }
+    }
   });
 
   // Notion-style slash command logic (using exact pixel caret positioning)
@@ -489,7 +550,13 @@ function mountNoteDetail(noteId) {
                             textBeforeCursor[textBeforeCursor.length - 2] === '\u00A0';
 
       if (isSlash && isStartOfLine) {
-        const rect = range.getBoundingClientRect();
+        // Collapsed range bounding box hack
+        const dummy = document.createElement('span');
+        dummy.innerHTML = '&#8203;';
+        range.insertNode(dummy);
+        const rect = dummy.getBoundingClientRect();
+        dummy.parentNode.removeChild(dummy);
+
         const editorRect = contentEditor.getBoundingClientRect();
         
         const caretY = rect.bottom - editorRect.top + contentEditor.scrollTop + 4;
@@ -521,7 +588,14 @@ function mountNoteDetail(noteId) {
       const selection = window.getSelection();
       if (selection.rangeCount) {
         const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
+        
+        // Collapsed range bounding box hack
+        const dummy = document.createElement('span');
+        dummy.innerHTML = '&#8203;';
+        range.insertNode(dummy);
+        const rect = dummy.getBoundingClientRect();
+        dummy.parentNode.removeChild(dummy);
+
         const editorRect = contentEditor.getBoundingClientRect();
         
         const caretY = rect.bottom - editorRect.top + contentEditor.scrollTop + 4;
@@ -588,6 +662,14 @@ function mountNoteDetail(noteId) {
     if (linkTooltip && !linkTooltip.contains(e.target) && e.target !== contentEditor) {
       linkTooltip.style.display = 'none';
     }
+  });
+
+  // Prevent focus loss when clicking inside slash menu or link tooltip
+  slashMenu?.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+  });
+  linkTooltip?.addEventListener('mousedown', (e) => {
+    e.preventDefault();
   });
 
   // Handle slash items clicks
