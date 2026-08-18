@@ -121,35 +121,59 @@ export const checkAndTriggerScheduledReminders = () => {
 
     // Check cue time
     const habitTime = (habit.cue?.timePerDay && habit.cue.timePerDay[currentDayKey]) || (habit.cue?.time ? habit.cue.time : null);
-    if (!habitTime) return;
-
-    // Check if time matches current minute
-    if (habitTime === currentTimeStr) {
-      const notifKey = `last_notif_habit_${habit.id}_${todayStr}_${habitTime}`;
-      if (!localStorage.getItem(notifKey)) {
-        localStorage.setItem(notifKey, Date.now().toString());
-        const twoMin = habit.noTwoMin ? '' : (habit.response?.twoMinVersion || '');
-        sendNotification(`⏰ Es hora de: ${habit.name}`, {
-          body: twoMin ? `💡 Regla de 2 min: "${twoMin}"` : '¡Completá tu hábito hoy para mantener tu racha!',
-          tag: `habit-${habit.id}`
-        });
+    
+    if (habitTime) {
+      // Habit with specific time
+      if (habitTime === currentTimeStr) {
+        const notifKey = `last_notif_habit_${habit.id}_${todayStr}_${habitTime}`;
+        if (!localStorage.getItem(notifKey)) {
+          localStorage.setItem(notifKey, Date.now().toString());
+          const twoMin = habit.noTwoMin ? '' : (habit.response?.twoMinVersion || '');
+          sendNotification(`⏰ Es hora de: ${habit.name}`, {
+            body: twoMin ? `💡 Regla de 2 min: "${twoMin}"` : '¡Completá tu hábito hoy para mantener tu racha!',
+            tag: `habit-${habit.id}`
+          });
+        }
+      }
+    } else {
+      // Habit without specific time -> notify at 12:00 PM (mediodía)
+      if (currentTimeStr === '12:00') {
+        const notifKey = `last_notif_habit_${habit.id}_${todayStr}_noon`;
+        if (!localStorage.getItem(notifKey)) {
+          localStorage.setItem(notifKey, Date.now().toString());
+          const twoMin = habit.noTwoMin ? '' : (habit.response?.twoMinVersion || '');
+          sendNotification(`☀️ Recordatorio de mediodía: ${habit.name}`, {
+            body: twoMin ? `💡 Regla de 2 min: "${twoMin}"` : 'Tenés este hábito pendiente para el día de hoy.',
+            tag: `habit-noon-${habit.id}`
+          });
+        }
       }
     }
   });
 
-  // 2. Check To-Do items with time due today
+  // 2. Check To-Do items
   todos.forEach(todo => {
     if (todo.completed) return;
     if (todo.dueDate && todo.dueDate !== todayStr) return;
-    if (!todo.time) return;
 
-    if (todo.time === currentTimeStr) {
-      const notifKey = `last_notif_todo_${todo.id}_${todayStr}_${todo.time}`;
+    if (todo.time) {
+      if (todo.time === currentTimeStr) {
+        const notifKey = `last_notif_todo_${todo.id}_${todayStr}_${todo.time}`;
+        if (!localStorage.getItem(notifKey)) {
+          localStorage.setItem(notifKey, Date.now().toString());
+          sendNotification(`📝 Tarea pendiente: ${todo.name}`, {
+            body: todo.tag ? `Etiqueta: ${todo.tag}` : 'Tienes una tarea programada para este horario.',
+            tag: `todo-${todo.id}`
+          });
+        }
+      }
+    } else if (currentTimeStr === '12:00' && todo.dueDate === todayStr) {
+      const notifKey = `last_notif_todo_${todo.id}_${todayStr}_noon`;
       if (!localStorage.getItem(notifKey)) {
         localStorage.setItem(notifKey, Date.now().toString());
-        sendNotification(`📝 Tarea pendiente: ${todo.name}`, {
-          body: todo.tag ? `Etiqueta: ${todo.tag}` : 'Tienes una tarea programada para este horario.',
-          tag: `todo-${todo.id}`
+        sendNotification(`📝 Tarea de hoy: ${todo.name}`, {
+          body: todo.tag ? `Etiqueta: ${todo.tag}` : 'Tienes una tarea pendiente para el día de hoy.',
+          tag: `todo-noon-${todo.id}`
         });
       }
     }
