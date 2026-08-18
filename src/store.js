@@ -1007,6 +1007,7 @@ export const store = {
         syncedAt: new Date().toISOString()
       };
       await saveDocument(`users/${uid}/widgetData/main`, { payload: JSON.stringify(widgetPayload) });
+      await saveDocument(`public_widgets/${uid}`, { payload: JSON.stringify(widgetPayload) }).catch(() => {});
 
       return true;
     } catch (e) {

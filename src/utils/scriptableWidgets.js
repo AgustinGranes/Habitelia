@@ -1,18 +1,27 @@
 /**
  * Generador de Scripts para Widgets de Scriptable (iOS / iPadOS)
  * Soporta tamaños: Small, Medium, Large
- * Sincronización en vivo con Firestore REST API + Parameter + Cache Local Offline
+ * Conexión en vivo con Firestore REST API + Inyección de Datos Reales + Cache Local
  */
 
-export function generateHabitsWidgetScript(userId = '', userName = 'Viajero') {
+const FIREBASE_API_KEY = "AIzaSyBc3lceZRKbopUj5l8oa89op2r42C9NBdI";
+const PROJECT_ID = "habitelia";
+
+export function generateHabitsWidgetScript(userId = '', userName = 'Viajero', habitsData = []) {
+  const serializedInitial = JSON.stringify(habitsData || []);
+
   return `// ==========================================
 // HABITELIA - WIDGET DE HÁBITOS DE HOY
 // Compatible con tamaños: Pequeño, Mediano y Grande
 // ==========================================
 
-// Toma el ID desde el Parámetro del Widget (Parameter) o el configurado por defecto
+// Tu ID de usuario de Habitelia (o pasado por el campo Parameter en iOS)
 const USER_ID = (args.widgetParameter && args.widgetParameter.trim()) || "${userId}";
-const PROJECT_ID = "habitelia";
+const PROJECT_ID = "${PROJECT_ID}";
+const API_KEY = "${FIREBASE_API_KEY}";
+
+// Datos reales de tu cuenta al momento de generar el script
+const INITIAL_DATA = JSON.parse(${JSON.stringify(serializedInitial)});
 
 // Paleta de Colores Obsidian Luxury
 const BG_COLOR = new Color("#0D0D0F");
@@ -29,34 +38,47 @@ function strikeText(text) {
 
 async function loadData() {
   const fm = FileManager.local();
-  const cachePath = fm.joinPath(fm.documentsDirectory(), "habitelia_habits_cache_" + (USER_ID || "def") + ".json");
+  const cachePath = fm.joinPath(fm.documentsDirectory(), "habitelia_habits_" + (USER_ID || "me") + ".json");
   
   if (USER_ID) {
-    // 1. Intentar cargar el paquete sincronizado completo
+    // 1. Intentar cargar desde public_widgets con API Key
     try {
-      const bundleUrl = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/widgetData/main\`;
-      const bundleReq = new Request(bundleUrl);
-      bundleReq.timeoutInterval = 6;
-      const bundleRes = await bundleReq.loadJSON();
-      if (bundleRes && bundleRes.fields && bundleRes.fields.payload) {
-        const parsed = JSON.parse(bundleRes.fields.payload.stringValue);
-        if (parsed && parsed.habits) {
+      const url1 = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/public_widgets/\${USER_ID}?key=\${API_KEY}\`;
+      const req1 = new Request(url1);
+      req1.timeoutInterval = 5;
+      const res1 = await req1.loadJSON();
+      if (res1 && res1.fields && res1.fields.payload) {
+        const parsed = JSON.parse(res1.fields.payload.stringValue);
+        if (parsed && parsed.habits && parsed.habits.length > 0) {
           fm.writeString(cachePath, JSON.stringify(parsed.habits));
           return parsed.habits;
         }
       }
-    } catch(e) {
-      console.log("Error consultando bundle: " + e);
-    }
+    } catch(e) {}
 
-    // 2. Fallback: Cargar subcolección de hábitos directamente
+    // 2. Intentar cargar desde users/widgetData con API Key
     try {
-      const url = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/habits\`;
-      const req = new Request(url);
-      req.timeoutInterval = 6;
-      const res = await req.loadJSON();
-      if (res && res.documents) {
-        const habits = res.documents.map(d => {
+      const url2 = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/widgetData/main?key=\${API_KEY}\`;
+      const req2 = new Request(url2);
+      req2.timeoutInterval = 5;
+      const res2 = await req2.loadJSON();
+      if (res2 && res2.fields && res2.fields.payload) {
+        const parsed = JSON.parse(res2.fields.payload.stringValue);
+        if (parsed && parsed.habits && parsed.habits.length > 0) {
+          fm.writeString(cachePath, JSON.stringify(parsed.habits));
+          return parsed.habits;
+        }
+      }
+    } catch(e) {}
+
+    // 3. Fallback: Cargar subcolección de hábitos
+    try {
+      const url3 = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/habits?key=\${API_KEY}\`;
+      const req3 = new Request(url3);
+      req3.timeoutInterval = 5;
+      const res3 = await req3.loadJSON();
+      if (res3 && res3.documents) {
+        const habits = res3.documents.map(d => {
           const f = d.fields || {};
           const compMap = {};
           if (f.completions?.mapValue?.fields) {
@@ -73,26 +95,29 @@ async function loadData() {
             isDeletedToday: f.deletedToday?.booleanValue || false
           };
         });
-        fm.writeString(cachePath, JSON.stringify(habits));
-        return habits;
+        if (habits.length > 0) {
+          fm.writeString(cachePath, JSON.stringify(habits));
+          return habits;
+        }
       }
-    } catch(e) {
-      console.log("Error consultando coleccion: " + e);
-    }
-  }
-
-  // 3. Fallback: Cache local guardada
-  if (fm.fileExists(cachePath)) {
-    try {
-      return JSON.parse(fm.readString(cachePath));
     } catch(e) {}
   }
 
-  // 4. Datos demostrativos si no se pudo conectar
+  // 4. Fallback: Cache local
+  if (fm.fileExists(cachePath)) {
+    try {
+      const cached = JSON.parse(fm.readString(cachePath));
+      if (cached && cached.length > 0) return cached;
+    } catch(e) {}
+  }
+
+  // 5. Fallback: Datos reales capturados al momento de copiar el script
+  if (Array.isArray(INITIAL_DATA) && INITIAL_DATA.length > 0) {
+    return INITIAL_DATA;
+  }
+
   return [
-    { name: "Meditar 10 min", time: "08:00", completions: {}, isDeletedToday: false },
-    { name: "Lectura profunda", time: "14:00", completions: {}, isDeletedToday: false },
-    { name: "Entrenamiento", time: "18:30", completions: {}, isDeletedToday: false }
+    { name: "Sin hábitos cargados", time: "Hoy", completions: {}, isDeletedToday: false }
   ];
 }
 
@@ -158,7 +183,7 @@ async function createWidget() {
   const widgetFamily = config.widgetFamily || "medium";
 
   if (widgetFamily === "small") {
-    // ---------------- SMALL WIDGET ----------------
+    // SMALL WIDGET
     const headerStack = widget.addStack();
     headerStack.layoutHorizontally();
     
@@ -205,12 +230,11 @@ async function createWidget() {
     });
 
   } else if (widgetFamily === "medium") {
-    // ---------------- MEDIUM WIDGET ----------------
+    // MEDIUM WIDGET
     const mainStack = widget.addStack();
     mainStack.layoutHorizontally();
     mainStack.centerAlignContent();
 
-    // Columna Izquierda: Progreso
     const leftCol = mainStack.addStack();
     leftCol.layoutVertically();
     leftCol.size = new Size(110, 0);
@@ -235,7 +259,6 @@ async function createWidget() {
 
     mainStack.addSpacer(14);
 
-    // Columna Derecha: Lista de Hábitos
     const rightCol = mainStack.addStack();
     rightCol.layoutVertically();
     
@@ -265,7 +288,7 @@ async function createWidget() {
     });
 
   } else {
-    // ---------------- LARGE WIDGET ----------------
+    // LARGE WIDGET
     const header = widget.addStack();
     header.layoutHorizontally();
     header.centerAlignContent();
@@ -348,20 +371,6 @@ async function run() {
     }
   } catch (err) {
     console.error("Error ejecutando widget: " + err);
-    const errWidget = new ListWidget();
-    errWidget.backgroundColor = BG_COLOR;
-    const title = errWidget.addText("HABITELIA");
-    title.font = Font.boldSystemFont(12);
-    title.textColor = TEXT_PRIMARY;
-    errWidget.addSpacer(8);
-    const msg = errWidget.addText("Sincroniza tus datos desde Configuración en Habitelia o pega tu ID en Parameter.");
-    msg.font = Font.systemFont(11);
-    msg.textColor = TEXT_MUTED;
-    if (config.runsInWidget) {
-      Script.setWidget(errWidget);
-    } else {
-      errWidget.presentMedium();
-    }
   } finally {
     Script.complete();
   }
@@ -371,14 +380,19 @@ await run();
 `;
 }
 
-export function generateTodosWidgetScript(userId = '', userName = 'Viajero') {
+export function generateTodosWidgetScript(userId = '', userName = 'Viajero', todosData = []) {
+  const serializedInitial = JSON.stringify(todosData || []);
+
   return `// ==========================================
 // HABITELIA - WIDGET DE TAREAS (TO-DO)
 // Compatible con tamaños: Pequeño, Mediano y Grande
 // ==========================================
 
 const USER_ID = (args.widgetParameter && args.widgetParameter.trim()) || "${userId}";
-const PROJECT_ID = "habitelia";
+const PROJECT_ID = "${PROJECT_ID}";
+const API_KEY = "${FIREBASE_API_KEY}";
+
+const INITIAL_DATA = JSON.parse(${JSON.stringify(serializedInitial)});
 
 const BG_COLOR = new Color("#0D0D0F");
 const CARD_BG = new Color("#16161A");
@@ -387,16 +401,16 @@ const TEXT_MUTED = new Color("#8E8E93");
 
 async function loadData() {
   const fm = FileManager.local();
-  const cachePath = fm.joinPath(fm.documentsDirectory(), "habitelia_todos_cache_" + (USER_ID || "def") + ".json");
+  const cachePath = fm.joinPath(fm.documentsDirectory(), "habitelia_todos_" + (USER_ID || "me") + ".json");
 
   if (USER_ID) {
     try {
-      const bundleUrl = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/widgetData/main\`;
-      const bundleReq = new Request(bundleUrl);
-      bundleReq.timeoutInterval = 6;
-      const bundleRes = await bundleReq.loadJSON();
-      if (bundleRes && bundleRes.fields && bundleRes.fields.payload) {
-        const parsed = JSON.parse(bundleRes.fields.payload.stringValue);
+      const url1 = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/public_widgets/\${USER_ID}?key=\${API_KEY}\`;
+      const req1 = new Request(url1);
+      req1.timeoutInterval = 5;
+      const res1 = await req1.loadJSON();
+      if (res1 && res1.fields && res1.fields.payload) {
+        const parsed = JSON.parse(res1.fields.payload.stringValue);
         if (parsed && parsed.todos) {
           fm.writeString(cachePath, JSON.stringify(parsed.todos));
           return parsed.todos;
@@ -405,38 +419,33 @@ async function loadData() {
     } catch(e) {}
 
     try {
-      const url = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/todos\`;
-      const req = new Request(url);
-      req.timeoutInterval = 6;
-      const res = await req.loadJSON();
-      if (res && res.documents) {
-        const todos = res.documents.map(d => {
-          const f = d.fields || {};
-          return {
-            id: d.name.split("/").pop(),
-            name: f.name?.stringValue || f.text?.stringValue || "Tarea",
-            completed: f.completed?.booleanValue || false,
-            tag: f.tag?.stringValue || "",
-            dueDate: f.dueDate?.stringValue || "",
-            time: f.time?.stringValue || ""
-          };
-        });
-        fm.writeString(cachePath, JSON.stringify(todos));
-        return todos;
+      const url2 = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/widgetData/main?key=\${API_KEY}\`;
+      const req2 = new Request(url2);
+      req2.timeoutInterval = 5;
+      const res2 = await req2.loadJSON();
+      if (res2 && res2.fields && res2.fields.payload) {
+        const parsed = JSON.parse(res2.fields.payload.stringValue);
+        if (parsed && parsed.todos) {
+          fm.writeString(cachePath, JSON.stringify(parsed.todos));
+          return parsed.todos;
+        }
       }
     } catch(e) {}
   }
 
   if (fm.fileExists(cachePath)) {
     try {
-      return JSON.parse(fm.readString(cachePath));
+      const cached = JSON.parse(fm.readString(cachePath));
+      if (cached && cached.length > 0) return cached;
     } catch(e) {}
   }
 
+  if (Array.isArray(INITIAL_DATA) && INITIAL_DATA.length > 0) {
+    return INITIAL_DATA;
+  }
+
   return [
-    { name: "Comprar cuaderno", completed: false, tag: "Personal" },
-    { name: "Revisar avance semanal", completed: true, tag: "Trabajo" },
-    { name: "Enviar correo a mentor", completed: false, tag: "Estudio" }
+    { name: "Sin tareas pendientes", completed: false, tag: "Habitelia" }
   ];
 }
 
@@ -469,7 +478,7 @@ async function createWidget() {
       const dot = row.addText("□ ");
       dot.font = Font.systemFont(11);
       dot.textColor = TEXT_PRIMARY;
-      const text = row.addText(t.name);
+      const text = row.addText(t.name || "Tarea");
       text.font = Font.systemFont(11);
       text.textColor = TEXT_PRIMARY;
       text.lineLimit = 1;
@@ -499,7 +508,7 @@ async function createWidget() {
       check.font = Font.systemFont(13);
       check.textColor = TEXT_PRIMARY;
 
-      const name = row.addText(t.name);
+      const name = row.addText(t.name || "Tarea");
       name.font = Font.mediumSystemFont(12);
       name.textColor = TEXT_PRIMARY;
       name.lineLimit = 1;
@@ -540,7 +549,7 @@ async function createWidget() {
       check.font = Font.systemFont(14);
       check.textColor = TEXT_PRIMARY;
 
-      const name = row.addText(t.name);
+      const name = row.addText(t.name || "Tarea");
       name.font = Font.mediumSystemFont(12.5);
       name.textColor = TEXT_PRIMARY;
       name.lineLimit = 1;
@@ -579,14 +588,26 @@ await run();
 `;
 }
 
-export function generateDriverWidgetScript(userId = '', userName = 'Viajero') {
+export function generateDriverWidgetScript(userId = '', userName = 'Viajero', driverData = null) {
+  const serializedInitial = JSON.stringify(driverData || {
+    name: userName,
+    number: "01",
+    team: "Habitelia Racing",
+    ovr: 60,
+    completedHabitsCounter: 0,
+    incidents: 0
+  });
+
   return `// ==========================================
 // HABITELIA - WIDGET DE TU PILOTO / DRIVER
 // Compatible con tamaños: Pequeño, Mediano y Grande
 // ==========================================
 
 const USER_ID = (args.widgetParameter && args.widgetParameter.trim()) || "${userId}";
-const PROJECT_ID = "habitelia";
+const PROJECT_ID = "${PROJECT_ID}";
+const API_KEY = "${FIREBASE_API_KEY}";
+
+const INITIAL_DATA = JSON.parse(${JSON.stringify(serializedInitial)});
 
 const BG_COLOR = new Color("#0D0D0F");
 const CARD_BG = new Color("#16161A");
@@ -595,16 +616,16 @@ const TEXT_MUTED = new Color("#8E8E93");
 
 async function loadData() {
   const fm = FileManager.local();
-  const cachePath = fm.joinPath(fm.documentsDirectory(), "habitelia_driver_cache_" + (USER_ID || "def") + ".json");
+  const cachePath = fm.joinPath(fm.documentsDirectory(), "habitelia_driver_" + (USER_ID || "me") + ".json");
 
   if (USER_ID) {
     try {
-      const bundleUrl = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/widgetData/main\`;
-      const bundleReq = new Request(bundleUrl);
-      bundleReq.timeoutInterval = 6;
-      const bundleRes = await bundleReq.loadJSON();
-      if (bundleRes && bundleRes.fields && bundleRes.fields.payload) {
-        const parsed = JSON.parse(bundleRes.fields.payload.stringValue);
+      const url1 = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/public_widgets/\${USER_ID}?key=\${API_KEY}\`;
+      const req1 = new Request(url1);
+      req1.timeoutInterval = 5;
+      const res1 = await req1.loadJSON();
+      if (res1 && res1.fields && res1.fields.payload) {
+        const parsed = JSON.parse(res1.fields.payload.stringValue);
         if (parsed && parsed.driverProfile) {
           fm.writeString(cachePath, JSON.stringify(parsed.driverProfile));
           return parsed.driverProfile;
@@ -613,38 +634,37 @@ async function loadData() {
     } catch(e) {}
 
     try {
-      const url = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/driverProfile/main\`;
-      const req = new Request(url);
-      req.timeoutInterval = 6;
-      const res = await req.loadJSON();
-      if (res && res.fields) {
-        const f = res.fields;
-        const driver = {
-          name: f.name?.stringValue || "${userName}",
-          number: f.number?.stringValue || "01",
-          team: f.team?.stringValue || "Habitelia Racing",
-          ovr: parseInt(f.ovr?.integerValue || "60"),
-          completedHabitsCounter: parseInt(f.completedHabitsCounter?.integerValue || "0"),
-          incidents: parseInt(f.incidents?.integerValue || "0")
-        };
-        fm.writeString(cachePath, JSON.stringify(driver));
-        return driver;
+      const url2 = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/widgetData/main?key=\${API_KEY}\`;
+      const req2 = new Request(url2);
+      req2.timeoutInterval = 5;
+      const res2 = await req2.loadJSON();
+      if (res2 && res2.fields && res2.fields.payload) {
+        const parsed = JSON.parse(res2.fields.payload.stringValue);
+        if (parsed && parsed.driverProfile) {
+          fm.writeString(cachePath, JSON.stringify(parsed.driverProfile));
+          return parsed.driverProfile;
+        }
       }
     } catch(e) {}
   }
 
   if (fm.fileExists(cachePath)) {
     try {
-      return JSON.parse(fm.readString(cachePath));
+      const cached = JSON.parse(fm.readString(cachePath));
+      if (cached && cached.name) return cached;
     } catch(e) {}
+  }
+
+  if (INITIAL_DATA && INITIAL_DATA.name) {
+    return INITIAL_DATA;
   }
 
   return {
     name: "${userName}",
     number: "01",
     team: "Habitelia Racing",
-    ovr: 75,
-    completedHabitsCounter: 4,
+    ovr: 60,
+    completedHabitsCounter: 0,
     incidents: 0
   };
 }
@@ -665,7 +685,7 @@ async function createWidget() {
 
     widget.addSpacer(6);
 
-    const name = widget.addText(driver.name);
+    const name = widget.addText(driver.name || "Piloto");
     name.font = Font.boldSystemFont(14);
     name.textColor = TEXT_PRIMARY;
     name.lineLimit = 1;
@@ -680,12 +700,12 @@ async function createWidget() {
     ovrBox.backgroundColor = CARD_BG;
     ovrBox.cornerRadius = 8;
     ovrBox.setPadding(4, 8, 4, 8);
-    const ovrVal = ovrBox.addText(\`OVR \${driver.ovr}\`);
+    const ovrVal = ovrBox.addText(\`OVR \${driver.ovr || 60}\`);
     ovrVal.font = Font.boldSystemFont(14);
     ovrVal.textColor = TEXT_PRIMARY;
 
     row.addSpacer();
-    const num = row.addText(\`#\${driver.number}\`);
+    const num = row.addText(\`#\${driver.number || "01"}\`);
     num.font = Font.boldSystemFont(16);
     num.textColor = TEXT_MUTED;
 
@@ -705,7 +725,7 @@ async function createWidget() {
     ovrBox.cornerRadius = 12;
     ovrBox.layoutVertically();
     ovrBox.centerAlignContent();
-    const ovrNum = ovrBox.addText(\`\${driver.ovr}\`);
+    const ovrNum = ovrBox.addText(\`\${driver.ovr || 60}\`);
     ovrNum.font = Font.boldSystemFont(22);
     ovrNum.textColor = TEXT_PRIMARY;
     ovrNum.centerAlignText();
@@ -721,11 +741,11 @@ async function createWidget() {
 
     const nameRow = info.addStack();
     nameRow.layoutHorizontally();
-    const pName = nameRow.addText(driver.name);
+    const pName = nameRow.addText(driver.name || "Piloto");
     pName.font = Font.boldSystemFont(16);
     pName.textColor = TEXT_PRIMARY;
     nameRow.addSpacer();
-    const num = nameRow.addText(\`#\${driver.number}\`);
+    const num = nameRow.addText(\`#\${driver.number || "01"}\`);
     num.font = Font.boldSystemFont(16);
     num.textColor = TEXT_MUTED;
 
@@ -746,7 +766,7 @@ async function createWidget() {
     title.font = Font.boldSystemFont(14);
     title.textColor = TEXT_MUTED;
     header.addSpacer();
-    const num = header.addText(\`#\${driver.number}\`);
+    const num = header.addText(\`#\${driver.number || "01"}\`);
     num.font = Font.boldSystemFont(18);
     num.textColor = TEXT_PRIMARY;
 
@@ -765,7 +785,7 @@ async function createWidget() {
     ovrBox.cornerRadius = 12;
     ovrBox.layoutVertically();
     ovrBox.centerAlignContent();
-    const ovrNum = ovrBox.addText(\`\${driver.ovr}\`);
+    const ovrNum = ovrBox.addText(\`\${driver.ovr || 60}\`);
     ovrNum.font = Font.boldSystemFont(26);
     ovrNum.textColor = TEXT_PRIMARY;
     ovrNum.centerAlignText();
@@ -778,7 +798,7 @@ async function createWidget() {
 
     const info = card.addStack();
     info.layoutVertically();
-    const pName = info.addText(driver.name);
+    const pName = info.addText(driver.name || "Piloto");
     pName.font = Font.boldSystemFont(18);
     pName.textColor = TEXT_PRIMARY;
     const team = info.addText(driver.team || "Habitelia Racing");
@@ -820,14 +840,19 @@ await run();
 `;
 }
 
-export function generateNotesWidgetScript(userId = '', userName = 'Viajero') {
+export function generateNotesWidgetScript(userId = '', userName = 'Viajero', notesData = []) {
+  const serializedInitial = JSON.stringify(notesData || []);
+
   return `// ==========================================
 // HABITELIA - WIDGET DE NOTAS
 // Compatible con tamaños: Pequeño, Mediano y Grande
 // ==========================================
 
 const USER_ID = (args.widgetParameter && args.widgetParameter.trim()) || "${userId}";
-const PROJECT_ID = "habitelia";
+const PROJECT_ID = "${PROJECT_ID}";
+const API_KEY = "${FIREBASE_API_KEY}";
+
+const INITIAL_DATA = JSON.parse(${JSON.stringify(serializedInitial)});
 
 const BG_COLOR = new Color("#0D0D0F");
 const CARD_BG = new Color("#16161A");
@@ -836,16 +861,16 @@ const TEXT_MUTED = new Color("#8E8E93");
 
 async function loadData() {
   const fm = FileManager.local();
-  const cachePath = fm.joinPath(fm.documentsDirectory(), "habitelia_notes_cache_" + (USER_ID || "def") + ".json");
+  const cachePath = fm.joinPath(fm.documentsDirectory(), "habitelia_notes_" + (USER_ID || "me") + ".json");
 
   if (USER_ID) {
     try {
-      const bundleUrl = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/widgetData/main\`;
-      const bundleReq = new Request(bundleUrl);
-      bundleReq.timeoutInterval = 6;
-      const bundleRes = await bundleReq.loadJSON();
-      if (bundleRes && bundleRes.fields && bundleRes.fields.payload) {
-        const parsed = JSON.parse(bundleRes.fields.payload.stringValue);
+      const url1 = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/public_widgets/\${USER_ID}?key=\${API_KEY}\`;
+      const req1 = new Request(url1);
+      req1.timeoutInterval = 5;
+      const res1 = await req1.loadJSON();
+      if (res1 && res1.fields && res1.fields.payload) {
+        const parsed = JSON.parse(res1.fields.payload.stringValue);
         if (parsed && parsed.notes) {
           fm.writeString(cachePath, JSON.stringify(parsed.notes));
           return parsed.notes;
@@ -854,35 +879,33 @@ async function loadData() {
     } catch(e) {}
 
     try {
-      const url = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/notes\`;
-      const req = new Request(url);
-      req.timeoutInterval = 6;
-      const res = await req.loadJSON();
-      if (res && res.documents) {
-        const notes = res.documents.map(d => {
-          const f = d.fields || {};
-          return {
-            id: d.name.split("/").pop(),
-            title: f.title?.stringValue || "Nota",
-            emoji: f.emoji?.stringValue || "📝"
-          };
-        });
-        fm.writeString(cachePath, JSON.stringify(notes));
-        return notes;
+      const url2 = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/widgetData/main?key=\${API_KEY}\`;
+      const req2 = new Request(url2);
+      req2.timeoutInterval = 5;
+      const res2 = await req2.loadJSON();
+      if (res2 && res2.fields && res2.fields.payload) {
+        const parsed = JSON.parse(res2.fields.payload.stringValue);
+        if (parsed && parsed.notes) {
+          fm.writeString(cachePath, JSON.stringify(parsed.notes));
+          return parsed.notes;
+        }
       }
     } catch(e) {}
   }
 
   if (fm.fileExists(cachePath)) {
     try {
-      return JSON.parse(fm.readString(cachePath));
+      const cached = JSON.parse(fm.readString(cachePath));
+      if (cached && cached.length > 0) return cached;
     } catch(e) {}
   }
 
+  if (Array.isArray(INITIAL_DATA) && INITIAL_DATA.length > 0) {
+    return INITIAL_DATA;
+  }
+
   return [
-    { title: "Ideas de Proyecto", emoji: "💡" },
-    { title: "Lista de Compras", emoji: "🛒" },
-    { title: "Entrenamiento Semanal", emoji: "🏎️" }
+    { title: "Sin notas creadas", emoji: "📝" }
   ];
 }
 
@@ -913,7 +936,7 @@ async function createWidget() {
       row.centerAlignContent();
       const em = row.addText(\`\${n.emoji || "📝"} \`);
       em.font = Font.systemFont(11);
-      const text = row.addText(n.title);
+      const text = row.addText(n.title || "Nota");
       text.font = Font.systemFont(11);
       text.textColor = TEXT_PRIMARY;
       text.lineLimit = 1;
@@ -941,7 +964,7 @@ async function createWidget() {
       const em = row.addText(\`\${n.emoji || "📝"} \`);
       em.font = Font.systemFont(13);
 
-      const name = row.addText(n.title);
+      const name = row.addText(n.title || "Nota");
       name.font = Font.mediumSystemFont(12);
       name.textColor = TEXT_PRIMARY;
       name.lineLimit = 1;
@@ -973,7 +996,7 @@ async function createWidget() {
       const em = row.addText(\`\${n.emoji || "📝"} \`);
       em.font = Font.systemFont(14);
 
-      const name = row.addText(n.title);
+      const name = row.addText(n.title || "Nota");
       name.font = Font.mediumSystemFont(12.5);
       name.textColor = TEXT_PRIMARY;
       name.lineLimit = 1;

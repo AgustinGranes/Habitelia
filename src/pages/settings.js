@@ -416,21 +416,24 @@ export function mount() {
     });
 
     const getWidgetScriptCode = (type) => {
+        const state = store.getState();
         const uid = auth.currentUser?.uid || '';
-        const uname = auth.currentUser?.displayName || store.getState().user?.displayName || 'Viajero';
+        const uname = auth.currentUser?.displayName || state.user?.displayName || 'Viajero';
+        
         switch (type) {
-            case 'todos': return generateTodosWidgetScript(uid, uname);
-            case 'driver': return generateDriverWidgetScript(uid, uname);
-            case 'notes': return generateNotesWidgetScript(uid, uname);
-            default: return generateHabitsWidgetScript(uid, uname);
+            case 'todos': return generateTodosWidgetScript(uid, uname, state.todos || []);
+            case 'driver': return generateDriverWidgetScript(uid, uname, state.driverProfile || null);
+            case 'notes': return generateNotesWidgetScript(uid, uname, state.notes || []);
+            default: return generateHabitsWidgetScript(uid, uname, state.habits || []);
         }
     };
 
     document.getElementById('btn-copy-widget-script')?.addEventListener('click', async () => {
+        store.syncAllDataToCloud().catch(() => {});
         const code = getWidgetScriptCode(selectedWidgetType);
         try {
             await navigator.clipboard.writeText(code);
-            showToast(`¡Código del widget copiado al portapapeles!`, 'success');
+            showToast(`¡Código del widget copiado con tus datos reales!`, 'success');
         } catch(err) {
             showToast('Selecciona el código en "Ver Código" para copiarlo', 'info');
         }
