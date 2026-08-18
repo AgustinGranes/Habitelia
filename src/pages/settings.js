@@ -11,6 +11,12 @@ import {
     setNotificationsEnabled, 
     sendTestNotification 
 } from '../services/notifications.js';
+import {
+    generateHabitsWidgetScript,
+    generateTodosWidgetScript,
+    generateDriverWidgetScript,
+    generateNotesWidgetScript
+} from '../utils/scriptableWidgets.js';
 
 export function render(props = {}) {
     const state = store.getState();
@@ -111,6 +117,60 @@ export function render(props = {}) {
                         </button>
                     </div>
                 `}
+            </div>
+
+            <!-- Widgets de Scriptable (iOS) -->
+            <div class="glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
+                    <h3 class="editorial-title" style="font-size: 20px; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        ${iconSVG('target', 20)} Widgets de iOS (Scriptable)
+                    </h3>
+                    <span style="font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.08); color: var(--text-primary); padding: 3px 8px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+                        4 Widgets
+                    </span>
+                </div>
+
+                <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin: 0 0 16px 0;">
+                    Agregá widgets de Habitelia en la pantalla de inicio de tu iPhone o iPad en tamaño <strong>Pequeño, Mediano o Grande</strong> usando la app gratuita <strong>Scriptable</strong>.
+                </p>
+
+                <!-- Tutorial Pasos -->
+                <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; font-size: 12.5px; line-height: 1.6; color: var(--text-primary);">
+                    <div style="font-weight: 700; margin-bottom: 8px; color: var(--text-primary); font-size: 13px;">📋 Cómo instalarlos en 4 pasos:</div>
+                    <div style="margin-bottom: 4px;"><strong>1.</strong> Descargá <strong>Scriptable</strong> gratis desde el App Store.</div>
+                    <div style="margin-bottom: 4px;"><strong>2.</strong> Elegí uno de los 4 widgets de abajo y tocá <strong>"Copiar Código"</strong>.</div>
+                    <div style="margin-bottom: 4px;"><strong>3.</strong> Abrí Scriptable, tocá el botón <strong>+</strong>, pegá el código y guardalo con el nombre del widget.</div>
+                    <div><strong>4.</strong> En tu pantalla de inicio de iOS, mantené presionado, tocá <strong>+</strong>, seleccioná <strong>Scriptable</strong>, elegí el tamaño (Pequeño, Mediano o Grande) y elegí tu script.</div>
+                </div>
+
+                <!-- Widget Tabs / Selection -->
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px;">
+                    <button class="btn-widget-choice active" data-widget="habits" style="padding: 12px; border-radius: 12px; border: 2px solid var(--text-primary); background: var(--bg-subtle); color: var(--text-primary); text-align: left; cursor: pointer; transition: all 0.15s ease;">
+                        <div style="font-size: 13.5px; font-weight: 700; margin-bottom: 2px;">⚡ Hábitos de Hoy</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">Racha, horas y progreso</div>
+                    </button>
+                    <button class="btn-widget-choice" data-widget="todos" style="padding: 12px; border-radius: 12px; border: 1px solid var(--border-subtle); background: var(--bg-primary); color: var(--text-secondary); text-align: left; cursor: pointer; transition: all 0.15s ease;">
+                        <div style="font-size: 13.5px; font-weight: 700; margin-bottom: 2px;">📝 Lista To-Do</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">Tareas pendientes y tags</div>
+                    </button>
+                    <button class="btn-widget-choice" data-widget="driver" style="padding: 12px; border-radius: 12px; border: 1px solid var(--border-subtle); background: var(--bg-primary); color: var(--text-secondary); text-align: left; cursor: pointer; transition: all 0.15s ease;">
+                        <div style="font-size: 13.5px; font-weight: 700; margin-bottom: 2px;">🏎️ Tu Piloto</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">Nivel OVR y progreso</div>
+                    </button>
+                    <button class="btn-widget-choice" data-widget="notes" style="padding: 12px; border-radius: 12px; border: 1px solid var(--border-subtle); background: var(--bg-primary); color: var(--text-secondary); text-align: left; cursor: pointer; transition: all 0.15s ease;">
+                        <div style="font-size: 13.5px; font-weight: 700; margin-bottom: 2px;">📚 Notas</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">Notas recientes y emojis</div>
+                    </button>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button id="btn-copy-widget-script" class="btn-primary" style="flex: 2; min-height: 44px; font-size: 13.5px;">
+                        ${iconSVG('chain', 15)} Copiar Código del Widget
+                    </button>
+                    <button id="btn-view-widget-code" class="btn-secondary" style="flex: 1; min-height: 44px; font-size: 13px;">
+                        Ver Código
+                    </button>
+                </div>
             </div>
 
             <div class="glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 18px;">
@@ -291,6 +351,87 @@ export function mount() {
         } else {
             showToast('No se pudo enviar la notificación. Verifica los permisos.', 'warning');
         }
+    });
+
+    // Scriptable Widgets Selection & Copy
+    let selectedWidgetType = 'habits';
+    const widgetButtons = document.querySelectorAll('.btn-widget-choice');
+    
+    widgetButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            widgetButtons.forEach(b => {
+                b.classList.remove('active');
+                b.style.border = '1px solid var(--border-subtle)';
+                b.style.background = 'var(--bg-primary)';
+                b.style.color = 'var(--text-secondary)';
+            });
+            const target = e.currentTarget;
+            target.classList.add('active');
+            target.style.border = '2px solid var(--text-primary)';
+            target.style.background = 'var(--bg-subtle)';
+            target.style.color = 'var(--text-primary)';
+            selectedWidgetType = target.dataset.widget || 'habits';
+        });
+    });
+
+    const getWidgetScriptCode = (type) => {
+        const uid = auth.currentUser?.uid || '';
+        const uname = auth.currentUser?.displayName || store.getState().user?.displayName || 'Viajero';
+        switch (type) {
+            case 'todos': return generateTodosWidgetScript(uid, uname);
+            case 'driver': return generateDriverWidgetScript(uid, uname);
+            case 'notes': return generateNotesWidgetScript(uid, uname);
+            default: return generateHabitsWidgetScript(uid, uname);
+        }
+    };
+
+    document.getElementById('btn-copy-widget-script')?.addEventListener('click', async () => {
+        const code = getWidgetScriptCode(selectedWidgetType);
+        try {
+            await navigator.clipboard.writeText(code);
+            showToast(`¡Código del widget copiado al portapapeles!`, 'success');
+        } catch(err) {
+            showToast('Selecciona el código en "Ver Código" para copiarlo', 'info');
+        }
+    });
+
+    document.getElementById('btn-view-widget-code')?.addEventListener('click', () => {
+        const code = getWidgetScriptCode(selectedWidgetType);
+        document.getElementById('widget-code-modal')?.remove();
+
+        const modalHtml = `
+            <div id="widget-code-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1600; display: flex; align-items: center; justify-content: center; padding: 20px;">
+                <div class="glass-card" style="width: 100%; max-width: 540px; padding: 24px; border-radius: 20px; border: 1px solid var(--border-subtle); background: var(--bg-surface); max-height: 85vh; display: flex; flex-direction: column; box-sizing: border-box;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
+                        <h3 class="editorial-title" style="font-size: 18px; margin: 0;">Código del Widget (${selectedWidgetType})</h3>
+                        <button id="close-widget-code-modal" style="background: var(--bg-subtle); border: none; color: var(--text-primary); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                            ${iconSVG('x', 15)}
+                        </button>
+                    </div>
+                    <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 10px 0;">
+                        Copia este código y pégalo dentro de un nuevo script en la app <strong>Scriptable</strong>.
+                    </p>
+                    <textarea readonly style="flex: 1; min-height: 220px; font-family: monospace; font-size: 11.5px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px; resize: none; margin-bottom: 14px; box-sizing: border-box;">${code}</textarea>
+                    <button id="btn-copy-modal-code" class="btn-primary" style="width: 100%; min-height: 44px; font-size: 13.5px;">
+                        ${iconSVG('chain', 15)} Copiar Código
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        document.getElementById('close-widget-code-modal')?.addEventListener('click', () => {
+            document.getElementById('widget-code-modal')?.remove();
+        });
+
+        document.getElementById('btn-copy-modal-code')?.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(code);
+                showToast('¡Código copiado al portapapeles!', 'success');
+            } catch(e) {}
+            document.getElementById('widget-code-modal')?.remove();
+        });
     });
 
     const display = document.getElementById('identity-display');
