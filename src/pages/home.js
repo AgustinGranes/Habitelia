@@ -640,7 +640,8 @@ export function mount() {
 
         const completeAction = async () => {
             const habit = store.getState().habits?.find(h => h.id === habitId);
-            if (!habit?.response?.twoMinVersion || habit?.noTwoMin) {
+            const hasTwoMin = Boolean(habit && !habit.noTwoMin && habit.response?.twoMinVersion && habit.response.twoMinVersion.trim() !== '');
+            if (!hasTwoMin) {
                 const res = await store.completeEvent(habitId, completionDateKey, 'completed') || {};
                 const streak = res.newStreak || 1;
                 showToast(`¡Excelente! Racha: ${streak} días (Completo)`, 'success');
@@ -765,13 +766,21 @@ export function mount() {
                 refreshHomeView();
             } else {
                 const habit = store.getState().habits?.find(h => h.id === habitId);
-                openCompletionModeModal(rawId, habit?.name || 'Hábito', async (mode) => {
-                    const res = await store.completeEvent(habitId, completionDateKey, mode) || {};
+                const hasTwoMin = Boolean(habit && !habit.noTwoMin && habit.response?.twoMinVersion && habit.response.twoMinVersion.trim() !== '');
+                if (!hasTwoMin) {
+                    const res = await store.completeEvent(habitId, completionDateKey, 'completed') || {};
                     const streak = res.newStreak || 1;
-                    const modeText = mode === 'completed_2min' ? ' (2 minutos)' : ' (Completo)';
-                    showToast(`¡Excelente! Racha: ${streak} días${modeText}`, 'success');
+                    showToast(`¡Excelente! Racha: ${streak} días (Completo)`, 'success');
                     refreshHomeView();
-                });
+                } else {
+                    openCompletionModeModal(rawId, habit?.name || 'Hábito', async (mode) => {
+                        const res = await store.completeEvent(habitId, completionDateKey, mode) || {};
+                        const streak = res.newStreak || 1;
+                        const modeText = mode === 'completed_2min' ? ' (2 minutos)' : ' (Completo)';
+                        showToast(`¡Excelente! Racha: ${streak} días${modeText}`, 'success');
+                        refreshHomeView();
+                    });
+                }
             }
         });
     });

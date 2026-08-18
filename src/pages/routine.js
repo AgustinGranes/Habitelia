@@ -594,7 +594,8 @@ export function mount() {
         refreshRoutineView();
       } else {
         const habit = store.getState().habits?.find(h => h.id === habitId);
-        if (!habit?.response?.twoMinVersion || habit?.noTwoMin) {
+        const hasTwoMin = Boolean(habit && !habit.noTwoMin && habit.response?.twoMinVersion && habit.response.twoMinVersion.trim() !== '');
+        if (!hasTwoMin) {
           const res = await store.completeEvent(habitId, completionDateKey, 'completed') || {};
           const streak = res.newStreak || 1;
           showToast(`¡Excelente! Racha: ${streak} días (Completo)`, 'success');

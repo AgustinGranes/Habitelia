@@ -1,6 +1,7 @@
 import { store } from '../store.js';
 import { iconSVG } from '../components/icons.js';
 import { renderSidebar, mountSidebar, openSidebar } from '../components/sidebar.js';
+import { navigate } from '../router.js';
 
 // Pre-defined premium covers (colors and gradients)
 const PREMIUM_COVERS = [
@@ -367,9 +368,11 @@ function mountNotesList() {
   document.getElementById('btn-create-note-header')?.addEventListener('click', triggerCreateNote);
 
   document.querySelectorAll('.note-card').forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       const id = card.dataset.id;
-      window.location.hash = `#/notes?id=${id}`;
+      navigate('/notes', { id });
     });
   });
 }
@@ -818,8 +821,10 @@ function mountNoteDetail(noteId) {
   contentEditor?.focus();
 
   // Back button
-  document.getElementById('btn-back-to-notes')?.addEventListener('click', () => {
-    window.location.hash = '/notes';
+  document.getElementById('btn-back-to-notes')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate('/notes');
   });
 
   // Delete button

@@ -39,23 +39,18 @@ const routesMap = {
   '/notes': { render: renderNotes, mount: mountNotes },
 };
 
-// Edge Swipe from Left Gesture to Open Sidebar (preventing browser back gesture)
+// Edge Swipe from Left Gesture to Open Sidebar (strictly at extreme edge)
 let touchStartX = 0;
 let touchStartY = 0;
 let isEdgeSwipe = false;
-window._lastSwipeTime = 0;
-window._isSwipingMenu = false;
 
 window.addEventListener('touchstart', (e) => {
   if (e.touches && e.touches.length === 1) {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
-    isEdgeSwipe = touchStartX < 120;
-    if (isEdgeSwipe) {
-      window._isSwipingMenu = true;
-    }
+    isEdgeSwipe = touchStartX < 25;
   }
-}, { passive: false });
+}, { passive: true });
 
 window.addEventListener('touchmove', (e) => {
   if (e.touches && e.touches.length === 1 && isEdgeSwipe) {
@@ -64,31 +59,15 @@ window.addEventListener('touchmove', (e) => {
     const diffX = currentX - touchStartX;
     const diffY = currentY - touchStartY;
 
-    if (diffX > 15 && Math.abs(diffY) < 70) {
-      if (e.cancelable) e.preventDefault();
-      window._lastSwipeTime = Date.now();
+    if (diffX > 60 && Math.abs(diffY) < 35) {
+      isEdgeSwipe = false;
       openSidebar();
     }
   }
-}, { passive: false });
+}, { passive: true });
 
-window.addEventListener('touchend', (e) => {
-  if (isEdgeSwipe) {
-    const touchEndX = e.changedTouches && e.changedTouches.length === 1 ? e.changedTouches[0].clientX : touchStartX;
-    const touchEndY = e.changedTouches && e.changedTouches.length === 1 ? e.changedTouches[0].clientY : touchStartY;
-    const diffX = touchEndX - touchStartX;
-    const diffY = touchEndY - touchStartY;
-
-    if (diffX > 15 && Math.abs(diffY) < 70) {
-      if (e.cancelable) e.preventDefault();
-      window._lastSwipeTime = Date.now();
-      openSidebar();
-    }
-  }
-  setTimeout(() => {
-    isEdgeSwipe = false;
-    window._isSwipingMenu = false;
-  }, 300);
+window.addEventListener('touchend', () => {
+  isEdgeSwipe = false;
 }, { passive: true });
 
 const getAppContainer = () => document.getElementById('app') || document.body;
@@ -203,30 +182,12 @@ const startRouter = () => {
   };
 
   const handleHashChange = (e) => {
-    const timeSinceSwipe = Date.now() - (window._lastSwipeTime || 0);
-    if (window._isSwipingMenu || timeSinceSwipe < 600) {
-      const currentRoutePath = store.getState().currentRoute || '/home';
-      window.history.pushState(null, '', `#${currentRoutePath}`);
-      openSidebar();
-      return;
-    }
-
     const route = parseHash();
     renderApp(route.path, route.params);
   };
 
   window.addEventListener('hashchange', handleHashChange);
   window.addEventListener('popstate', (e) => {
-    const timeSinceSwipe = Date.now() - (window._lastSwipeTime || 0);
-    if (window._isSwipingMenu || timeSinceSwipe < 600) {
-      if (e.cancelable) e.preventDefault();
-      e.stopImmediatePropagation();
-      const currentRoutePath = store.getState().currentRoute || '/home';
-      window.history.pushState(null, '', `#${currentRoutePath}`);
-      openSidebar();
-      return;
-    }
-
     if (auth.currentUser) {
       const hash = window.location.hash;
       if (!hash || hash === '#/' || hash === '#/login' || hash === '#/onboarding') {
