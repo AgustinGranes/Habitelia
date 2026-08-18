@@ -137,73 +137,62 @@ function openTodoModal(existingTodo = null) {
 
   const modalHtml = `
     <div id="todo-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1500; display: flex; align-items: center; justify-content: center; padding: 20px;">
-      <div class="glass-card" style="width: 100%; max-width: 480px; padding: 28px; border-radius: 24px; border: 1px solid var(--border-subtle); background: var(--bg-surface); max-height: 88vh; overflow-y: auto;">
+      <div class="glass-card" style="width: 100%; max-width: 460px; padding: 24px 20px; border-radius: 22px; border: 1px solid var(--border-subtle); background: var(--bg-surface); max-height: 88vh; overflow-y: auto; box-sizing: border-box;">
         
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-          <h3 class="editorial-title" style="font-size: 22px; margin: 0;">${isEditing ? 'Editar Tarea' : 'Nueva Tarea'}</h3>
-          <button id="close-todo-modal" style="background: var(--bg-subtle); border: none; color: var(--text-primary); width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-            ${iconSVG('x', 16)}
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+          <h3 class="editorial-title" style="font-size: 20px; margin: 0;">${isEditing ? 'Editar Tarea' : 'Nueva Tarea'}</h3>
+          <button id="close-todo-modal" style="background: var(--bg-subtle); border: none; color: var(--text-primary); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            ${iconSVG('x', 15)}
           </button>
         </div>
 
-        <div style="margin-bottom: 16px;">
-          <label class="form-label">Nombre de la Tarea</label>
-          <input type="text" id="todo-name" class="input" placeholder="Ej. Comprar cuaderno, Enviar correo..." value="${existingTodo?.name || ''}" style="width: 100%; min-height: 46px;">
+        <div style="margin-bottom: 14px;">
+          <label class="form-label" style="font-size: 12.5px; margin-bottom: 5px; display: block;">Nombre de la Tarea</label>
+          <input type="text" id="todo-name" class="input" placeholder="Ej. Comprar cuaderno, Enviar correo..." value="${existingTodo?.name || ''}" style="width: 100%; height: 42px; min-height: 42px; padding: 8px 14px; font-size: 14px; box-sizing: border-box;">
         </div>
 
-        <style>
-          .todo-form-grid {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-          }
-          @media (max-width: 480px) {
-            .todo-form-grid {
-              flex-direction: column;
-            }
-          }
-        </style>
-        <div class="todo-form-grid">
-          <div style="flex: 1; min-width: 0;">
-            <label class="form-label" style="display: flex; align-items: center; gap: 6px;">
-              Fecha de Finalización
-              <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 400;">(opcional)</span>
+        <!-- Date & Time Compact Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; width: 100%; box-sizing: border-box;">
+          <div style="min-width: 0; width: 100%; box-sizing: border-box;">
+            <label class="form-label" style="display: flex; align-items: center; gap: 4px; font-size: 12px; margin-bottom: 4px;">
+              Fecha límite
+              <span style="font-size: 10.5px; color: var(--text-tertiary); font-weight: 400;">(opc.)</span>
             </label>
-            <input type="date" id="todo-date" class="input" value="${existingTodo?.dueDate || ''}" style="width: 100%; min-height: 44px; box-sizing: border-box;">
+            <input type="date" id="todo-date" class="input" value="${existingTodo?.dueDate || ''}" style="width: 100%; max-width: 100%; height: 38px; min-height: 38px; padding: 6px 10px; font-size: 12.5px; border-radius: 10px; box-sizing: border-box; color-scheme: dark; background: var(--bg-primary);">
           </div>
-          <div style="flex: 1; min-width: 0;">
-            <label class="form-label" style="display: flex; align-items: center; gap: 6px;">
+          <div style="min-width: 0; width: 100%; box-sizing: border-box;">
+            <label class="form-label" style="display: flex; align-items: center; gap: 4px; font-size: 12px; margin-bottom: 4px;">
               Horario
-              <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 400;">(opcional)</span>
+              <span style="font-size: 10.5px; color: var(--text-tertiary); font-weight: 400;">(opc.)</span>
             </label>
-            <input type="time" id="todo-time" class="input" value="${existingTodo?.time || ''}" style="width: 100%; min-height: 44px; box-sizing: border-box;">
+            <input type="time" id="todo-time" class="input" value="${existingTodo?.time || ''}" style="width: 100%; max-width: 100%; height: 38px; min-height: 38px; padding: 6px 10px; font-size: 12.5px; border-radius: 10px; box-sizing: border-box; color-scheme: dark; background: var(--bg-primary);">
           </div>
         </div>
 
-        <div style="margin-bottom: 16px;">
-          <label class="form-label" style="display: flex; align-items: center; gap: 6px;">
+        <div style="margin-bottom: 14px;">
+          <label class="form-label" style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; margin-bottom: 5px;">
             Etiqueta / Tag
-            <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 400;">(opcional)</span>
+            <span style="font-size: 10.5px; color: var(--text-tertiary); font-weight: 400;">(opcional)</span>
           </label>
-          <input type="text" id="todo-tag" class="input" placeholder="Ej. Trabajo, Estudio, Personal..." value="${existingTodo?.tag || ''}" style="width: 100%; min-height: 44px;">
+          <input type="text" id="todo-tag" class="input" placeholder="Ej. Trabajo, Estudio, Personal..." value="${existingTodo?.tag || ''}" style="width: 100%; height: 38px; min-height: 38px; padding: 6px 12px; font-size: 13px; box-sizing: border-box;">
         </div>
 
         <!-- Description -->
         <div style="margin-bottom: 14px;">
-          <label class="form-label" style="display: flex; align-items: center; gap: 6px;">
+          <label class="form-label" style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; margin-bottom: 5px;">
             Descripción / Nota
-            <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 400;">(opcional)</span>
+            <span style="font-size: 10.5px; color: var(--text-tertiary); font-weight: 400;">(opcional)</span>
           </label>
-          <textarea id="todo-description" class="input" placeholder="Detalles adicionales, contexto, instrucciones..." rows="3" style="width: 100%; min-height: 80px; resize: vertical; font-family: var(--font-ui); line-height: 1.5;">${existingTodo?.description || ''}</textarea>
+          <textarea id="todo-description" class="input" placeholder="Detalles adicionales, contexto, instrucciones..." rows="3" style="width: 100%; min-height: 68px; padding: 8px 12px; font-size: 13px; resize: vertical; font-family: var(--font-ui); line-height: 1.4; box-sizing: border-box;">${existingTodo?.description || ''}</textarea>
         </div>
 
         <!-- Visibility toggle -->
-        <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px 16px;">
+        <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 10px 14px; box-sizing: border-box;">
           <div style="display: flex; flex-direction: column; gap: 2px;">
-            <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
-              ${iconSVG('info', 15)} Mostrar descripción en la tarea
+            <div style="font-weight: 600; font-size: 13px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+              ${iconSVG('info', 14)} Mostrar descripción en la tarea
             </div>
-            <div style="font-size: 11.5px; color: var(--text-tertiary);">Por defecto la nota es privada e invisible</div>
+            <div style="font-size: 11px; color: var(--text-tertiary);">Por defecto la nota es privada e invisible</div>
           </div>
           <label style="position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; cursor: pointer;">
             <input type="checkbox" id="todo-desc-visible" ${existingTodo?.descriptionVisible ? 'checked' : ''} style="opacity: 0; width: 0; height: 0; position: absolute;">
@@ -214,25 +203,25 @@ function openTodoModal(existingTodo = null) {
         </div>
 
         <!-- Habit Stacking Dropdown -->
-        <div style="margin-bottom: 20px;">
-          <label class="form-label" style="display: flex; align-items: center; gap: 6px;">
+        <div style="margin-bottom: 16px;">
+          <label class="form-label" style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; margin-bottom: 5px;">
             Acumular con un hábito
-            <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 400;">(opcional)</span>
+            <span style="font-size: 10.5px; color: var(--text-tertiary); font-weight: 400;">(opcional)</span>
           </label>
-          <select id="todo-stacked-after" class="input" style="width: 100%; min-height: 44px;">
+          <select id="todo-stacked-after" class="input" style="width: 100%; height: 38px; min-height: 38px; padding: 6px 10px; font-size: 13px; box-sizing: border-box;">
             <option value="">Ninguno (Tarea independiente)</option>
             ${habits.map(h => `<option value="${h.id}" ${existingTodo?.stackedAfterId === h.id ? 'selected' : ''}>Acumular después de: "${h.name}"</option>`).join('')}
           </select>
         </div>
 
         <!-- Show in Routine toggle -->
-        <div style="margin-bottom: 14px; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 14px; overflow: hidden;">
-          <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px;">
+        <div style="margin-bottom: 16px; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 14px; overflow: hidden; box-sizing: border-box;">
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px;">
             <div style="display: flex; flex-direction: column; gap: 2px;">
-              <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
-                ${iconSVG('routine', 15)} Agregar a la Rutina
+              <div style="font-weight: 600; font-size: 13px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                ${iconSVG('routine', 14)} Agregar a la Rutina
               </div>
-              <div style="font-size: 11.5px; color: var(--text-tertiary);">Mostrar esta tarea en la pantalla de inicio</div>
+              <div style="font-size: 11px; color: var(--text-tertiary);">Mostrar esta tarea en la pantalla de inicio</div>
             </div>
             <label style="position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; cursor: pointer;">
               <input type="checkbox" id="todo-show-in-routine" ${existingTodo?.showInRoutine ? 'checked' : ''} style="opacity: 0; width: 0; height: 0; position: absolute;">
@@ -244,24 +233,24 @@ function openTodoModal(existingTodo = null) {
 
           <!-- Sub-options revealed when toggle is ON -->
           <div id="todo-routine-subopts" style="display: ${existingTodo?.showInRoutine ? 'flex' : 'none'}; flex-direction: column; gap: 0; border-top: 1px solid var(--border-subtle);">
-            <label style="display: flex; align-items: center; gap: 12px; padding: 11px 16px; cursor: pointer; border-bottom: 1px solid var(--border-subtle);">
-              <input type="radio" name="todo-routine-mode" id="todo-routine-daily" value="daily" ${(!existingTodo?.routineMode || existingTodo?.routineMode === 'daily') ? 'checked' : ''} style="accent-color: var(--text-primary); width: 16px; height: 16px; flex-shrink: 0;">
+            <label style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border-subtle);">
+              <input type="radio" name="todo-routine-mode" id="todo-routine-daily" value="daily" ${(!existingTodo?.routineMode || existingTodo?.routineMode === 'daily') ? 'checked' : ''} style="accent-color: var(--text-primary); width: 15px; height: 15px; flex-shrink: 0;">
               <div>
-                <div style="font-size: 13.5px; font-weight: 600; color: var(--text-primary);">Todos los días hasta completar</div>
-                <div style="font-size: 11.5px; color: var(--text-tertiary);">Aparece cada día en la rutina hasta que la marques como hecha</div>
+                <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Todos los días hasta completar</div>
+                <div style="font-size: 11px; color: var(--text-tertiary);">Aparece cada día en la rutina hasta que la marques como hecha</div>
               </div>
             </label>
-            <label style="display: flex; align-items: center; gap: 12px; padding: 11px 16px; cursor: pointer;">
-              <input type="radio" name="todo-routine-mode" id="todo-routine-duedate" value="dueDate" ${existingTodo?.routineMode === 'dueDate' ? 'checked' : ''} style="accent-color: var(--text-primary); width: 16px; height: 16px; flex-shrink: 0;">
+            <label style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer;">
+              <input type="radio" name="todo-routine-mode" id="todo-routine-duedate" value="dueDate" ${existingTodo?.routineMode === 'dueDate' ? 'checked' : ''} style="accent-color: var(--text-primary); width: 15px; height: 15px; flex-shrink: 0;">
               <div>
-                <div style="font-size: 13.5px; font-weight: 600; color: var(--text-primary);">Solo el día de finalización</div>
-                <div style="font-size: 11.5px; color: var(--text-tertiary);">Solo aparece en la rutina del día que pusiste como fecha límite</div>
+                <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Solo el día de finalización</div>
+                <div style="font-size: 11px; color: var(--text-tertiary);">Solo aparece en la rutina del día que pusiste como fecha límite</div>
               </div>
             </label>
           </div>
         </div>
 
-        <button id="btn-save-todo" class="btn-primary" style="width: 100%; min-height: 48px; border-radius: 12px; font-size: 14px;">
+        <button id="btn-save-todo" class="btn-primary" style="width: 100%; min-height: 44px; border-radius: 12px; font-size: 13.5px;">
           ${isEditing ? 'Guardar Cambios' : 'Crear Tarea'}
         </button>
 
