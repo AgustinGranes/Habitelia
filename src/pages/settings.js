@@ -27,9 +27,9 @@ export function render(props = {}) {
     const identity = state.user?.identity || localStorage.getItem('user_identity_v1') || 'No definida';
     const partner = state.user?.partner || { enabled: false, name: '', phone: '', contract: '' };
     const currentTheme = localStorage.getItem('app_theme_key') || 'obsidian';
-    const showTodosInHome = state.user?.settings?.showTodosInHome !== false;
     const notifStatus = getNotificationPermission();
     const notifsEnabled = areNotificationsEnabled();
+    const currentUid = currentUser?.uid || '';
 
     return `
         <div class="page settings-page" style="padding: 24px 20px 100px 20px; max-width: 620px; margin: 0 auto; width: 100%; box-sizing: border-box;">
@@ -134,13 +134,28 @@ export function render(props = {}) {
                     Agregá widgets de Habitelia en la pantalla de inicio de tu iPhone o iPad en tamaño <strong>Pequeño, Mediano o Grande</strong> usando la app gratuita <strong>Scriptable</strong>.
                 </p>
 
+                <!-- ID de Sincronización / Parameter Box -->
+                <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                    <div style="min-width: 0; flex: 1;">
+                        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary);">Tu ID de Sincronización (Parameter)</div>
+                        <div id="user-sync-id-display" style="font-family: monospace; font-size: 13px; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; margin-top: 2px;">
+                            ${currentUid || 'Inicia sesión para ver tu ID'}
+                        </div>
+                    </div>
+                    ${currentUid ? `
+                        <button id="btn-copy-user-id" class="btn-secondary" style="width: auto; padding: 6px 12px; font-size: 12px; min-height: 34px; flex-shrink: 0;">
+                            ${iconSVG('chain', 13)} Copiar ID
+                        </button>
+                    ` : ''}
+                </div>
+
                 <!-- Tutorial Pasos -->
                 <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; font-size: 12.5px; line-height: 1.6; color: var(--text-primary);">
                     <div style="font-weight: 700; margin-bottom: 8px; color: var(--text-primary); font-size: 13px;">📋 Cómo instalarlos en 4 pasos:</div>
-                    <div style="margin-bottom: 4px;"><strong>1.</strong> Descargá <strong>Scriptable</strong> gratis desde el App Store.</div>
+                    <div style="margin-bottom: 4px;"><strong>1.</strong> Descargá <strong>Scriptable</strong> gratis desde el App Store en tu iPhone.</div>
                     <div style="margin-bottom: 4px;"><strong>2.</strong> Elegí uno de los 4 widgets de abajo y tocá <strong>"Copiar Código"</strong>.</div>
-                    <div style="margin-bottom: 4px;"><strong>3.</strong> Abrí Scriptable, tocá el botón <strong>+</strong>, pegá el código y guardalo con el nombre del widget.</div>
-                    <div><strong>4.</strong> En tu pantalla de inicio de iOS, mantené presionado, tocá <strong>+</strong>, seleccioná <strong>Scriptable</strong>, elegí el tamaño (Pequeño, Mediano o Grande) y elegí tu script.</div>
+                    <div style="margin-bottom: 4px;"><strong>3.</strong> Abrí Scriptable, tocá <strong>+</strong>, pegá el código y guardalo con el nombre del widget.</div>
+                    <div><strong>4.</strong> En tu pantalla de inicio de iOS, agregá el widget de <strong>Scriptable</strong>. En el campo <strong>Parameter</strong> podés pegar tu ID de arriba.</div>
                 </div>
 
                 <!-- Widget Tabs / Selection -->
@@ -163,12 +178,17 @@ export function render(props = {}) {
                     </button>
                 </div>
 
-                <div style="display: flex; gap: 10px;">
-                    <button id="btn-copy-widget-script" class="btn-primary" style="flex: 2; min-height: 44px; font-size: 13.5px;">
-                        ${iconSVG('chain', 15)} Copiar Código del Widget
-                    </button>
-                    <button id="btn-view-widget-code" class="btn-secondary" style="flex: 1; min-height: 44px; font-size: 13px;">
-                        Ver Código
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; gap: 10px;">
+                        <button id="btn-copy-widget-script" class="btn-primary" style="flex: 2; min-height: 44px; font-size: 13.5px;">
+                            ${iconSVG('chain', 15)} Copiar Código del Widget
+                        </button>
+                        <button id="btn-view-widget-code" class="btn-secondary" style="flex: 1; min-height: 44px; font-size: 13px;">
+                            Ver Código
+                        </button>
+                    </div>
+                    <button id="btn-sync-widgets-data" class="btn-ghost" style="width: 100%; min-height: 38px; font-size: 12.5px; border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        ${iconSVG('cloud', 14)} Sincronizar Datos para Widgets Ahora
                     </button>
                 </div>
             </div>
@@ -350,6 +370,26 @@ export function mount() {
             showToast('Notificación de prueba enviada', 'success');
         } else {
             showToast('No se pudo enviar la notificación. Verifica los permisos.', 'warning');
+        }
+    });
+
+    document.getElementById('btn-copy-user-id')?.addEventListener('click', async () => {
+        const uid = auth.currentUser?.uid || '';
+        if (uid) {
+            try {
+                await navigator.clipboard.writeText(uid);
+                showToast('¡ID copiado al portapapeles!', 'success');
+            } catch(e) {}
+        }
+    });
+
+    document.getElementById('btn-sync-widgets-data')?.addEventListener('click', async () => {
+        showToast('Sincronizando datos de hábitos, tareas y piloto para widgets...', 'info');
+        const ok = await store.syncAllDataToCloud();
+        if (ok) {
+            showToast('¡Datos para widgets sincronizados con la nube!', 'success');
+        } else {
+            showToast('No se pudo sincronizar. Verifica tu conexión.', 'warning');
         }
     });
 
