@@ -1,6 +1,7 @@
 /**
  * Generador de Scripts para Widgets de Scriptable (iOS / iPadOS)
  * Soporta tamaños: Small, Medium, Large
+ * Sincronización en vivo con Firestore REST API + Cache Local Offline
  */
 
 export function generateHabitsWidgetScript(userId = '', userName = 'Viajero') {
@@ -9,47 +10,75 @@ export function generateHabitsWidgetScript(userId = '', userName = 'Viajero') {
 // Compatible con tamaños: Pequeño, Mediano y Grande
 // ==========================================
 
+// Tu ID de usuario de Habitelia (Generado automáticamente)
 const USER_ID = "${userId}";
 const PROJECT_ID = "habitelia";
 
-// Tema Oscuro Obsidian Luxury
+// Paleta de Colores Obsidian Luxury
 const BG_COLOR = new Color("#0D0D0F");
 const CARD_BG = new Color("#16161A");
 const TEXT_PRIMARY = new Color("#FFFFFF");
 const TEXT_MUTED = new Color("#8E8E93");
-const ACCENT = new Color("#FFFFFF");
 const GREEN = new Color("#30D158");
+const RED = new Color("#FF453A");
 const AMBER = new Color("#FF9F0A");
+
+function strikeText(text) {
+  if (!text) return "";
+  return text.split("").map(c => c + "\\u0336").join("");
+}
 
 async function loadData() {
   const fm = FileManager.local();
   const cachePath = fm.joinPath(fm.documentsDirectory(), "habitelia_habits_cache.json");
   
   if (USER_ID) {
+    // 1. Intentar cargar el paquete sincronizado completo
+    try {
+      const bundleUrl = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/widgetData/main\`;
+      const bundleReq = new Request(bundleUrl);
+      bundleReq.timeoutInterval = 5;
+      const bundleRes = await bundleReq.loadJSON();
+      if (bundleRes && bundleRes.fields && bundleRes.fields.payload) {
+        const parsed = JSON.parse(bundleRes.fields.payload.stringValue);
+        if (parsed && parsed.habits) {
+          fm.writeString(cachePath, JSON.stringify(parsed.habits));
+          return parsed.habits;
+        }
+      }
+    } catch(e) {}
+
+    // 2. Fallback: Cargar subcolección de hábitos directamente
     try {
       const url = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/habits\`;
       const req = new Request(url);
-      req.timeoutInterval = 6;
+      req.timeoutInterval = 5;
       const res = await req.loadJSON();
       if (res && res.documents) {
         const habits = res.documents.map(d => {
           const f = d.fields || {};
+          const compMap = {};
+          if (f.completions?.mapValue?.fields) {
+            for (const [k, v] of Object.entries(f.completions.mapValue.fields)) {
+              compMap[k] = v.stringValue || 'completed';
+            }
+          }
           return {
             id: d.name.split("/").pop(),
             name: f.name?.stringValue || "Hábito",
             time: f.cue?.mapValue?.fields?.time?.stringValue || null,
-            completions: f.completions?.mapValue?.fields || {},
-            frequency: f.frequency?.mapValue?.fields?.type?.stringValue || 'daily'
+            completions: compMap,
+            streak: parseInt(f.streak?.integerValue || "0"),
+            isDeletedToday: f.deletedToday?.booleanValue || false
           };
         });
         fm.writeString(cachePath, JSON.stringify(habits));
         return habits;
       }
-    } catch(e) {
-      console.log("Error cargando de Firestore, usando cache: " + e);
-    }
+    } catch(e) {}
   }
 
+  // 3. Fallback: Cache local
   if (fm.fileExists(cachePath)) {
     try {
       return JSON.parse(fm.readString(cachePath));
@@ -57,10 +86,9 @@ async function loadData() {
   }
 
   return [
-    { name: "Meditar 10 min", time: "08:00", completed: true },
-    { name: "Lectura profunda", time: "14:00", completed: false },
-    { name: "Entrenamiento", time: "18:30", completed: false },
-    { name: "Planificar mañana", time: "22:00", completed: false }
+    { name: "Meditar 10 min", time: "08:00", completions: {}, isDeletedToday: false },
+    { name: "Lectura profunda", time: "14:00", completions: {}, isDeletedToday: false },
+    { name: "Entrenamiento", time: "18:30", completions: {}, isDeletedToday: false }
   ];
 }
 
@@ -76,13 +104,52 @@ async function createWidget() {
   const dayName = dayNames[today.getDay()];
 
   let completedCount = 0;
+  let activeHabitsCount = 0;
+
   const processedHabits = habits.map(h => {
-    const isDone = h.completed === true || (h.completions && h.completions[todayStr]);
-    if (isDone) completedCount++;
-    return { ...h, isDone };
+    const completionStatus = h.completions ? h.completions[todayStr] : null;
+    const isDone = completionStatus === 'completed' || completionStatus === 'completed_2min';
+    const isSkipped = completionStatus === 'skipped';
+    const isDeleted = h.isDeletedToday || completionStatus === 'deleted';
+
+    if (!isDeleted) {
+      activeHabitsCount++;
+      if (isDone) completedCount++;
+    }
+
+    let dotSymbol = "○ ";
+    let dotColor = TEXT_MUTED;
+    let displayName = h.name || "Hábito";
+    let nameColor = TEXT_PRIMARY;
+
+    if (isDeleted) {
+      dotSymbol = "— ";
+      dotColor = new Color("#636366");
+      displayName = strikeText(h.name);
+      nameColor = new Color("#636366");
+    } else if (isSkipped) {
+      dotSymbol = "● ";
+      dotColor = RED; // Punto en ROJO si se salteó
+      nameColor = new Color("#FF9E96");
+    } else if (isDone) {
+      dotSymbol = "● ";
+      dotColor = GREEN; // Punto VERDE si se completó
+      nameColor = TEXT_MUTED;
+    }
+
+    return {
+      ...h,
+      displayName,
+      dotSymbol,
+      dotColor,
+      nameColor,
+      isDone,
+      isSkipped,
+      isDeleted
+    };
   });
 
-  const total = processedHabits.length || 1;
+  const total = activeHabitsCount || 1;
   const percent = Math.round((completedCount / total) * 100);
   const widgetFamily = config.widgetFamily || "medium";
 
@@ -100,7 +167,7 @@ async function createWidget() {
     dateText.font = Font.systemFont(10);
     dateText.textColor = TEXT_MUTED;
     
-    widget.addSpacer(8);
+    widget.addSpacer(6);
 
     const progressStack = widget.addStack();
     progressStack.layoutHorizontally();
@@ -117,19 +184,18 @@ async function createWidget() {
 
     widget.addSpacer(6);
 
-    // Show next 2 habits
     processedHabits.slice(0, 2).forEach(h => {
       const row = widget.addStack();
       row.layoutHorizontally();
       row.centerAlignContent();
       
-      const symbol = row.addText(h.isDone ? "● " : "○ ");
+      const symbol = row.addText(h.dotSymbol);
       symbol.font = Font.systemFont(11);
-      symbol.textColor = h.isDone ? GREEN : TEXT_MUTED;
+      symbol.textColor = h.dotColor;
       
-      const name = row.addText(h.name);
+      const name = row.addText(h.displayName);
       name.font = Font.systemFont(11);
-      name.textColor = h.isDone ? TEXT_MUTED : TEXT_PRIMARY;
+      name.textColor = h.nameColor;
       name.lineLimit = 1;
       widget.addSpacer(2);
     });
@@ -140,7 +206,7 @@ async function createWidget() {
     mainStack.layoutHorizontally();
     mainStack.centerAlignContent();
 
-    // Left Column: Progress & Stats
+    // Columna Izquierda: Progreso
     const leftCol = mainStack.addStack();
     leftCol.layoutVertically();
     leftCol.size = new Size(110, 0);
@@ -165,7 +231,7 @@ async function createWidget() {
 
     mainStack.addSpacer(14);
 
-    // Right Column: Habits List
+    // Columna Derecha: Lista de Hábitos
     const rightCol = mainStack.addStack();
     rightCol.layoutVertically();
     
@@ -174,13 +240,13 @@ async function createWidget() {
       row.layoutHorizontally();
       row.centerAlignContent();
       
-      const check = row.addText(h.isDone ? "● " : "○ ");
-      check.font = Font.systemFont(13);
-      check.textColor = h.isDone ? GREEN : TEXT_MUTED;
+      const dot = row.addText(h.dotSymbol);
+      dot.font = Font.systemFont(12);
+      dot.textColor = h.dotColor;
 
-      const name = row.addText(h.name);
+      const name = row.addText(h.displayName);
       name.font = Font.mediumSystemFont(12);
-      name.textColor = h.isDone ? TEXT_MUTED : TEXT_PRIMARY;
+      name.textColor = h.nameColor;
       name.lineLimit = 1;
 
       row.addSpacer();
@@ -212,7 +278,7 @@ async function createWidget() {
 
     widget.addSpacer(12);
 
-    // Progress Bar Card
+    // Barra de Progreso
     const progCard = widget.addStack();
     progCard.layoutHorizontally();
     progCard.backgroundColor = CARD_BG;
@@ -237,7 +303,7 @@ async function createWidget() {
 
     widget.addSpacer(12);
 
-    // Habits List
+    // Lista de Hábitos
     processedHabits.slice(0, 8).forEach((h, idx) => {
       const row = widget.addStack();
       row.layoutHorizontally();
@@ -246,13 +312,13 @@ async function createWidget() {
       row.cornerRadius = 8;
       row.setPadding(6, 10, 6, 10);
 
-      const mark = row.addText(h.isDone ? "✓ " : "○ ");
-      mark.font = Font.boldSystemFont(13);
-      mark.textColor = h.isDone ? GREEN : TEXT_MUTED;
+      const dot = row.addText(h.dotSymbol);
+      dot.font = Font.boldSystemFont(13);
+      dot.textColor = h.dotColor;
 
-      const name = row.addText(h.name);
+      const name = row.addText(h.displayName);
       name.font = Font.mediumSystemFont(12.5);
-      name.textColor = h.isDone ? TEXT_MUTED : TEXT_PRIMARY;
+      name.textColor = h.nameColor;
       name.lineLimit = 1;
 
       row.addSpacer();
@@ -293,7 +359,6 @@ const BG_COLOR = new Color("#0D0D0F");
 const CARD_BG = new Color("#16161A");
 const TEXT_PRIMARY = new Color("#FFFFFF");
 const TEXT_MUTED = new Color("#8E8E93");
-const GREEN = new Color("#30D158");
 
 async function loadData() {
   const fm = FileManager.local();
@@ -301,9 +366,23 @@ async function loadData() {
 
   if (USER_ID) {
     try {
+      const bundleUrl = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/widgetData/main\`;
+      const bundleReq = new Request(bundleUrl);
+      bundleReq.timeoutInterval = 5;
+      const bundleRes = await bundleReq.loadJSON();
+      if (bundleRes && bundleRes.fields && bundleRes.fields.payload) {
+        const parsed = JSON.parse(bundleRes.fields.payload.stringValue);
+        if (parsed && parsed.todos) {
+          fm.writeString(cachePath, JSON.stringify(parsed.todos));
+          return parsed.todos;
+        }
+      }
+    } catch(e) {}
+
+    try {
       const url = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/todos\`;
       const req = new Request(url);
-      req.timeoutInterval = 6;
+      req.timeoutInterval = 5;
       const res = await req.loadJSON();
       if (res && res.documents) {
         const todos = res.documents.map(d => {
@@ -320,9 +399,7 @@ async function loadData() {
         fm.writeString(cachePath, JSON.stringify(todos));
         return todos;
       }
-    } catch(e) {
-      console.log("Error cargando de Firestore: " + e);
-    }
+    } catch(e) {}
   }
 
   if (fm.fileExists(cachePath)) {
@@ -332,7 +409,7 @@ async function loadData() {
   }
 
   return [
-    { name: "Comprar cuaderno de notas", completed: false, tag: "Personal" },
+    { name: "Comprar cuaderno", completed: false, tag: "Personal" },
     { name: "Revisar avance semanal", completed: true, tag: "Trabajo" },
     { name: "Enviar correo a mentor", completed: false, tag: "Estudio" }
   ];
@@ -482,7 +559,6 @@ const BG_COLOR = new Color("#0D0D0F");
 const CARD_BG = new Color("#16161A");
 const TEXT_PRIMARY = new Color("#FFFFFF");
 const TEXT_MUTED = new Color("#8E8E93");
-const GOLD = new Color("#FFD700");
 
 async function loadData() {
   const fm = FileManager.local();
@@ -490,9 +566,23 @@ async function loadData() {
 
   if (USER_ID) {
     try {
+      const bundleUrl = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/widgetData/main\`;
+      const bundleReq = new Request(bundleUrl);
+      bundleReq.timeoutInterval = 5;
+      const bundleRes = await bundleReq.loadJSON();
+      if (bundleRes && bundleRes.fields && bundleRes.fields.payload) {
+        const parsed = JSON.parse(bundleRes.fields.payload.stringValue);
+        if (parsed && parsed.driverProfile) {
+          fm.writeString(cachePath, JSON.stringify(parsed.driverProfile));
+          return parsed.driverProfile;
+        }
+      }
+    } catch(e) {}
+
+    try {
       const url = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/driverProfile/main\`;
       const req = new Request(url);
-      req.timeoutInterval = 6;
+      req.timeoutInterval = 5;
       const res = await req.loadJSON();
       if (res && res.fields) {
         const f = res.fields;
@@ -501,7 +591,7 @@ async function loadData() {
           number: f.number?.stringValue || "01",
           team: f.team?.stringValue || "Habitelia Racing",
           ovr: parseInt(f.ovr?.integerValue || "60"),
-          completedCounter: parseInt(f.completedHabitsCounter?.integerValue || "0"),
+          completedHabitsCounter: parseInt(f.completedHabitsCounter?.integerValue || "0"),
           incidents: parseInt(f.incidents?.integerValue || "0")
         };
         fm.writeString(cachePath, JSON.stringify(driver));
@@ -521,7 +611,7 @@ async function loadData() {
     number: "01",
     team: "Habitelia Racing",
     ovr: 75,
-    completedCounter: 4,
+    completedHabitsCounter: 4,
     incidents: 0
   };
 }
@@ -532,6 +622,7 @@ async function createWidget() {
   widget.backgroundColor = BG_COLOR;
   widget.setPadding(14, 14, 14, 14);
 
+  const counter = driver.completedHabitsCounter || 0;
   const widgetFamily = config.widgetFamily || "medium";
 
   if (widgetFamily === "small") {
@@ -566,7 +657,7 @@ async function createWidget() {
     num.textColor = TEXT_MUTED;
 
     widget.addSpacer(6);
-    const prog = widget.addText(\`Progreso +1: \${driver.completedCounter}/10\`);
+    const prog = widget.addText(\`Progreso +1: \${counter}/10\`);
     prog.font = Font.systemFont(10);
     prog.textColor = TEXT_MUTED;
 
@@ -606,13 +697,13 @@ async function createWidget() {
     num.font = Font.boldSystemFont(16);
     num.textColor = TEXT_MUTED;
 
-    const team = info.addText(driver.team);
+    const team = info.addText(driver.team || "Habitelia Racing");
     team.font = Font.systemFont(11);
     team.textColor = TEXT_MUTED;
 
     info.addSpacer(6);
 
-    const progText = info.addText(\`Progreso hacia +1 OVR: \${driver.completedCounter}/10 hábitos\`);
+    const progText = info.addText(\`Progreso hacia +1 OVR: \${counter}/10 hábitos\`);
     progText.font = Font.systemFont(11);
     progText.textColor = TEXT_PRIMARY;
 
@@ -659,19 +750,19 @@ async function createWidget() {
     const pName = info.addText(driver.name);
     pName.font = Font.boldSystemFont(18);
     pName.textColor = TEXT_PRIMARY;
-    const team = info.addText(driver.team);
+    const team = info.addText(driver.team || "Habitelia Racing");
     team.font = Font.systemFont(12);
     team.textColor = TEXT_MUTED;
 
     widget.addSpacer(16);
 
-    const stat1 = widget.addText(\`🎯 Progreso al siguiente punto: \${driver.completedCounter}/10 hábitos\`);
+    const stat1 = widget.addText(\`🎯 Progreso al siguiente punto: \${counter}/10 hábitos\`);
     stat1.font = Font.systemFont(13);
     stat1.textColor = TEXT_PRIMARY;
 
     widget.addSpacer(8);
 
-    const stat2 = widget.addText(\`⚠️ Incidentes registrados: \${driver.incidents}\`);
+    const stat2 = widget.addText(\`⚠️ Incidentes registrados: \${driver.incidents || 0}\`);
     stat2.font = Font.systemFont(13);
     stat2.textColor = TEXT_MUTED;
   }
@@ -709,9 +800,23 @@ async function loadData() {
 
   if (USER_ID) {
     try {
+      const bundleUrl = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/widgetData/main\`;
+      const bundleReq = new Request(bundleUrl);
+      bundleReq.timeoutInterval = 5;
+      const bundleRes = await bundleReq.loadJSON();
+      if (bundleRes && bundleRes.fields && bundleRes.fields.payload) {
+        const parsed = JSON.parse(bundleRes.fields.payload.stringValue);
+        if (parsed && parsed.notes) {
+          fm.writeString(cachePath, JSON.stringify(parsed.notes));
+          return parsed.notes;
+        }
+      }
+    } catch(e) {}
+
+    try {
       const url = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/notes\`;
       const req = new Request(url);
-      req.timeoutInterval = 6;
+      req.timeoutInterval = 5;
       const res = await req.loadJSON();
       if (res && res.documents) {
         const notes = res.documents.map(d => {
@@ -778,6 +883,7 @@ async function createWidget() {
   } else if (widgetFamily === "medium") {
     const header = widget.addStack();
     header.layoutHorizontally();
+    header.centerAlignContent();
     const title = header.addText("HABITELIA NOTAS");
     title.font = Font.boldSystemFont(12);
     title.textColor = TEXT_PRIMARY;

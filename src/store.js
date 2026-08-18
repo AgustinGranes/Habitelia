@@ -972,6 +972,42 @@ export const store = {
       for (const n of (currentState.notes || [])) {
         await saveDocument(`users/${uid}/notes/${n.id}`, n);
       }
+
+      // Guardar bundle ligero y directo para Widgets de Scriptable (iOS)
+      const widgetPayload = {
+        habits: (currentState.habits || []).map(h => ({
+          id: h.id,
+          name: h.name,
+          time: h.cue?.time || null,
+          timePerDay: h.cue?.timePerDay || null,
+          frequency: h.frequency || { type: 'daily' },
+          completions: h.completions || {},
+          streak: h.streak || 0,
+          isDeletedToday: h.deletedToday === true
+        })),
+        todos: (currentState.todos || []).map(t => ({
+          id: t.id,
+          name: t.name || t.text || 'Tarea',
+          completed: t.completed || false,
+          tag: t.tag || '',
+          dueDate: t.dueDate || '',
+          time: t.time || ''
+        })),
+        driverProfile: currentState.driverProfile || null,
+        notes: (currentState.notes || []).map(n => ({
+          id: n.id,
+          title: n.title || 'Sin título',
+          emoji: n.emoji || '📝',
+          updatedAt: n.updatedAt || ''
+        })),
+        user: {
+          displayName: currentState.user?.displayName || 'Viajero',
+          identity: currentState.user?.identity || ''
+        },
+        syncedAt: new Date().toISOString()
+      };
+      await saveDocument(`users/${uid}/widgetData/main`, { payload: JSON.stringify(widgetPayload) });
+
       return true;
     } catch (e) {
       console.error('Error syncing all data to cloud:', e);
