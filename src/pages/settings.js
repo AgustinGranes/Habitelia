@@ -27,6 +27,7 @@ export function render(props = {}) {
     const identity = state.user?.identity || localStorage.getItem('user_identity_v1') || 'No definida';
     const partner = state.user?.partner || { enabled: false, name: '', phone: '', contract: '' };
     const currentTheme = localStorage.getItem('app_theme_key') || 'obsidian';
+    const showTodosInHome = state.user?.settings?.showTodosInHome !== false;
     const notifStatus = getNotificationPermission();
     const notifsEnabled = areNotificationsEnabled();
     const currentUid = currentUser?.uid || '';
