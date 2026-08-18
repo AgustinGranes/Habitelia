@@ -1,6 +1,7 @@
 import { store } from '../store.js';
 import { navigate } from '../router.js';
 import { iconSVG } from '../components/icons.js';
+import { requestNotificationPermission } from '../services/notifications.js';
 
 export function render(props = {}) {
     return `
@@ -149,21 +150,32 @@ export function mount() {
     function renderStep4() {
         container.innerHTML = `
             <div class="glass-card" style="padding: 36px 28px; border-radius: 20px; text-align: center;">
-                <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--accent-primary); color: var(--accent-inverted); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto;">
-                    ${iconSVG('check', 24)}
+                <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--bg-subtle); color: var(--text-primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto;">
+                    ${iconSVG('bell', 24)}
                 </div>
-                <h1 class="editorial-title" style="font-size: 32px; margin-bottom: 8px;">Todo está listo.</h1>
-                <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 32px; line-height: 1.5;">
-                    Cada acción que tomas es un voto a favor de la persona en la que deseas convertirte.
+                <h1 class="editorial-title" style="font-size: 28px; margin-bottom: 8px;">Activá tus Recordatorios</h1>
+                <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 28px; line-height: 1.5;">
+                    Para no olvidar tus hábitos diarios y sostener tu racha, permití que Habitelia te avise en el horario exacto.
                 </p>
                 
-                <button class="btn-primary" id="finish-btn" style="min-height: 50px;">
-                    Comenzar mi sistema ${iconSVG('arrowRight', 16)}
-                </button>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button class="btn-primary" id="btn-onboarding-notif" style="min-height: 48px; font-size: 14px;">
+                        ${iconSVG('bell', 16)} Activar Notificaciones
+                    </button>
+                    <button class="btn-secondary" id="finish-btn" style="min-height: 44px; font-size: 13.5px; color: var(--text-secondary);">
+                        Comenzar sin notificaciones
+                    </button>
+                </div>
             </div>
         `;
 
-        document.getElementById('finish-btn').addEventListener('click', async () => {
+        document.getElementById('btn-onboarding-notif')?.addEventListener('click', async () => {
+            await requestNotificationPermission();
+            await store.saveUserProfile({ onboardingCompleted: true });
+            navigate('/home');
+        });
+
+        document.getElementById('finish-btn')?.addEventListener('click', async () => {
             await store.saveUserProfile({ onboardingCompleted: true });
             navigate('/home');
         });

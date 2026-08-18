@@ -266,12 +266,15 @@ export function mount() {
         const res = await requestNotificationPermission();
         if (res === 'granted') {
             showToast('¡Notificaciones activadas con éxito!', 'success');
-            navigate('/settings');
         } else if (res === 'denied') {
             showToast('Permiso de notificaciones denegado en el navegador.', 'warning');
-            navigate('/settings');
         } else {
             showToast('Tu navegador no soporta notificaciones nativas.', 'info');
+        }
+        const page = document.querySelector('.settings-page');
+        if (page) {
+            page.outerHTML = render();
+            mount();
         }
     });
 

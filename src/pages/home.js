@@ -8,6 +8,7 @@ import { showDeleteHabitModal } from '../components/deleteHabitModal.js';
 import { showSkipHabitModal } from '../components/skipHabitModal.js';
 import { showUnskipHabitModal } from '../components/unskipHabitModal.js';
 import { showInstallPromptIfNeeded } from '../components/installPrompt.js';
+import { isNotificationSupported, getNotificationPermission, requestNotificationPermission } from '../services/notifications.js';
 
 let isReorderingHome = false;
 
@@ -901,10 +902,60 @@ export function mount() {
             });
         });
     });
+
+    setTimeout(() => {
+        showNotificationPromptIfNeeded();
+    }, 600);
     
     return () => {
         unsubs.forEach(u => u());
     };
+}
+
+function showNotificationPromptIfNeeded() {
+    if (typeof window === 'undefined') return;
+    if (!isNotificationSupported()) return;
+    if (getNotificationPermission() !== 'default') return;
+    if (sessionStorage.getItem('notif_prompt_dismissed_session')) return;
+
+    document.getElementById('notif-prompt-modal')?.remove();
+
+    const modalHtml = `
+        <div id="notif-prompt-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.82); backdrop-filter: blur(6px); z-index: 1500; display: flex; align-items: center; justify-content: center; padding: 20px;">
+            <div class="glass-card" style="width: 100%; max-width: 440px; padding: 30px 24px; border-radius: 22px; border: 1px solid var(--border-subtle); background: var(--bg-surface); text-align: center; box-sizing: border-box;">
+                <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--bg-subtle); color: var(--text-primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+                    ${iconSVG('bell', 24)}
+                </div>
+                <h3 class="editorial-title" style="font-size: 22px; margin: 0 0 8px 0;">¿Deseas activar recordatorios?</h3>
+                <p style="color: var(--text-secondary); font-size: 13.5px; margin: 0 0 24px 0; line-height: 1.5;">
+                    Permití que Habitelia te avise en el horario exacto de tus hábitos y tareas diarias para mantener viva tu racha.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button id="btn-prompt-enable-notif" class="btn-primary" style="min-height: 48px; font-size: 14px;">
+                        ${iconSVG('bell', 16)} Sí, activar notificaciones
+                    </button>
+                    <button id="btn-prompt-dismiss-notif" class="btn-secondary" style="min-height: 42px; font-size: 13px; color: var(--text-secondary);">
+                        Ahora no
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    document.getElementById('btn-prompt-enable-notif')?.addEventListener('click', async () => {
+        document.getElementById('notif-prompt-modal')?.remove();
+        const res = await requestNotificationPermission();
+        if (res === 'granted') {
+            showToast('¡Notificaciones activadas!', 'success');
+        }
+    });
+
+    document.getElementById('btn-prompt-dismiss-notif')?.addEventListener('click', () => {
+        sessionStorage.setItem('notif_prompt_dismissed_session', 'true');
+        document.getElementById('notif-prompt-modal')?.remove();
+    });
 }
 
 export function unmount() {
