@@ -4,6 +4,13 @@ import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { iconSVG } from '../components/icons.js';
 import { THEMES, applyTheme } from '../utils/theme.js';
+import { 
+    getNotificationPermission, 
+    requestNotificationPermission, 
+    areNotificationsEnabled, 
+    setNotificationsEnabled, 
+    sendTestNotification 
+} from '../services/notifications.js';
 
 export function render(props = {}) {
     const state = store.getState();
@@ -15,6 +22,8 @@ export function render(props = {}) {
     const partner = state.user?.partner || { enabled: false, name: '', phone: '', contract: '' };
     const currentTheme = localStorage.getItem('app_theme_key') || 'obsidian';
     const showTodosInHome = state.user?.settings?.showTodosInHome !== false;
+    const notifStatus = getNotificationPermission();
+    const notifsEnabled = areNotificationsEnabled();
 
     return `
         <div class="page settings-page" style="padding: 24px 20px 100px 20px; max-width: 620px; margin: 0 auto; width: 100%; box-sizing: border-box;">
@@ -60,6 +69,48 @@ export function render(props = {}) {
                         <input type="checkbox" id="todos-in-home-toggle" ${showTodosInHome ? 'checked' : ''} style="width: 20px; height: 20px; accent-color: var(--text-primary);">
                     </label>
                 </div>
+            </div>
+
+            <!-- Notificaciones & Recordatorios PWA -->
+            <div class="glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
+                    <h3 class="editorial-title" style="font-size: 20px; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        ${iconSVG('bell', 20)} Notificaciones
+                    </h3>
+                    <span id="notif-status-badge" style="font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; ${notifStatus === 'granted' ? 'background: rgba(46,125,50,0.15); color: #4CAF50; border: 1px solid rgba(46,125,50,0.3);' : (notifStatus === 'denied' ? 'background: rgba(229,62,62,0.15); color: #E53E3E; border: 1px solid rgba(229,62,62,0.3);' : 'background: var(--bg-subtle); color: var(--text-secondary); border: 1px solid var(--border-subtle);')}">
+                        ${notifStatus === 'granted' ? '✓ Activas' : (notifStatus === 'denied' ? 'Bloqueadas' : 'Pendientes')}
+                    </span>
+                </div>
+
+                <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin: 0 0 16px 0;">
+                    Recibí avisos en tu dispositivo en el horario exacto de tus hábitos y tareas programadas para no romper tu racha.
+                </p>
+
+                ${notifStatus !== 'granted' ? `
+                    <button id="btn-request-notif-perm" class="btn-primary" style="width: 100%; min-height: 44px; margin-bottom: 6px; font-size: 13.5px;">
+                        ${iconSVG('bell', 16)} Activar Notificaciones en este Dispositivo
+                    </button>
+                    ${notifStatus === 'denied' ? `
+                        <div style="font-size: 12px; color: #E53E3E; margin-top: 6px;">
+                            Las notificaciones están bloqueadas en tu navegador. Podés habilitarlas desde la configuración de permisos del sitio.
+                        </div>
+                    ` : ''}
+                ` : `
+                    <div style="display: flex; flex-direction: column; gap: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary);">Avisos de hábitos y tareas</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">Enviar alertas cuando sea momento de cumplir un hábito</div>
+                            </div>
+                            <label style="display: flex; align-items: center; cursor: pointer; flex-shrink: 0; margin-left: 14px;">
+                                <input type="checkbox" id="toggle-notif-reminders" ${notifsEnabled ? 'checked' : ''} style="width: 20px; height: 20px; accent-color: var(--text-primary);">
+                            </label>
+                        </div>
+                        <button id="btn-test-notif" class="btn-secondary" style="width: 100%; min-height: 40px; font-size: 13px; margin-top: 4px;">
+                            ${iconSVG('bell', 15)} Enviar Notificación de Prueba
+                        </button>
+                    </div>
+                `}
             </div>
 
             <div class="glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 18px;">
@@ -208,6 +259,35 @@ export function mount() {
             settings: { ...currentSettings, showTodosInHome: checked }
         });
         showToast(checked ? 'Tareas activadas en Inicio y Rutina' : 'Tareas ocultas en Inicio y Rutina', 'info');
+    });
+
+    // Notificaciones PWA
+    document.getElementById('btn-request-notif-perm')?.addEventListener('click', async () => {
+        const res = await requestNotificationPermission();
+        if (res === 'granted') {
+            showToast('¡Notificaciones activadas con éxito!', 'success');
+            navigate('/settings');
+        } else if (res === 'denied') {
+            showToast('Permiso de notificaciones denegado en el navegador.', 'warning');
+            navigate('/settings');
+        } else {
+            showToast('Tu navegador no soporta notificaciones nativas.', 'info');
+        }
+    });
+
+    document.getElementById('toggle-notif-reminders')?.addEventListener('change', (e) => {
+        const enabled = e.target.checked;
+        setNotificationsEnabled(enabled);
+        showToast(enabled ? 'Recordatorios automáticos activados' : 'Recordatorios desactivados', 'info');
+    });
+
+    document.getElementById('btn-test-notif')?.addEventListener('click', async () => {
+        const sent = await sendTestNotification();
+        if (sent) {
+            showToast('Notificación de prueba enviada', 'success');
+        } else {
+            showToast('No se pudo enviar la notificación. Verifica los permisos.', 'warning');
+        }
     });
 
     const display = document.getElementById('identity-display');
