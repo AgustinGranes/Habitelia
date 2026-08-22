@@ -15,12 +15,8 @@ import {
     syncScheduleToWorker
 } from '../services/notifications.js';
 import {
-    generateHabitsWidgetScript,
-    generateTodosWidgetScript,
-    generateDriverWidgetScript,
-    generateNotesWidgetScript
+    generateHabitsWidgetScript
 } from '../utils/scriptableWidgets.js';
-import { computeAccumulatedStats, calculateMarketValue, getTeamForOVR, getCategoryForTeam, TEAMS_DATA } from '../driverEngine.js';
 
 export function render(props = {}) {
     const state = store.getState();
@@ -133,15 +129,15 @@ export function render(props = {}) {
             <div class="glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 18px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
                     <h3 class="editorial-title" style="font-size: 20px; margin: 0; display: flex; align-items: center; gap: 8px;">
-                        ${iconSVG('target', 20)} Widgets de iOS (Scriptable)
+                        ${iconSVG('target', 20)} Widget de iOS (Scriptable)
                     </h3>
                     <span style="font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.08); color: var(--text-primary); padding: 3px 8px; border-radius: 8px; border: 1px solid var(--border-subtle);">
-                        4 Widgets
+                        ⚡ Hábitos de Hoy
                     </span>
                 </div>
 
                 <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin: 0 0 16px 0;">
-                    Agregá widgets de Habitelia en la pantalla de inicio de tu iPhone o iPad en tamaño <strong>Pequeño, Mediano o Grande</strong> usando la app gratuita <strong>Scriptable</strong>.
+                    Agregá tu widget de <strong>Hábitos de Hoy</strong> en la pantalla de inicio de tu iPhone o iPad en tamaño <strong>Pequeño, Mediano o Grande</strong> usando la app gratuita <strong>Scriptable</strong>. Muestra tus hábitos con horario, hábitos del día y lista de to-dos en tiempo real.
                 </p>
 
                 <!-- ID de Sincronización / Parameter Box -->
@@ -153,52 +149,32 @@ export function render(props = {}) {
                         </div>
                     </div>
                     ${currentUid ? `
-                        <button id="btn-copy-user-id" class="btn-secondary" style="width: auto; padding: 6px 12px; font-size: 12px; min-height: 34px; flex-shrink: 0;">
-                            ${iconSVG('chain', 13)} Copiar ID
+                        <button id="btn-copy-user-id" class="btn-secondary" style="width: auto; padding: 6px 12px; font-size: 12px; min-height: 34px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                            ${iconSVG('copy', 13)} Copiar ID
                         </button>
                     ` : ''}
                 </div>
 
                 <!-- Tutorial Pasos -->
                 <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; font-size: 12.5px; line-height: 1.6; color: var(--text-primary);">
-                    <div style="font-weight: 700; margin-bottom: 8px; color: var(--text-primary); font-size: 13px;">📋 Cómo instalarlos en 4 pasos:</div>
+                    <div style="font-weight: 700; margin-bottom: 8px; color: var(--text-primary); font-size: 13px;">📋 Cómo instalarlo en 4 pasos:</div>
                     <div style="margin-bottom: 4px;"><strong>1.</strong> Descargá <strong>Scriptable</strong> gratis desde el App Store en tu iPhone.</div>
-                    <div style="margin-bottom: 4px;"><strong>2.</strong> Elegí uno de los 4 widgets de abajo y tocá <strong>"Copiar Código"</strong>.</div>
-                    <div style="margin-bottom: 4px;"><strong>3.</strong> Abrí Scriptable, tocá <strong>+</strong>, pegá el código y guardalo con el nombre del widget.</div>
-                    <div><strong>4.</strong> En tu pantalla de inicio de iOS, agregá el widget de <strong>Scriptable</strong>. En el campo <strong>Parameter</strong> podés pegar tu ID de arriba.</div>
-                </div>
-
-                <!-- Widget Tabs / Selection -->
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px;">
-                    <button class="btn-widget-choice active" data-widget="habits" style="padding: 12px; border-radius: 12px; border: 2px solid var(--text-primary); background: var(--bg-subtle); color: var(--text-primary); text-align: left; cursor: pointer; transition: all 0.15s ease;">
-                        <div style="font-size: 13.5px; font-weight: 700; margin-bottom: 2px;">⚡ Hábitos de Hoy</div>
-                        <div style="font-size: 11px; color: var(--text-secondary);">Racha, horas y progreso</div>
-                    </button>
-                    <button class="btn-widget-choice" data-widget="todos" style="padding: 12px; border-radius: 12px; border: 1px solid var(--border-subtle); background: var(--bg-primary); color: var(--text-secondary); text-align: left; cursor: pointer; transition: all 0.15s ease;">
-                        <div style="font-size: 13.5px; font-weight: 700; margin-bottom: 2px;">📝 Lista To-Do</div>
-                        <div style="font-size: 11px; color: var(--text-secondary);">Tareas pendientes y tags</div>
-                    </button>
-                    <button class="btn-widget-choice" data-widget="driver" style="padding: 12px; border-radius: 12px; border: 1px solid var(--border-subtle); background: var(--bg-primary); color: var(--text-secondary); text-align: left; cursor: pointer; transition: all 0.15s ease;">
-                        <div style="font-size: 13.5px; font-weight: 700; margin-bottom: 2px;">🏎️ Tu Piloto</div>
-                        <div style="font-size: 11px; color: var(--text-secondary);">Nivel OVR y progreso</div>
-                    </button>
-                    <button class="btn-widget-choice" data-widget="notes" style="padding: 12px; border-radius: 12px; border: 1px solid var(--border-subtle); background: var(--bg-primary); color: var(--text-secondary); text-align: left; cursor: pointer; transition: all 0.15s ease;">
-                        <div style="font-size: 13.5px; font-weight: 700; margin-bottom: 2px;">📚 Notas</div>
-                        <div style="font-size: 11px; color: var(--text-secondary);">Notas recientes y emojis</div>
-                    </button>
+                    <div style="margin-bottom: 4px;"><strong>2.</strong> Tocá el botón <strong>"Copiar Código del Widget"</strong> abajo.</div>
+                    <div style="margin-bottom: 4px;"><strong>3.</strong> Abrí Scriptable, tocá <strong>+</strong>, pegá el código y guardalo como <strong>Habitelia</strong>.</div>
+                    <div><strong>4.</strong> En tu pantalla de inicio de iOS, agregá el widget de <strong>Scriptable</strong>. En el campo <strong>Parameter</strong> pegá tu ID de arriba.</div>
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <div style="display: flex; gap: 10px;">
-                        <button id="btn-copy-widget-script" class="btn-primary" style="flex: 2; min-height: 44px; font-size: 13.5px;">
-                            ${iconSVG('chain', 15)} Copiar Código del Widget
+                    <div style="display: flex; gap: 10px; width: 100%; box-sizing: border-box;">
+                        <button id="btn-copy-widget-script" class="btn-primary" style="flex: 2; min-height: 46px; font-size: 13.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; margin: 0; box-sizing: border-box;">
+                            ${iconSVG('copy', 16)} <span>Copiar Código del Widget</span>
                         </button>
-                        <button id="btn-view-widget-code" class="btn-secondary" style="flex: 1; min-height: 44px; font-size: 13px;">
+                        <button id="btn-view-widget-code" class="btn-secondary" style="flex: 1; min-height: 46px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; margin: 0; box-sizing: border-box;">
                             Ver Código
                         </button>
                     </div>
-                    <button id="btn-sync-widgets-data" class="btn-ghost" style="width: 100%; min-height: 38px; font-size: 12.5px; border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        ${iconSVG('cloud', 14)} Sincronizar Datos para Widgets Ahora
+                    <button id="btn-sync-widgets-data" class="btn-ghost" style="width: 100%; min-height: 40px; font-size: 12.5px; border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 2px;">
+                        ${iconSVG('check', 14)} Sincronizar Datos para Widgets Ahora
                     </button>
                 </div>
             </div>
@@ -418,72 +394,16 @@ export function mount() {
         }
     });
 
-    // Scriptable Widgets Selection & Copy
-    let selectedWidgetType = 'habits';
-    const widgetButtons = document.querySelectorAll('.btn-widget-choice');
-    
-    widgetButtons.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            widgetButtons.forEach(b => {
-                b.classList.remove('active');
-                b.style.border = '1px solid var(--border-subtle)';
-                b.style.background = 'var(--bg-primary)';
-                b.style.color = 'var(--text-secondary)';
-            });
-            const target = e.currentTarget;
-            target.classList.add('active');
-            target.style.border = '2px solid var(--text-primary)';
-            target.style.background = 'var(--bg-subtle)';
-            target.style.color = 'var(--text-primary)';
-            selectedWidgetType = target.dataset.widget || 'habits';
-        });
-    });
-
-    const getWidgetScriptCode = (type) => {
+    const getWidgetScriptCode = () => {
         const state = store.getState();
         const uid = auth.currentUser?.uid || '';
         const uname = auth.currentUser?.displayName || state.user?.displayName || 'Viajero';
-        
-        switch (type) {
-            case 'todos': return generateTodosWidgetScript(uid, uname, state.todos || []);
-            case 'driver': {
-                const rawDriver = state.driverProfile || {};
-                const dOvr = rawDriver.ovr || 50;
-                const dSeasons = rawDriver.seasons || 1;
-                const dCounter = rawDriver.completedHabitsCounter || 0;
-                const dStats = computeAccumulatedStats(dOvr, dSeasons, dCounter);
-                const dTeamKey = rawDriver.team || getTeamForOVR(dOvr);
-                const dTeamInfo = TEAMS_DATA[dTeamKey] || { name: dTeamKey || 'Apex', category: 'F4' };
-                const dMarketVal = rawDriver.marketValue || calculateMarketValue(dOvr, rawDriver.titlesDriver || 0, rawDriver.titlesConstructor || 0);
-
-                const fullDriver = {
-                    active: rawDriver.active !== false,
-                    name: rawDriver.name || uname,
-                    lastName: (rawDriver.lastName || rawDriver.name || uname || 'GRANES').toUpperCase(),
-                    initials: (rawDriver.initials || 'AGR').toUpperCase(),
-                    number: rawDriver.number || '86',
-                    countryFlag: rawDriver.countryFlag || '🇦🇷',
-                    ovr: dOvr,
-                    seasons: dSeasons,
-                    completedHabitsCounter: dCounter,
-                    wins: rawDriver.wins !== undefined && rawDriver.wins !== null ? rawDriver.wins : dStats.wins,
-                    podiums: rawDriver.podiums !== undefined && rawDriver.podiums !== null ? rawDriver.podiums : dStats.podiums,
-                    points: rawDriver.points !== undefined && rawDriver.points !== null ? rawDriver.points : dStats.points,
-                    marketValue: dMarketVal,
-                    team: dTeamInfo.name,
-                    teamKey: dTeamKey,
-                    category: dTeamInfo.category || 'F4'
-                };
-                return generateDriverWidgetScript(uid, uname, fullDriver);
-            }
-            case 'notes': return generateNotesWidgetScript(uid, uname, state.notes || []);
-            default: return generateHabitsWidgetScript(uid, uname, state.habits || [], state.todos || []);
-        }
+        return generateHabitsWidgetScript(uid, uname, state.habits || [], state.todos || []);
     };
 
     document.getElementById('btn-copy-widget-script')?.addEventListener('click', async () => {
         store.syncAllDataToCloud().catch(() => {});
-        const code = getWidgetScriptCode(selectedWidgetType);
+        const code = getWidgetScriptCode();
         try {
             await navigator.clipboard.writeText(code);
             showToast(`¡Código del widget copiado con tus datos reales!`, 'success');
@@ -493,14 +413,14 @@ export function mount() {
     });
 
     document.getElementById('btn-view-widget-code')?.addEventListener('click', () => {
-        const code = getWidgetScriptCode(selectedWidgetType);
+        const code = getWidgetScriptCode();
         document.getElementById('widget-code-modal')?.remove();
 
         const modalHtml = `
             <div id="widget-code-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1600; display: flex; align-items: center; justify-content: center; padding: 20px;">
                 <div class="glass-card" style="width: 100%; max-width: 540px; padding: 24px; border-radius: 20px; border: 1px solid var(--border-subtle); background: var(--bg-surface); max-height: 85vh; display: flex; flex-direction: column; box-sizing: border-box;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
-                        <h3 class="editorial-title" style="font-size: 18px; margin: 0;">Código del Widget (${selectedWidgetType})</h3>
+                        <h3 class="editorial-title" style="font-size: 18px; margin: 0;">Código del Widget (Hábitos de Hoy)</h3>
                         <button id="close-widget-code-modal" style="background: var(--bg-subtle); border: none; color: var(--text-primary); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
                             ${iconSVG('x', 15)}
                         </button>
@@ -509,8 +429,8 @@ export function mount() {
                         Copia este código y pégalo dentro de un nuevo script en la app <strong>Scriptable</strong>.
                     </p>
                     <textarea readonly style="flex: 1; min-height: 220px; font-family: monospace; font-size: 11.5px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px; resize: none; margin-bottom: 14px; box-sizing: border-box;">${code}</textarea>
-                    <button id="btn-copy-modal-code" class="btn-primary" style="width: 100%; min-height: 44px; font-size: 13.5px;">
-                        ${iconSVG('chain', 15)} Copiar Código
+                    <button id="btn-copy-modal-code" class="btn-primary" style="width: 100%; min-height: 46px; font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box;">
+                        ${iconSVG('copy', 16)} <span>Copiar Código</span>
                     </button>
                 </div>
             </div>
