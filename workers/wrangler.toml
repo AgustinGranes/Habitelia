@@ -1,0 +1,15 @@
+name = "habitelia-push"
+main = "src/index.js"
+compatibility_date = "2026-08-21"
+
+[vars]
+VAPID_PUBLIC_KEY = "BBEJ_ddNYEHs2Ca22rm5vS8fspAw8hMR-wH0Wai_tcYCp_hv8Ev3jHtiOqDxuttv4oJMgcgx2DCIwZTxM0t0qRk"
+VAPID_PRIVATE_KEY = "KWc_YHUB2lFY4gKOg1rp71qiyOel9VfwgId3HcCkDRQ"
+
+# KV namespace ID placeholder (replace with actual ID after running wrangler kv:namespace create PUSH_STORE)
+[[kv_namespaces]]
+binding = "PUSH_STORE"
+id = "67abefe68e9c444f8a88fa2b3624b4f5"
+
+[triggers]
+crons = ["* * * * *"]

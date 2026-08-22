@@ -185,3 +185,169 @@ export const startNotificationScheduler = () => {
   checkAndTriggerScheduledReminders();
   schedulerInterval = setInterval(checkAndTriggerScheduledReminders, 30000); // check every 30s
 };
+
+// === WEB PUSH (Cloudflare Worker) ===
+const PUSH_WORKER_URL = 'https://habitelia-push.agustingranes.workers.dev';
+const VAPID_PUBLIC_KEY = 'BBEJ_ddNYEHs2Ca22rm5vS8fspAw8hMR-wH0Wai_tcYCp_hv8Ev3jHtiOqDxuttv4oJMgcgx2DCIwZTxM0t0qRk';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+export const subscribeToPush = async () => {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      console.warn('Push notifications not supported');
+      return false;
+    }
+
+    const registration = await navigator.serviceWorker.ready;
+    
+    // Check for existing subscription
+    let subscription = await registration.pushManager.getSubscription();
+    
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+
+    // Get user ID from Firebase auth
+    const { auth } = await import('../firebase.js');
+    const userId = auth.currentUser?.uid;
+    if (!userId) return false;
+
+    // Build today's notification schedule
+    const schedule = buildNotificationSchedule();
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    // Send subscription + schedule to Cloudflare Worker
+    await fetch(`${PUSH_WORKER_URL}/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId,
+        subscription: subscription.toJSON(),
+        schedule,
+        timezone
+      })
+    });
+
+    console.log('Push subscription registered successfully');
+    return true;
+  } catch (err) {
+    console.error('Error subscribing to push:', err);
+    return false;
+  }
+};
+
+export const syncScheduleToWorker = async () => {
+  try {
+    const { auth } = await import('../firebase.js');
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+
+    if (!areNotificationsEnabled()) return;
+
+    const schedule = buildNotificationSchedule();
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    await fetch(`${PUSH_WORKER_URL}/sync-schedule`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, schedule, timezone })
+    });
+  } catch (err) {
+    console.warn('Error syncing schedule to worker:', err);
+  }
+};
+
+export const unsubscribeFromPush = async () => {
+  try {
+    const { auth } = await import('../firebase.js');
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+
+    // Unsubscribe from push manager
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    if (subscription) {
+      await subscription.unsubscribe();
+    }
+
+    // Remove from Cloudflare Worker
+    await fetch(`${PUSH_WORKER_URL}/unsubscribe`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    });
+  } catch (err) {
+    console.warn('Error unsubscribing from push:', err);
+  }
+};
+
+export const buildNotificationSchedule = () => {
+  const state = store.getState();
+  const habits = state.habits || [];
+  const todos = state.todos || [];
+  const todayStr = store.getTodayString();
+  const schedule = [];
+
+  const now = new Date();
+  const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const currentDayKey = dayKeys[now.getDay()];
+
+  // Add habits scheduled for today
+  habits.forEach(habit => {
+    // Check frequency
+    if (habit.frequency && habit.frequency.type === 'weekly' && Array.isArray(habit.frequency.days)) {
+      if (!habit.frequency.days.includes(currentDayKey)) return;
+    }
+
+    // Check if already completed/skipped/deleted
+    const completion = habit.completions?.[todayStr];
+    const isCompleted = completion === 'completed' || completion === 'completed_2min' || completion === 'skipped' || completion === 'deleted_today';
+
+    // Get time for today
+    const habitTime = (habit.cue?.timePerDay && habit.cue.timePerDay[currentDayKey]) || (habit.cue?.time || null);
+    const time = habitTime || '12:00'; // Default to noon if no time set
+
+    const twoMin = habit.noTwoMin ? '' : (habit.response?.twoMinVersion || '');
+
+    schedule.push({
+      id: habit.id,
+      name: habit.name,
+      time,
+      type: 'habit',
+      twoMinVersion: twoMin,
+      completed: isCompleted
+    });
+  });
+
+  // Add todos for today
+  todos.forEach(todo => {
+    if (todo.completed) return;
+    if (todo.dueDate && todo.dueDate !== todayStr) return;
+    if (!todo.dueDate && !todo.showInRoutine) return;
+
+    const time = todo.time || '12:00';
+    schedule.push({
+      id: todo.id,
+      name: todo.name,
+      time,
+      type: 'todo',
+      tag: todo.tag || '',
+      completed: false
+    });
+  });
+
+  return schedule;
+};

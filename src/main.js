@@ -3,7 +3,7 @@ import { onAuthChange, auth } from './firebase.js';
 import { store } from './store.js';
 import { navigate, getCurrentRoute } from './router.js';
 import { initTheme } from './utils/theme.js';
-import { startNotificationScheduler } from './services/notifications.js';
+import { startNotificationScheduler, subscribeToPush, syncScheduleToWorker } from './services/notifications.js';
 
 // Import all page renderers
 import { render as renderLogin, mount as mountLogin } from './pages/login.js';
@@ -230,15 +230,11 @@ const initialize = () => {
 
     startRouter();
     startNotificationScheduler();
+    if (user) {
+      subscribeToPush().catch(err => console.warn('Push subscription error:', err));
+    }
   });
 };
 
 initialize();
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(error => {
-      console.log('ServiceWorker registration failed: ', error);
-    });
-  });
-}

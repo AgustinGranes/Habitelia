@@ -9,7 +9,10 @@ import {
     requestNotificationPermission, 
     areNotificationsEnabled, 
     setNotificationsEnabled, 
-    sendTestNotification 
+    sendTestNotification,
+    subscribeToPush,
+    unsubscribeFromPush,
+    syncScheduleToWorker
 } from '../services/notifications.js';
 import {
     generateHabitsWidgetScript,
@@ -346,6 +349,7 @@ export function mount() {
     document.getElementById('btn-request-notif-perm')?.addEventListener('click', async () => {
         const res = await requestNotificationPermission();
         if (res === 'granted') {
+            subscribeToPush().catch(() => {});
             showToast('¡Notificaciones activadas con éxito!', 'success');
         } else if (res === 'denied') {
             showToast('Permiso de notificaciones denegado en el navegador.', 'warning');
@@ -359,9 +363,15 @@ export function mount() {
         }
     });
 
-    document.getElementById('toggle-notif-reminders')?.addEventListener('change', (e) => {
+    document.getElementById('toggle-notif-reminders')?.addEventListener('change', async (e) => {
         const enabled = e.target.checked;
         setNotificationsEnabled(enabled);
+        if (enabled) {
+          await subscribeToPush();
+          await syncScheduleToWorker();
+        } else {
+          await unsubscribeFromPush();
+        }
         showToast(enabled ? 'Recordatorios automáticos activados' : 'Recordatorios desactivados', 'info');
     });
 

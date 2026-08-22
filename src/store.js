@@ -335,6 +335,9 @@ export const store = {
         console.error('Error saving habit to Firestore:', err);
       });
     }
+
+    // Sync notification schedule after habit changes
+    import('./services/notifications.js').then(m => m.syncScheduleToWorker()).catch(() => {});
   },
   
   deleteHabit: async (habitId) => {
@@ -362,6 +365,9 @@ export const store = {
         saveDocument(`users/${uid}/routines/${r.id}`, r).catch(e => console.error(e));
       });
     }
+
+    // Sync notification schedule after habit changes
+    import('./services/notifications.js').then(m => m.syncScheduleToWorker()).catch(() => {});
   },
   
   saveRoutine: async (routine) => {
@@ -737,6 +743,9 @@ export const store = {
       }
     }
 
+    // Sync notification schedule after habit changes
+    import('./services/notifications.js').then(m => m.syncScheduleToWorker()).catch(() => {});
+
     return { streakBroken: false, newStreak: streak };
   },
   
@@ -791,6 +800,9 @@ export const store = {
       await store.saveDriverProfile(newDriverProfile);
       showTelemetryRadioPopup(-1, ovr, team);
     }
+
+    // Sync notification schedule after habit changes
+    import('./services/notifications.js').then(m => m.syncScheduleToWorker()).catch(() => {});
   },
 
   uncompleteEvent: async (habitId, date) => {
