@@ -765,19 +765,19 @@ async function createWidget() {
   const darkText = isDarkOvrText(ovr);
   const ovrTextColor = darkText ? new Color("#0F172A") : new Color("#FFFFFF");
 
-  const teamKey = driver.team || getTeamForOVR(ovr);
-  const teamInfo = TEAMS_DATA[teamKey] || { name: teamKey || 'Apex', category: 'F4' };
-  const teamName = teamInfo.name;
-  const category = teamInfo.category;
+  const teamKey = driver.teamKey || driver.team || getTeamForOVR(ovr);
+  const teamInfo = TEAMS_DATA[teamKey] || { name: driver.team || teamKey || 'Apex', category: driver.category || 'F4' };
+  const teamName = driver.team || teamInfo.name;
+  const category = driver.category || teamInfo.category;
 
   const marketValNum = driver.marketValue || Math.max(2.5, ((ovr - 40) * 0.45)).toFixed(1);
-  const marketValue = \`€\${marketValNum}M\`;
+  const marketValue = String(marketValNum).startsWith('€') ? marketValNum : (String(marketValNum).endsWith('M') ? `€${marketValNum}` : `€${marketValNum}M`);
 
   const seasons = driver.seasons || 1;
   const counter = driver.completedHabitsCounter || 0;
-  const wins = driver.wins !== undefined ? driver.wins : Math.max(0, Math.floor(counter * 0.15 + (ovr >= 80 ? (ovr - 75) * 0.8 : 0)));
-  const podiums = driver.podiums !== undefined ? driver.podiums : Math.max(wins, Math.floor(counter * 0.35 + (ovr >= 70 ? (ovr - 65) * 1.2 : 0)));
-  const points = driver.points !== undefined ? driver.points : Math.max(0, Math.floor(counter * 6 + wins * 25 + podiums * 15 + (seasons - 1) * 150));
+  const wins = (driver.wins !== undefined && driver.wins !== null) ? driver.wins : Math.max(0, Math.floor(counter * 0.15 + (ovr >= 80 ? (ovr - 75) * 0.8 : 0)));
+  const podiums = (driver.podiums !== undefined && driver.podiums !== null) ? driver.podiums : Math.max(wins, Math.floor(counter * 0.35 + (ovr >= 70 ? (ovr - 65) * 1.2 : 0)));
+  const points = (driver.points !== undefined && driver.points !== null) ? driver.points : Math.max(0, Math.floor(counter * 6 + wins * 25 + podiums * 15 + (seasons - 1) * 150));
 
   const flag = driver.countryFlag || '🇦🇷';
   const driverLastName = (driver.lastName || driver.name || "${userName}" || 'PILOTO').toUpperCase();
@@ -826,17 +826,23 @@ async function createWidget() {
 
     ovrBox.addSpacer();
 
-    const ovrLbl = ovrBox.addText("OVR");
+    const lblRow = ovrBox.addStack();
+    lblRow.layoutHorizontally();
+    lblRow.addSpacer();
+    const ovrLbl = lblRow.addText("OVR");
     ovrLbl.font = Font.boldSystemFont(8.5);
     ovrLbl.textColor = ovrTextColor;
-    ovrLbl.centerAlignText();
+    lblRow.addSpacer();
 
     ovrBox.addSpacer(1);
 
-    const ovrVal = ovrBox.addText(\`\${ovr}\`);
+    const valRow = ovrBox.addStack();
+    valRow.layoutHorizontally();
+    valRow.addSpacer();
+    const ovrVal = valRow.addText(\`\${ovr}\`);
     ovrVal.font = Font.boldSystemFont(21);
     ovrVal.textColor = ovrTextColor;
-    ovrVal.centerAlignText();
+    valRow.addSpacer();
 
     ovrBox.addSpacer();
 
@@ -892,7 +898,7 @@ async function createWidget() {
     mainRow.layoutHorizontally();
     mainRow.centerAlignContent();
 
-    // Left Column: OVR Box (100% Centered, without box below)
+    // Left Column: OVR Box (100% Centered Horizontal & Vertical)
     const leftCol = mainRow.addStack();
     leftCol.layoutVertically();
     leftCol.centerAlignContent();
@@ -907,17 +913,23 @@ async function createWidget() {
 
     ovrBox.addSpacer();
 
-    const ovrLbl = ovrBox.addText("OVR");
+    const lblRow = ovrBox.addStack();
+    lblRow.layoutHorizontally();
+    lblRow.addSpacer();
+    const ovrLbl = lblRow.addText("OVR");
     ovrLbl.font = Font.boldSystemFont(10);
     ovrLbl.textColor = ovrTextColor;
-    ovrLbl.centerAlignText();
+    lblRow.addSpacer();
 
     ovrBox.addSpacer(2);
 
-    const ovrVal = ovrBox.addText(\`\${ovr}\`);
+    const valRow = ovrBox.addStack();
+    valRow.layoutHorizontally();
+    valRow.addSpacer();
+    const ovrVal = valRow.addText(\`\${ovr}\`);
     ovrVal.font = Font.boldSystemFont(28);
     ovrVal.textColor = ovrTextColor;
-    ovrVal.centerAlignText();
+    valRow.addSpacer();
 
     ovrBox.addSpacer();
 
@@ -984,17 +996,23 @@ async function createWidget() {
 
       cell.addSpacer();
 
-      const lbl = cell.addText(label);
+      const lblRow = cell.addStack();
+      lblRow.layoutHorizontally();
+      lblRow.addSpacer();
+      const lbl = lblRow.addText(label);
       lbl.font = Font.boldSystemFont(8);
       lbl.textColor = TEXT_MUTED;
-      lbl.centerAlignText();
+      lblRow.addSpacer();
 
       cell.addSpacer(1);
 
-      const num = cell.addText(\`\${val}\`);
+      const valRow = cell.addStack();
+      valRow.layoutHorizontally();
+      valRow.addSpacer();
+      const num = valRow.addText(\`\${val}\`);
       num.font = Font.boldSystemFont(12);
       num.textColor = TEXT_PRIMARY;
-      num.centerAlignText();
+      valRow.addSpacer();
 
       cell.addSpacer();
 
@@ -1049,17 +1067,23 @@ async function createWidget() {
 
     ovrBox.addSpacer();
 
-    const ovrLbl = ovrBox.addText("OVR");
+    const lblRow = ovrBox.addStack();
+    lblRow.layoutHorizontally();
+    lblRow.addSpacer();
+    const ovrLbl = lblRow.addText("OVR");
     ovrLbl.font = Font.boldSystemFont(11);
     ovrLbl.textColor = ovrTextColor;
-    ovrLbl.centerAlignText();
+    lblRow.addSpacer();
 
     ovrBox.addSpacer(2);
 
-    const ovrVal = ovrBox.addText(\`\${ovr}\`);
+    const valRow = ovrBox.addStack();
+    valRow.layoutHorizontally();
+    valRow.addSpacer();
+    const ovrVal = valRow.addText(\`\${ovr}\`);
     ovrVal.font = Font.boldSystemFont(32);
     ovrVal.textColor = ovrTextColor;
-    ovrVal.centerAlignText();
+    valRow.addSpacer();
 
     ovrBox.addSpacer();
 
@@ -1100,17 +1124,23 @@ async function createWidget() {
 
       box.addSpacer();
 
-      const lbl = box.addText(label);
+      const lRow = box.addStack();
+      lRow.layoutHorizontally();
+      lRow.addSpacer();
+      const lbl = lRow.addText(label);
       lbl.font = Font.boldSystemFont(9);
       lbl.textColor = TEXT_MUTED;
-      lbl.centerAlignText();
+      lRow.addSpacer();
 
       box.addSpacer(2);
 
-      const num = box.addText(\`\${value}\`);
+      const nRow = box.addStack();
+      nRow.layoutHorizontally();
+      nRow.addSpacer();
+      const num = nRow.addText(\`\${value}\`);
       num.font = Font.boldSystemFont(15);
       num.textColor = TEXT_PRIMARY;
-      num.centerAlignText();
+      nRow.addSpacer();
 
       box.addSpacer();
     }

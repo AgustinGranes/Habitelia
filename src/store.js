@@ -1,5 +1,5 @@
 import { auth, saveDocument, getDocument, getCollection, deleteDocument, getUserPath } from './firebase.js';
-import { getTeamForOVR, calculateMarketValue } from './driverEngine.js';
+import { getTeamForOVR, calculateMarketValue, computeAccumulatedStats, getCategoryForTeam, TEAMS_DATA } from './driverEngine.js';
 import { showTelemetryRadioPopup } from './components/driverTelemetryPopup.js';
 import { showDailyIncompletePopup } from './components/dailyIncompletePopup.js';
 
@@ -985,8 +985,36 @@ export const store = {
         await saveDocument(`users/${uid}/notes/${n.id}`, n);
       }
 
-      // Guardar bundle ligero y directo para Widgets de Scriptable (iOS)
-      const widgetPayload = {
+        // Guardar bundle ligero y directo para Widgets de Scriptable (iOS)
+        const rawDriver = currentState.driverProfile || {};
+        const dOvr = rawDriver.ovr || 50;
+        const dSeasons = rawDriver.seasons || 1;
+        const dCounter = rawDriver.completedHabitsCounter || 0;
+        const dStats = computeAccumulatedStats(dOvr, dSeasons, dCounter);
+        const dTeamKey = rawDriver.team || getTeamForOVR(dOvr);
+        const dTeamInfo = TEAMS_DATA[dTeamKey] || { name: dTeamKey || 'Apex', category: 'F4' };
+        const dMarketVal = rawDriver.marketValue || calculateMarketValue(dOvr, rawDriver.titlesDriver || 0, rawDriver.titlesConstructor || 0);
+
+        const computedDriver = {
+          active: rawDriver.active !== false,
+          name: rawDriver.name || currentState.user?.displayName || 'Piloto',
+          lastName: (rawDriver.lastName || rawDriver.name || currentState.user?.displayName || 'GRANES').toUpperCase(),
+          initials: (rawDriver.initials || 'AGR').toUpperCase(),
+          number: rawDriver.number || '86',
+          countryFlag: rawDriver.countryFlag || '🇦🇷',
+          ovr: dOvr,
+          seasons: dSeasons,
+          completedHabitsCounter: dCounter,
+          wins: rawDriver.wins !== undefined && rawDriver.wins !== null ? rawDriver.wins : dStats.wins,
+          podiums: rawDriver.podiums !== undefined && rawDriver.podiums !== null ? rawDriver.podiums : dStats.podiums,
+          points: rawDriver.points !== undefined && rawDriver.points !== null ? rawDriver.points : dStats.points,
+          marketValue: dMarketVal,
+          team: dTeamInfo.name,
+          teamKey: dTeamKey,
+          category: dTeamInfo.category || 'F4'
+        };
+
+        const widgetPayload = {
         habits: (currentState.habits || []).map(h => ({
           id: h.id,
           name: h.name,
@@ -1006,7 +1034,7 @@ export const store = {
           time: t.time || '',
           showInRoutine: t.showInRoutine || false
         })),
-        driverProfile: currentState.driverProfile || null,
+        driverProfile: computedDriver,
         notes: (currentState.notes || []).map(n => ({
           id: n.id,
           title: n.title || 'Sin título',

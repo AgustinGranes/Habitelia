@@ -20,6 +20,7 @@ import {
     generateDriverWidgetScript,
     generateNotesWidgetScript
 } from '../utils/scriptableWidgets.js';
+import { computeAccumulatedStats, calculateMarketValue, getTeamForOVR, getCategoryForTeam, TEAMS_DATA } from '../driverEngine.js';
 
 export function render(props = {}) {
     const state = store.getState();
@@ -445,7 +446,36 @@ export function mount() {
         
         switch (type) {
             case 'todos': return generateTodosWidgetScript(uid, uname, state.todos || []);
-            case 'driver': return generateDriverWidgetScript(uid, uname, state.driverProfile || null);
+            case 'driver': {
+                const rawDriver = state.driverProfile || {};
+                const dOvr = rawDriver.ovr || 50;
+                const dSeasons = rawDriver.seasons || 1;
+                const dCounter = rawDriver.completedHabitsCounter || 0;
+                const dStats = computeAccumulatedStats(dOvr, dSeasons, dCounter);
+                const dTeamKey = rawDriver.team || getTeamForOVR(dOvr);
+                const dTeamInfo = TEAMS_DATA[dTeamKey] || { name: dTeamKey || 'Apex', category: 'F4' };
+                const dMarketVal = rawDriver.marketValue || calculateMarketValue(dOvr, rawDriver.titlesDriver || 0, rawDriver.titlesConstructor || 0);
+
+                const fullDriver = {
+                    active: rawDriver.active !== false,
+                    name: rawDriver.name || uname,
+                    lastName: (rawDriver.lastName || rawDriver.name || uname || 'GRANES').toUpperCase(),
+                    initials: (rawDriver.initials || 'AGR').toUpperCase(),
+                    number: rawDriver.number || '86',
+                    countryFlag: rawDriver.countryFlag || '🇦🇷',
+                    ovr: dOvr,
+                    seasons: dSeasons,
+                    completedHabitsCounter: dCounter,
+                    wins: rawDriver.wins !== undefined && rawDriver.wins !== null ? rawDriver.wins : dStats.wins,
+                    podiums: rawDriver.podiums !== undefined && rawDriver.podiums !== null ? rawDriver.podiums : dStats.podiums,
+                    points: rawDriver.points !== undefined && rawDriver.points !== null ? rawDriver.points : dStats.points,
+                    marketValue: dMarketVal,
+                    team: dTeamInfo.name,
+                    teamKey: dTeamKey,
+                    category: dTeamInfo.category || 'F4'
+                };
+                return generateDriverWidgetScript(uid, uname, fullDriver);
+            }
             case 'notes': return generateNotesWidgetScript(uid, uname, state.notes || []);
             default: return generateHabitsWidgetScript(uid, uname, state.habits || [], state.todos || []);
         }
