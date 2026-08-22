@@ -632,15 +632,21 @@ await run();
 export function generateDriverWidgetScript(userId = '', userName = 'Viajero', driverData = null) {
   const serializedInitial = JSON.stringify(driverData || {
     name: userName,
-    number: "01",
-    team: "Habitelia Racing",
-    ovr: 60,
-    completedHabitsCounter: 0,
-    incidents: 0
+    lastName: userName,
+    number: "86",
+    countryFlag: "🇦🇷",
+    team: "Apex",
+    ovr: 50,
+    seasons: 1,
+    wins: 0,
+    podiums: 0,
+    points: 0,
+    marketValue: "4.5",
+    completedHabitsCounter: 0
   });
 
   return `// ==========================================
-// HABITELIA - WIDGET DE TU PILOTO / DRIVER
+// HABITELIA - WIDGET DE TU PILOTO (F1 RACING)
 // Compatible con tamaños: Pequeño, Mediano y Grande
 // ==========================================
 
@@ -650,14 +656,63 @@ const API_KEY = "${FIREBASE_API_KEY}";
 
 const INITIAL_DATA = JSON.parse(${JSON.stringify(serializedInitial)});
 
-const BG_COLOR = new Color("#0D0D0F");
-const CARD_BG = new Color("#16161A");
+// Paleta de colores Luxury F1
+const BG_COLOR = new Color("#0A0A0A");
+const CARD_BG = new Color("#141417");
 const TEXT_PRIMARY = new Color("#FFFFFF");
 const TEXT_MUTED = new Color("#8E8E93");
+const TEXT_SECONDARY = new Color("#A1A1AA");
+
+const TEAMS_DATA = {
+  Apex: { name: 'Apex', category: 'F4' },
+  Rodin: { name: 'Rodin', category: 'F4' },
+  Jenzer: { name: 'Jenzer', category: 'F4' },
+  Van: { name: 'Van Amersfoort', category: 'F3' },
+  Trident: { name: 'Trident', category: 'F3' },
+  MP: { name: 'MP Motorsport', category: 'F3' },
+  Campos: { name: 'Campos Racing', category: 'F2' },
+  Hitech: { name: 'Hitech GP', category: 'F2' },
+  DAMS: { name: 'DAMS Racing', category: 'F2' },
+  Haas: { name: 'Haas F1', category: 'F1' },
+  Sauber: { name: 'Sauber / Kick', category: 'F1' },
+  Williams: { name: 'Williams Racing', category: 'F1' },
+  Alpine: { name: 'Alpine F1', category: 'F1' },
+  Racing: { name: 'Racing Bulls', category: 'F1' },
+  Aston: { name: 'Aston Martin', category: 'F1' },
+  McLaren: { name: 'McLaren F1', category: 'F1' },
+  Ferrari: { name: 'Scuderia Ferrari', category: 'F1' },
+  RedBull: { name: 'Red Bull Racing', category: 'F1' },
+  Mercedes: { name: 'Mercedes-AMG', category: 'F1' }
+};
+
+function getTeamForOVR(ovr) {
+  if (ovr >= 95) return 'Mercedes';
+  if (ovr >= 90) return 'Ferrari';
+  if (ovr >= 86) return 'McLaren';
+  if (ovr >= 83) return 'Racing';
+  if (ovr >= 80) return 'Alpine';
+  if (ovr >= 75) return 'Hitech';
+  if (ovr >= 70) return 'Campos';
+  if (ovr >= 65) return 'Trident';
+  if (ovr >= 60) return 'Van';
+  if (ovr >= 55) return 'Rodin';
+  return 'Apex';
+}
+
+function getOVRColor(ovr) {
+  if (ovr >= 90) return new Color("#7CDEDC"); // Neon Cyan / Teal
+  if (ovr >= 80) return new Color("#D69E2E"); // Amarillo / Gold
+  if (ovr >= 65) return new Color("#DD6B20"); // Naranja
+  return new Color("#E53E3E"); // Rojo
+}
+
+function isDarkOvrText(ovr) {
+  return ovr >= 90;
+}
 
 async function loadData() {
   const fm = FileManager.local();
-  const cachePath = fm.joinPath(fm.documentsDirectory(), "habitelia_driver_" + (USER_ID || "me") + ".json");
+  const cachePath = fm.joinPath(fm.documentsDirectory(), "habitelia_driver_v3_" + (USER_ID || "me") + ".json");
 
   if (USER_ID) {
     try {
@@ -692,171 +747,398 @@ async function loadData() {
   if (fm.fileExists(cachePath)) {
     try {
       const cached = JSON.parse(fm.readString(cachePath));
-      if (cached && cached.name) return cached;
+      if (cached && (cached.name || cached.ovr)) return cached;
     } catch(e) {}
   }
 
-  if (INITIAL_DATA && INITIAL_DATA.name) {
-    return INITIAL_DATA;
-  }
-
-  return {
-    name: "${userName}",
-    number: "01",
-    team: "Habitelia Racing",
-    ovr: 60,
-    completedHabitsCounter: 0,
-    incidents: 0
-  };
+  return INITIAL_DATA || { ovr: 50, name: "${userName}" };
 }
 
 async function createWidget() {
   const driver = await loadData();
   const widget = new ListWidget();
   widget.backgroundColor = BG_COLOR;
-  widget.setPadding(14, 14, 14, 14);
+  widget.setPadding(12, 12, 12, 12);
 
+  const ovr = driver.ovr || 50;
+  const ovrBg = getOVRColor(ovr);
+  const darkText = isDarkOvrText(ovr);
+  const ovrTextColor = darkText ? new Color("#0F172A") : new Color("#FFFFFF");
+
+  const teamKey = driver.team || getTeamForOVR(ovr);
+  const teamInfo = TEAMS_DATA[teamKey] || { name: teamKey || 'Apex', category: 'F4' };
+  const teamName = teamInfo.name;
+  const category = teamInfo.category;
+
+  const marketValNum = driver.marketValue || Math.max(2.5, ((ovr - 40) * 0.45)).toFixed(1);
+  const marketValue = \`€\${marketValNum}M\`;
+
+  const seasons = driver.seasons || 1;
   const counter = driver.completedHabitsCounter || 0;
+  const wins = driver.wins !== undefined ? driver.wins : Math.max(0, Math.floor(counter * 0.15 + (ovr >= 80 ? (ovr - 75) * 0.8 : 0)));
+  const podiums = driver.podiums !== undefined ? driver.podiums : Math.max(wins, Math.floor(counter * 0.35 + (ovr >= 70 ? (ovr - 65) * 1.2 : 0)));
+  const points = driver.points !== undefined ? driver.points : Math.max(0, Math.floor(counter * 6 + wins * 25 + podiums * 15 + (seasons - 1) * 150));
+
+  const flag = driver.countryFlag || '🇦🇷';
+  const driverLastName = (driver.lastName || driver.name || "${userName}" || 'PILOTO').toUpperCase();
+  const number = driver.number || '86';
+
   const widgetFamily = config.widgetFamily || "medium";
 
   if (widgetFamily === "small") {
-    const title = widget.addText("TU PILOTO");
-    title.font = Font.boldSystemFont(10);
-    title.textColor = TEXT_MUTED;
+    // Top Bar: Flag + Name + #Number
+    const topRow = widget.addStack();
+    topRow.layoutHorizontally();
+    topRow.centerAlignContent();
+
+    const flagText = topRow.addText(\`\${flag} \`);
+    flagText.font = Font.systemFont(12);
+
+    const nameText = topRow.addText(driverLastName);
+    nameText.font = Font.boldSystemFont(11.5);
+    nameText.textColor = TEXT_PRIMARY;
+    nameText.lineLimit = 1;
+
+    topRow.addSpacer();
+
+    const numBadge = topRow.addStack();
+    numBadge.backgroundColor = new Color("#FFFFFF");
+    numBadge.cornerRadius = 4;
+    numBadge.setPadding(1, 4, 1, 4);
+    const numText = numBadge.addText(\`#\${number}\`);
+    numText.font = Font.boldSystemFont(9.5);
+    numText.textColor = new Color("#000000");
 
     widget.addSpacer(6);
 
-    const name = widget.addText(driver.name || "Piloto");
-    name.font = Font.boldSystemFont(14);
-    name.textColor = TEXT_PRIMARY;
-    name.lineLimit = 1;
+    // Center Row: Centered OVR Square + Team/Category Info
+    const centerRow = widget.addStack();
+    centerRow.layoutHorizontally();
+    centerRow.centerAlignContent();
 
-    widget.addSpacer(6);
-
-    const row = widget.addStack();
-    row.layoutHorizontally();
-    row.centerAlignContent();
-
-    const ovrBox = row.addStack();
-    ovrBox.backgroundColor = CARD_BG;
-    ovrBox.cornerRadius = 8;
-    ovrBox.setPadding(4, 8, 4, 8);
-    const ovrVal = ovrBox.addText(\`OVR \${driver.ovr || 60}\`);
-    ovrVal.font = Font.boldSystemFont(14);
-    ovrVal.textColor = TEXT_PRIMARY;
-
-    row.addSpacer();
-    const num = row.addText(\`#\${driver.number || "01"}\`);
-    num.font = Font.boldSystemFont(16);
-    num.textColor = TEXT_MUTED;
-
-    widget.addSpacer(6);
-    const prog = widget.addText(\`Progreso +1: \${counter}/10\`);
-    prog.font = Font.systemFont(10);
-    prog.textColor = TEXT_MUTED;
-
-  } else if (widgetFamily === "medium") {
-    const row = widget.addStack();
-    row.layoutHorizontally();
-    row.centerAlignContent();
-
-    const ovrBox = row.addStack();
-    ovrBox.size = new Size(54, 54);
-    ovrBox.backgroundColor = CARD_BG;
-    ovrBox.cornerRadius = 12;
+    // Centered OVR Box
+    const ovrBox = centerRow.addStack();
+    ovrBox.size = new Size(46, 46);
+    ovrBox.backgroundColor = ovrBg;
+    ovrBox.cornerRadius = 10;
     ovrBox.layoutVertically();
     ovrBox.centerAlignContent();
-    const ovrNum = ovrBox.addText(\`\${driver.ovr || 60}\`);
-    ovrNum.font = Font.boldSystemFont(22);
-    ovrNum.textColor = TEXT_PRIMARY;
-    ovrNum.centerAlignText();
+    ovrBox.setPadding(2, 2, 2, 2);
+
     const ovrLbl = ovrBox.addText("OVR");
-    ovrLbl.font = Font.boldSystemFont(9);
-    ovrLbl.textColor = TEXT_MUTED;
+    ovrLbl.font = Font.boldSystemFont(8);
+    ovrLbl.textColor = ovrTextColor;
     ovrLbl.centerAlignText();
 
-    row.addSpacer(12);
+    const ovrVal = ovrBox.addText(\`\${ovr}\`);
+    ovrVal.font = Font.boldSystemFont(20);
+    ovrVal.textColor = ovrTextColor;
+    ovrVal.centerAlignText();
 
-    const info = row.addStack();
-    info.layoutVertically();
+    centerRow.addSpacer(8);
 
-    const nameRow = info.addStack();
-    nameRow.layoutHorizontally();
-    const pName = nameRow.addText(driver.name || "Piloto");
-    pName.font = Font.boldSystemFont(16);
-    pName.textColor = TEXT_PRIMARY;
-    nameRow.addSpacer();
-    const num = nameRow.addText(\`#\${driver.number || "01"}\`);
-    num.font = Font.boldSystemFont(16);
-    num.textColor = TEXT_MUTED;
+    // Team & Market Value
+    const infoCol = centerRow.addStack();
+    infoCol.layoutVertically();
 
-    const team = info.addText(driver.team || "Habitelia Racing");
-    team.font = Font.systemFont(11);
-    team.textColor = TEXT_MUTED;
+    const catBadge = infoCol.addText(\`[\${category}] \${teamName}\`);
+    catBadge.font = Font.boldSystemFont(10);
+    catBadge.textColor = TEXT_PRIMARY;
+    catBadge.lineLimit = 1;
 
-    info.addSpacer(6);
+    infoCol.addSpacer(2);
 
-    const progText = info.addText(\`Progreso hacia +1 OVR: \${counter}/10 hábitos\`);
-    progText.font = Font.systemFont(11);
-    progText.textColor = TEXT_PRIMARY;
-
-  } else {
-    const header = widget.addStack();
-    header.layoutHorizontally();
-    const title = header.addText("FICHA DE PILOTO");
-    title.font = Font.boldSystemFont(14);
-    title.textColor = TEXT_MUTED;
-    header.addSpacer();
-    const num = header.addText(\`#\${driver.number || "01"}\`);
-    num.font = Font.boldSystemFont(18);
-    num.textColor = TEXT_PRIMARY;
-
-    widget.addSpacer(10);
-
-    const card = widget.addStack();
-    card.backgroundColor = CARD_BG;
-    card.cornerRadius = 14;
-    card.setPadding(14, 16, 14, 16);
-    card.layoutHorizontally();
-    card.centerAlignContent();
-
-    const ovrBox = card.addStack();
-    ovrBox.size = new Size(60, 60);
-    ovrBox.backgroundColor = new Color("#222228");
-    ovrBox.cornerRadius = 12;
-    ovrBox.layoutVertically();
-    ovrBox.centerAlignContent();
-    const ovrNum = ovrBox.addText(\`\${driver.ovr || 60}\`);
-    ovrNum.font = Font.boldSystemFont(26);
-    ovrNum.textColor = TEXT_PRIMARY;
-    ovrNum.centerAlignText();
-    const ovrLbl = ovrBox.addText("OVR");
-    ovrLbl.font = Font.boldSystemFont(10);
-    ovrLbl.textColor = TEXT_MUTED;
-    ovrLbl.centerAlignText();
-
-    card.addSpacer(14);
-
-    const info = card.addStack();
-    info.layoutVertically();
-    const pName = info.addText(driver.name || "Piloto");
-    pName.font = Font.boldSystemFont(18);
-    pName.textColor = TEXT_PRIMARY;
-    const team = info.addText(driver.team || "Habitelia Racing");
-    team.font = Font.systemFont(12);
-    team.textColor = TEXT_MUTED;
-
-    widget.addSpacer(16);
-
-    const stat1 = widget.addText(\`🎯 Progreso al siguiente punto: \${counter}/10 hábitos\`);
-    stat1.font = Font.systemFont(13);
-    stat1.textColor = TEXT_PRIMARY;
+    const valText = infoCol.addText(\`Val: \${marketValue}\`);
+    valText.font = Font.systemFont(10);
+    valText.textColor = TEXT_SECONDARY;
 
     widget.addSpacer(8);
 
-    const stat2 = widget.addText(\`⚠️ Incidentes registrados: \${driver.incidents || 0}\`);
-    stat2.font = Font.systemFont(13);
-    stat2.textColor = TEXT_MUTED;
+    // Bottom Stats Bar (VCT, POD, PTS)
+    const statsBar = widget.addStack();
+    statsBar.layoutHorizontally();
+    statsBar.backgroundColor = CARD_BG;
+    statsBar.cornerRadius = 6;
+    statsBar.setPadding(4, 6, 4, 6);
+    statsBar.centerAlignContent();
+
+    const s1 = statsBar.addText(\`T:\${seasons}\`);
+    s1.font = Font.boldSystemFont(9);
+    s1.textColor = TEXT_SECONDARY;
+
+    statsBar.addSpacer();
+    const s2 = statsBar.addText(\`V:\${wins}\`);
+    s2.font = Font.boldSystemFont(9);
+    s2.textColor = TEXT_PRIMARY;
+
+    statsBar.addSpacer();
+    const s3 = statsBar.addText(\`P:\${podiums}\`);
+    s3.font = Font.boldSystemFont(9);
+    s3.textColor = TEXT_PRIMARY;
+
+    statsBar.addSpacer();
+    const s4 = statsBar.addText(\`PTS:\${points}\`);
+    s4.font = Font.boldSystemFont(9);
+    s4.textColor = TEXT_PRIMARY;
+
+  } else if (widgetFamily === "medium") {
+    // MEDIUM WIDGET
+    const mainRow = widget.addStack();
+    mainRow.layoutHorizontally();
+    mainRow.centerAlignContent();
+
+    // Left Column: OVR Box (Centered) + Category Badge
+    const leftCol = mainRow.addStack();
+    leftCol.layoutVertically();
+    leftCol.centerAlignContent();
+    leftCol.size = new Size(68, 0);
+
+    const ovrBox = leftCol.addStack();
+    ovrBox.size = new Size(62, 62);
+    ovrBox.backgroundColor = ovrBg;
+    ovrBox.cornerRadius = 14;
+    ovrBox.layoutVertically();
+    ovrBox.centerAlignContent();
+    ovrBox.setPadding(4, 4, 4, 4);
+
+    const ovrLbl = ovrBox.addText("OVR");
+    ovrLbl.font = Font.boldSystemFont(10);
+    ovrLbl.textColor = ovrTextColor;
+    ovrLbl.centerAlignText();
+
+    const ovrVal = ovrBox.addText(\`\${ovr}\`);
+    ovrVal.font = Font.boldSystemFont(28);
+    ovrVal.textColor = ovrTextColor;
+    ovrVal.centerAlignText();
+
+    leftCol.addSpacer(4);
+
+    const catBox = leftCol.addStack();
+    catBox.backgroundColor = CARD_BG;
+    catBox.cornerRadius = 5;
+    catBox.setPadding(2, 6, 2, 6);
+    catBox.centerAlignContent();
+    const catText = catBox.addText(category);
+    catText.font = Font.boldSystemFont(10);
+    catText.textColor = TEXT_PRIMARY;
+    catText.centerAlignText();
+
+    mainRow.addSpacer(12);
+
+    // Right Column: Full Driver Profile & Stats
+    const rightCol = mainRow.addStack();
+    rightCol.layoutVertically();
+
+    // Header: Flag + Name + Number + Market Value
+    const nameRow = rightCol.addStack();
+    nameRow.layoutHorizontally();
+    nameRow.centerAlignContent();
+
+    const flagEl = nameRow.addText(\`\${flag} \`);
+    flagEl.font = Font.systemFont(14);
+
+    const nameEl = nameRow.addText(driverLastName);
+    nameEl.font = Font.boldSystemFont(16);
+    nameEl.textColor = TEXT_PRIMARY;
+    nameEl.lineLimit = 1;
+
+    nameRow.addSpacer();
+
+    const numEl = nameRow.addStack();
+    numEl.backgroundColor = new Color("#FFFFFF");
+    numEl.cornerRadius = 5;
+    numEl.setPadding(1, 6, 1, 6);
+    const numText = numEl.addText(\`#\${number}\`);
+    numText.font = Font.boldSystemFont(11);
+    numText.textColor = new Color("#000000");
+
+    rightCol.addSpacer(3);
+
+    // Team & Market Value
+    const teamRow = rightCol.addStack();
+    teamRow.layoutHorizontally();
+    teamRow.centerAlignContent();
+
+    const teamEl = teamRow.addText(\`🏎️ \${teamName}\`);
+    teamEl.font = Font.mediumSystemFont(11.5);
+    teamEl.textColor = TEXT_SECONDARY;
+
+    teamRow.addSpacer();
+
+    const valEl = teamRow.addText(marketValue);
+    valEl.font = Font.boldSystemFont(11.5);
+    valEl.textColor = TEXT_PRIMARY;
+
+    rightCol.addSpacer(8);
+
+    // Stats Grid (TEMP, VCT, POD, PTS)
+    const statsGrid = rightCol.addStack();
+    statsGrid.layoutHorizontally();
+    statsGrid.backgroundColor = CARD_BG;
+    statsGrid.cornerRadius = 8;
+    statsGrid.setPadding(6, 10, 6, 10);
+    statsGrid.centerAlignContent();
+
+    function addStatCell(stack, label, val, isLast = false) {
+      const cell = stack.addStack();
+      cell.layoutVertically();
+      cell.centerAlignContent();
+
+      const lbl = cell.addText(label);
+      lbl.font = Font.boldSystemFont(8);
+      lbl.textColor = TEXT_MUTED;
+      lbl.centerAlignText();
+
+      const num = cell.addText(\`\${val}\`);
+      num.font = Font.boldSystemFont(12);
+      num.textColor = TEXT_PRIMARY;
+      num.centerAlignText();
+
+      if (!isLast) stack.addSpacer();
+    }
+
+    addStatCell(statsGrid, "TEMP", seasons);
+    addStatCell(statsGrid, "VCT", wins);
+    addStatCell(statsGrid, "POD", podiums);
+    addStatCell(statsGrid, "PTS", points, true);
+
+  } else {
+    // LARGE WIDGET
+    const header = widget.addStack();
+    header.layoutHorizontally();
+    header.centerAlignContent();
+
+    const title = header.addText("FICHA DE PILOTO");
+    title.font = Font.boldSystemFont(14);
+    title.textColor = TEXT_MUTED;
+
+    header.addSpacer();
+
+    const flagText = header.addText(\`\${flag} \`);
+    flagText.font = Font.systemFont(16);
+
+    const numBadge = header.addStack();
+    numBadge.backgroundColor = new Color("#FFFFFF");
+    numBadge.cornerRadius = 6;
+    numBadge.setPadding(2, 8, 2, 8);
+    const numText = numBadge.addText(\`#\${number}\`);
+    numText.font = Font.boldSystemFont(13);
+    numText.textColor = new Color("#000000");
+
+    widget.addSpacer(10);
+
+    // Main Driver Card
+    const mainCard = widget.addStack();
+    mainCard.backgroundColor = CARD_BG;
+    mainCard.cornerRadius = 16;
+    mainCard.setPadding(14, 16, 14, 16);
+    mainCard.layoutHorizontally();
+    mainCard.centerAlignContent();
+
+    // Centered OVR Square
+    const ovrBox = mainCard.addStack();
+    ovrBox.size = new Size(68, 68);
+    ovrBox.backgroundColor = ovrBg;
+    ovrBox.cornerRadius = 16;
+    ovrBox.layoutVertically();
+    ovrBox.centerAlignContent();
+    ovrBox.setPadding(4, 4, 4, 4);
+
+    const ovrLbl = ovrBox.addText("OVR");
+    ovrLbl.font = Font.boldSystemFont(11);
+    ovrLbl.textColor = ovrTextColor;
+    ovrLbl.centerAlignText();
+
+    const ovrVal = ovrBox.addText(\`\${ovr}\`);
+    ovrVal.font = Font.boldSystemFont(30);
+    ovrVal.textColor = ovrTextColor;
+    ovrVal.centerAlignText();
+
+    mainCard.addSpacer(14);
+
+    const info = mainCard.addStack();
+    info.layoutVertically();
+
+    const pName = info.addText(driverLastName);
+    pName.font = Font.boldSystemFont(18);
+    pName.textColor = TEXT_PRIMARY;
+
+    info.addSpacer(2);
+
+    const teamText = info.addText(\`🏎️ \${teamName} (\${category})\`);
+    teamText.font = Font.systemFont(12);
+    teamText.textColor = TEXT_SECONDARY;
+
+    info.addSpacer(2);
+
+    const valText = info.addText(\`Valor de Mercado: \${marketValue}\`);
+    valText.font = Font.boldSystemFont(12);
+    valText.textColor = TEXT_PRIMARY;
+
+    widget.addSpacer(12);
+
+    // 4 Stats Cards in Row
+    const statsRow = widget.addStack();
+    statsRow.layoutHorizontally();
+    statsRow.gap = 6;
+
+    function addLargeStatBox(label, value) {
+      const box = statsRow.addStack();
+      box.layoutVertically();
+      box.centerAlignContent();
+      box.backgroundColor = CARD_BG;
+      box.cornerRadius = 10;
+      box.setPadding(8, 6, 8, 6);
+      box.size = new Size(68, 48);
+
+      const lbl = box.addText(label);
+      lbl.font = Font.boldSystemFont(9);
+      lbl.textColor = TEXT_MUTED;
+      lbl.centerAlignText();
+
+      const num = box.addText(\`\${value}\`);
+      num.font = Font.boldSystemFont(15);
+      num.textColor = TEXT_PRIMARY;
+      num.centerAlignText();
+    }
+
+    addLargeStatBox("TEMP", seasons);
+    statsRow.addSpacer();
+    addLargeStatBox("VCT", wins);
+    statsRow.addSpacer();
+    addLargeStatBox("POD", podiums);
+    statsRow.addSpacer();
+    addLargeStatBox("PTS", points);
+
+    widget.addSpacer(12);
+
+    // Progress Bar to next OVR
+    const progBox = widget.addStack();
+    progBox.layoutVertically();
+    progBox.backgroundColor = CARD_BG;
+    progBox.cornerRadius = 10;
+    progBox.setPadding(10, 12, 10, 12);
+
+    const pHeader = progBox.addStack();
+    pHeader.layoutHorizontally();
+    const pLbl = pHeader.addText("Progreso hacia +1 OVR");
+    pLbl.font = Font.systemFont(11);
+    pLbl.textColor = TEXT_SECONDARY;
+    pHeader.addSpacer();
+    const pCount = pHeader.addText(\`\${counter}/10 hábitos\`);
+    pCount.font = Font.boldSystemFont(11);
+    pCount.textColor = TEXT_PRIMARY;
+
+    progBox.addSpacer(6);
+
+    const pBar = progBox.addStack();
+    pBar.size = new Size(0, 6);
+    pBar.backgroundColor = new Color("#0A0A0A");
+    pBar.cornerRadius = 3;
+    const pFill = pBar.addStack();
+    pFill.size = new Size(Math.max(10, counter * 25), 6);
+    pFill.backgroundColor = TEXT_PRIMARY;
+    pFill.cornerRadius = 3;
   }
 
   return widget;

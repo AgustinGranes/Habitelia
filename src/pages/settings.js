@@ -31,8 +31,8 @@ export function render(props = {}) {
     const partner = state.user?.partner || { enabled: false, name: '', phone: '', contract: '' };
     const currentTheme = localStorage.getItem('app_theme_key') || 'obsidian';
     const showTodosInHome = state.user?.settings?.showTodosInHome !== false;
-    const notifStatus = getNotificationPermission();
-    const notifsEnabled = areNotificationsEnabled();
+    const notifPermission = getNotificationPermission();
+    const notifsActive = areNotificationsEnabled();
     const currentUid = currentUser?.uid || '';
 
     return `
@@ -58,25 +58,29 @@ export function render(props = {}) {
                         const isSel = currentTheme === key;
                         return `
                             <button class="btn-theme-select" data-theme="${key}" style="padding: 12px; border-radius: 12px; border: 2px solid ${isSel ? 'var(--text-primary)' : 'var(--border-subtle)'}; background: ${t.bgSurface}; color: ${t.textPrimary}; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.15s ease;">
-                                <div style="width: 24px; height: 24px; border-radius: 50%; background: ${t.accentPrimary}; border: 1px solid ${t.borderSubtle};"></div>
-                                <span style="font-size: 11.5px; font-weight: 700; text-align: center;">${t.name}</span>
+                                <div style="display: flex; gap: 4px; margin-bottom: 4px;">
+                                    <span style="width: 12px; height: 12px; border-radius: 50%; background: ${t.bgSurface}; border: 1px solid var(--border-subtle);"></span>
+                                    <span style="width: 12px; height: 12px; border-radius: 50%; background: ${t.bgSubtle};"></span>
+                                    <span style="width: 12px; height: 12px; border-radius: 50%; background: ${t.textPrimary};"></span>
+                                </div>
+                                <span style="font-size: 12px; font-weight: 600;">${t.name}</span>
                             </button>
                         `;
                     }).join('')}
                 </div>
             </div>
 
-            <!-- Preferencias de Inicio / Rutina -->
+            <!-- Preferencias de Visualización -->
             <div class="glass-card" style="margin-bottom: 24px; padding: 24px; border-radius: 18px;">
                 <h3 class="editorial-title" style="font-size: 20px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">Preferencias de Visualización</h3>
                 
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">Mostrar Tareas (To-Do) en Inicio y Rutina</div>
-                        <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 2px;">Ver los eventos de tu lista To-Do junto con tus hábitos diarios.</div>
+                        <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">Mostrar tareas To-Do en Inicio y Rutina</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Si está desactivado, las tareas solo se verán en la pestaña To-Do.</div>
                     </div>
-                    <label style="display: flex; align-items: center; cursor: pointer; flex-shrink: 0; margin-left: 14px;">
-                        <input type="checkbox" id="todos-in-home-toggle" ${showTodosInHome ? 'checked' : ''} style="width: 20px; height: 20px; accent-color: var(--text-primary);">
+                    <label style="display: flex; align-items: center; cursor: pointer; flex-shrink: 0; margin-left: 16px;">
+                        <input type="checkbox" id="toggle-show-todos-home" ${showTodosInHome ? 'checked' : ''} style="width: 20px; height: 20px; accent-color: var(--text-primary);">
                     </label>
                 </div>
             </div>
@@ -87,8 +91,8 @@ export function render(props = {}) {
                     <h3 class="editorial-title" style="font-size: 20px; margin: 0; display: flex; align-items: center; gap: 8px;">
                         ${iconSVG('bell', 20)} Notificaciones
                     </h3>
-                    <span id="notif-status-badge" style="font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; ${notifStatus === 'granted' ? 'background: rgba(46,125,50,0.15); color: #4CAF50; border: 1px solid rgba(46,125,50,0.3);' : (notifStatus === 'denied' ? 'background: rgba(229,62,62,0.15); color: #E53E3E; border: 1px solid rgba(229,62,62,0.3);' : 'background: var(--bg-subtle); color: var(--text-secondary); border: 1px solid var(--border-subtle);')}">
-                        ${notifStatus === 'granted' ? '✓ Activas' : (notifStatus === 'denied' ? 'Bloqueadas' : 'Pendientes')}
+                    <span id="notif-status-badge" style="font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; ${notifsActive ? 'background: rgba(46,125,50,0.15); color: #4CAF50; border: 1px solid rgba(46,125,50,0.3);' : (notifPermission === 'denied' ? 'background: rgba(229,62,62,0.15); color: #E53E3E; border: 1px solid rgba(229,62,62,0.3);' : 'background: var(--bg-subtle); color: var(--text-secondary); border: 1px solid var(--border-subtle);')}">
+                        ${notifsActive ? '✓ Activas' : (notifPermission === 'denied' ? 'Bloqueadas' : 'Desactivadas')}
                     </span>
                 </div>
 
@@ -96,11 +100,11 @@ export function render(props = {}) {
                     Recibí avisos en tu dispositivo en el horario exacto de tus hábitos y tareas programadas para no romper tu racha.
                 </p>
 
-                ${notifStatus !== 'granted' ? `
+                ${!notifsActive ? `
                     <button id="btn-request-notif-perm" class="btn-primary" style="width: 100%; min-height: 44px; margin-bottom: 6px; font-size: 13.5px;">
                         ${iconSVG('bell', 16)} Activar Notificaciones en este Dispositivo
                     </button>
-                    ${notifStatus === 'denied' ? `
+                    ${notifPermission === 'denied' ? `
                         <div style="font-size: 12px; color: #E53E3E; margin-top: 6px;">
                             Las notificaciones están bloqueadas en tu navegador. Podés habilitarlas desde la configuración de permisos del sitio.
                         </div>
@@ -110,17 +114,15 @@ export function render(props = {}) {
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div>
                                 <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary);">Avisos de hábitos y tareas</div>
-                                <div style="font-size: 12px; color: var(--text-secondary);">Enviar alertas cuando sea momento de cumplir un hábito</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">Alertas programadas y notificaciones push activas</div>
                             </div>
-                            <label style="display: flex; align-items: center; cursor: pointer; flex-shrink: 0; margin-left: 14px;">
-                                <input type="checkbox" id="toggle-notif-reminders" ${notifsEnabled ? 'checked' : ''} style="width: 20px; height: 20px; accent-color: var(--text-primary);">
-                            </label>
+                            <span style="font-size: 12px; font-weight: 700; color: #4CAF50; background: rgba(76,175,80,0.1); padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(76,175,80,0.2);">Activo</span>
                         </div>
                         <button id="btn-test-notif" class="btn-secondary" style="width: 100%; min-height: 40px; font-size: 13px; margin-top: 4px;">
                             ${iconSVG('bell', 15)} Enviar Notificación de Prueba
                         </button>
                         <button id="btn-disable-all-notif" class="btn-ghost" style="width: 100%; min-height: 40px; font-size: 13px; color: #FF453A; border: 1px solid rgba(255,69,58,0.3); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                            ${iconSVG('x', 15)} Desactivar Notificaciones Completamente
+                            ${iconSVG('x', 15)} Desactivar Notificaciones
                         </button>
                     </div>
                 `}
@@ -339,7 +341,22 @@ export function mount() {
         });
     });
 
-    document.getElementById('todos-in-home-toggle')?.addEventListener('change', (e) => {
+    const refreshSettingsView = () => {
+        const page = document.querySelector('.settings-page');
+        if (page) {
+            page.outerHTML = render();
+            mount();
+        } else {
+            const app = document.getElementById('app');
+            if (app) {
+                app.innerHTML = render();
+                mount();
+            }
+        }
+    };
+
+    const toggleShowTodos = document.getElementById('toggle-show-todos-home') || document.getElementById('todos-in-home-toggle');
+    toggleShowTodos?.addEventListener('change', (e) => {
         const checked = e.target.checked;
         const currentSettings = store.getState().user?.settings || {};
         store.saveUserProfile({
@@ -350,32 +367,18 @@ export function mount() {
 
     // Notificaciones PWA
     document.getElementById('btn-request-notif-perm')?.addEventListener('click', async () => {
+        setNotificationsEnabled(true);
         const res = await requestNotificationPermission();
         if (res === 'granted') {
-            subscribeToPush().catch(() => {});
+            await subscribeToPush().catch(() => {});
+            await syncScheduleToWorker().catch(() => {});
             showToast('¡Notificaciones activadas con éxito!', 'success');
         } else if (res === 'denied') {
             showToast('Permiso de notificaciones denegado en el navegador.', 'warning');
         } else {
             showToast('Tu navegador no soporta notificaciones nativas.', 'info');
         }
-        const page = document.querySelector('.settings-page');
-        if (page) {
-            page.outerHTML = render();
-            mount();
-        }
-    });
-
-    document.getElementById('toggle-notif-reminders')?.addEventListener('change', async (e) => {
-        const enabled = e.target.checked;
-        setNotificationsEnabled(enabled);
-        if (enabled) {
-          await subscribeToPush();
-          await syncScheduleToWorker();
-        } else {
-          await unsubscribeFromPush();
-        }
-        showToast(enabled ? 'Recordatorios automáticos activados' : 'Recordatorios desactivados', 'info');
+        refreshSettingsView();
     });
 
     document.getElementById('btn-test-notif')?.addEventListener('click', async () => {
@@ -390,14 +393,8 @@ export function mount() {
     document.getElementById('btn-disable-all-notif')?.addEventListener('click', async () => {
         setNotificationsEnabled(false);
         await unsubscribeFromPush();
-        const toggle = document.getElementById('toggle-notif-reminders');
-        if (toggle) toggle.checked = false;
-        showToast('Notificaciones desactivadas por completo', 'info');
-        const page = document.querySelector('.settings-page');
-        if (page) {
-            page.outerHTML = render();
-            mount();
-        }
+        showToast('Notificaciones desactivadas', 'info');
+        refreshSettingsView();
     });
 
     document.getElementById('btn-copy-user-id')?.addEventListener('click', async () => {
