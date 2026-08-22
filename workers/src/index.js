@@ -102,7 +102,7 @@ export default {
         // userTimeStr format: MM/DD/YYYY, HH:mm:ss
         const [datePart, timePart] = userTimeStr.split(', ');
         const [hour, minute] = timePart.split(':');
-        const currentLocalTime = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+        const currentTotalMinutes = Number(hour) * 60 + Number(minute);
         
         // Use local date for sent marker
         const [month, day, year] = datePart.split('/');
@@ -113,15 +113,40 @@ export default {
         const subscription = JSON.parse(subStr);
 
         for (const item of schedule) {
-          if (item.completed) continue;
-          if (item.time === currentLocalTime) {
+          if (item.completed || !item.time) continue;
+
+          const [itemH, itemM] = item.time.split(':').map(Number);
+          if (isNaN(itemH) || isNaN(itemM)) continue;
+          const itemTotalMinutes = itemH * 60 + itemM;
+
+          // Check if habit/task falls within the 5-minute cron window (diff between 0 and 5 minutes)
+          let diffMinutes = currentTotalMinutes - itemTotalMinutes;
+          if (diffMinutes < 0) {
+            diffMinutes += 1440; // handle overnight wrap-around
+          }
+
+          const isDue = diffMinutes >= 0 && diffMinutes <= 5;
+
+          if (isDue) {
             const sentMarkerKey = `sent:${userId}:${item.id}:${localDateStr}`;
             const alreadySent = await env.PUSH_STORE.get(sentMarkerKey);
 
             if (!alreadySent) {
+              const title = item.type === 'habit' 
+                ? `⏰ Es hora de: ${item.name}` 
+                : `📝 Tarea pendiente: ${item.name}`;
+
+              let body = '¡Completá tu actividad para mantener tu progreso al día!';
+              if (item.twoMinVersion) {
+                body = `💡 Regla de 2 min: "${item.twoMinVersion}"`;
+              } else if (item.tag) {
+                body = `Etiqueta: ${item.tag}`;
+              }
+
               const payload = JSON.stringify({
-                title: 'Habitelia Reminder',
-                body: `It's time for: ${item.name}`,
+                title,
+                body,
+                tag: `${item.type || 'item'}-${item.id}`,
                 data: { url: '/', id: item.id }
               });
 
