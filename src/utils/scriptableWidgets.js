@@ -816,32 +816,37 @@ async function createWidget() {
     centerRow.layoutHorizontally();
     centerRow.centerAlignContent();
 
-    // Centered OVR Box
+    // 100% Centered OVR Box
     const ovrBox = centerRow.addStack();
-    ovrBox.size = new Size(46, 46);
+    ovrBox.size = new Size(48, 48);
     ovrBox.backgroundColor = ovrBg;
     ovrBox.cornerRadius = 10;
     ovrBox.layoutVertically();
-    ovrBox.centerAlignContent();
-    ovrBox.setPadding(2, 2, 2, 2);
+    ovrBox.setPadding(0, 0, 0, 0);
+
+    ovrBox.addSpacer();
 
     const ovrLbl = ovrBox.addText("OVR");
-    ovrLbl.font = Font.boldSystemFont(8);
+    ovrLbl.font = Font.boldSystemFont(8.5);
     ovrLbl.textColor = ovrTextColor;
     ovrLbl.centerAlignText();
 
+    ovrBox.addSpacer(1);
+
     const ovrVal = ovrBox.addText(\`\${ovr}\`);
-    ovrVal.font = Font.boldSystemFont(20);
+    ovrVal.font = Font.boldSystemFont(21);
     ovrVal.textColor = ovrTextColor;
     ovrVal.centerAlignText();
 
+    ovrBox.addSpacer();
+
     centerRow.addSpacer(8);
 
-    // Team & Market Value
+    // Category - Team & Market Value
     const infoCol = centerRow.addStack();
     infoCol.layoutVertically();
 
-    const catBadge = infoCol.addText(\`[\${category}] \${teamName}\`);
+    const catBadge = infoCol.addText(\`\${category} - \${teamName}\`);
     catBadge.font = Font.boldSystemFont(10);
     catBadge.textColor = TEXT_PRIMARY;
     catBadge.lineLimit = 1;
@@ -887,41 +892,34 @@ async function createWidget() {
     mainRow.layoutHorizontally();
     mainRow.centerAlignContent();
 
-    // Left Column: OVR Box (Centered) + Category Badge
+    // Left Column: OVR Box (100% Centered, without box below)
     const leftCol = mainRow.addStack();
     leftCol.layoutVertically();
     leftCol.centerAlignContent();
     leftCol.size = new Size(68, 0);
 
     const ovrBox = leftCol.addStack();
-    ovrBox.size = new Size(62, 62);
+    ovrBox.size = new Size(64, 64);
     ovrBox.backgroundColor = ovrBg;
     ovrBox.cornerRadius = 14;
     ovrBox.layoutVertically();
-    ovrBox.centerAlignContent();
-    ovrBox.setPadding(4, 4, 4, 4);
+    ovrBox.setPadding(0, 0, 0, 0);
+
+    ovrBox.addSpacer();
 
     const ovrLbl = ovrBox.addText("OVR");
     ovrLbl.font = Font.boldSystemFont(10);
     ovrLbl.textColor = ovrTextColor;
     ovrLbl.centerAlignText();
 
+    ovrBox.addSpacer(2);
+
     const ovrVal = ovrBox.addText(\`\${ovr}\`);
     ovrVal.font = Font.boldSystemFont(28);
     ovrVal.textColor = ovrTextColor;
     ovrVal.centerAlignText();
 
-    leftCol.addSpacer(4);
-
-    const catBox = leftCol.addStack();
-    catBox.backgroundColor = CARD_BG;
-    catBox.cornerRadius = 5;
-    catBox.setPadding(2, 6, 2, 6);
-    catBox.centerAlignContent();
-    const catText = catBox.addText(category);
-    catText.font = Font.boldSystemFont(10);
-    catText.textColor = TEXT_PRIMARY;
-    catText.centerAlignText();
+    ovrBox.addSpacer();
 
     mainRow.addSpacer(12);
 
@@ -929,7 +927,7 @@ async function createWidget() {
     const rightCol = mainRow.addStack();
     rightCol.layoutVertically();
 
-    // Header: Flag + Name + Number + Market Value
+    // Header: Flag + Name + Number
     const nameRow = rightCol.addStack();
     nameRow.layoutHorizontally();
     nameRow.centerAlignContent();
@@ -954,12 +952,12 @@ async function createWidget() {
 
     rightCol.addSpacer(3);
 
-    // Team & Market Value
+    // Category - Team & Market Value
     const teamRow = rightCol.addStack();
     teamRow.layoutHorizontally();
     teamRow.centerAlignContent();
 
-    const teamEl = teamRow.addText(\`🏎️ \${teamName}\`);
+    const teamEl = teamRow.addText(\`🏎️ \${category} - \${teamName}\`);
     teamEl.font = Font.mediumSystemFont(11.5);
     teamEl.textColor = TEXT_SECONDARY;
 
@@ -976,23 +974,29 @@ async function createWidget() {
     statsGrid.layoutHorizontally();
     statsGrid.backgroundColor = CARD_BG;
     statsGrid.cornerRadius = 8;
-    statsGrid.setPadding(6, 10, 6, 10);
+    statsGrid.setPadding(4, 8, 4, 8);
     statsGrid.centerAlignContent();
 
     function addStatCell(stack, label, val, isLast = false) {
       const cell = stack.addStack();
       cell.layoutVertically();
-      cell.centerAlignContent();
+      cell.setPadding(0, 0, 0, 0);
+
+      cell.addSpacer();
 
       const lbl = cell.addText(label);
       lbl.font = Font.boldSystemFont(8);
       lbl.textColor = TEXT_MUTED;
       lbl.centerAlignText();
 
+      cell.addSpacer(1);
+
       const num = cell.addText(\`\${val}\`);
       num.font = Font.boldSystemFont(12);
       num.textColor = TEXT_PRIMARY;
       num.centerAlignText();
+
+      cell.addSpacer();
 
       if (!isLast) stack.addSpacer();
     }
@@ -1035,24 +1039,29 @@ async function createWidget() {
     mainCard.layoutHorizontally();
     mainCard.centerAlignContent();
 
-    // Centered OVR Square
+    // 100% Centered OVR Square
     const ovrBox = mainCard.addStack();
-    ovrBox.size = new Size(68, 68);
+    ovrBox.size = new Size(72, 72);
     ovrBox.backgroundColor = ovrBg;
     ovrBox.cornerRadius = 16;
     ovrBox.layoutVertically();
-    ovrBox.centerAlignContent();
-    ovrBox.setPadding(4, 4, 4, 4);
+    ovrBox.setPadding(0, 0, 0, 0);
+
+    ovrBox.addSpacer();
 
     const ovrLbl = ovrBox.addText("OVR");
     ovrLbl.font = Font.boldSystemFont(11);
     ovrLbl.textColor = ovrTextColor;
     ovrLbl.centerAlignText();
 
+    ovrBox.addSpacer(2);
+
     const ovrVal = ovrBox.addText(\`\${ovr}\`);
-    ovrVal.font = Font.boldSystemFont(30);
+    ovrVal.font = Font.boldSystemFont(32);
     ovrVal.textColor = ovrTextColor;
     ovrVal.centerAlignText();
+
+    ovrBox.addSpacer();
 
     mainCard.addSpacer(14);
 
@@ -1065,7 +1074,7 @@ async function createWidget() {
 
     info.addSpacer(2);
 
-    const teamText = info.addText(\`🏎️ \${teamName} (\${category})\`);
+    const teamText = info.addText(\`🏎️ \${category} - \${teamName}\`);
     teamText.font = Font.systemFont(12);
     teamText.textColor = TEXT_SECONDARY;
 
@@ -1080,26 +1089,30 @@ async function createWidget() {
     // 4 Stats Cards in Row
     const statsRow = widget.addStack();
     statsRow.layoutHorizontally();
-    statsRow.gap = 6;
 
     function addLargeStatBox(label, value) {
       const box = statsRow.addStack();
       box.layoutVertically();
-      box.centerAlignContent();
       box.backgroundColor = CARD_BG;
       box.cornerRadius = 10;
-      box.setPadding(8, 6, 8, 6);
-      box.size = new Size(68, 48);
+      box.setPadding(0, 4, 0, 4);
+      box.size = new Size(68, 50);
+
+      box.addSpacer();
 
       const lbl = box.addText(label);
       lbl.font = Font.boldSystemFont(9);
       lbl.textColor = TEXT_MUTED;
       lbl.centerAlignText();
 
+      box.addSpacer(2);
+
       const num = box.addText(\`\${value}\`);
       num.font = Font.boldSystemFont(15);
       num.textColor = TEXT_PRIMARY;
       num.centerAlignText();
+
+      box.addSpacer();
     }
 
     addLargeStatBox("TEMP", seasons);
