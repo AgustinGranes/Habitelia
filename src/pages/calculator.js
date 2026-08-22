@@ -79,8 +79,11 @@ export function render() {
   
   const expenseListHTML = sortedExpenses.length > 0 
     ? sortedExpenses.map(expense => {
-        const { id, name, price, cur, commission, billingDay, bank, endDate, cycleType, cycleValue } = expense;
-        const converted = convertToARSWithCommissionSync(price, cur, commission);
+        const { id, name, price, cur, commission, billingDay, bank, endDate, cycleType, cycleValue, taxType, taxFixed } = expense;
+        let converted = convertToARSWithCommissionSync(price, cur, taxType === 'fixed' ? 0 : commission);
+        if (taxType === 'fixed' && taxFixed > 0) {
+          converted += convertToARSWithCommissionSync(taxFixed, cur, 0);
+        }
         
         const isActiveThisMonth = isExpenseActiveInMonth(expense, currentYear, currentMonth);
         if (isActiveThisMonth) {
@@ -113,7 +116,7 @@ export function render() {
               </div>
               
               <div style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                <span>Base: ${cur} ${price}${commission > 0 ? ` (+${Math.round(commission * 100)}%)` : ''}</span>
+                <span>Base: ${cur} ${price}${taxType === 'fixed' && taxFixed > 0 ? ` (+${cur} ${taxFixed} imp.)` : (commission > 0 ? ` (+${Math.round(commission * 100)}%)` : '')}</span>
                 ${billingDay ? `
                   <span style="display: inline-flex; align-items: center; gap: 4px; color: ${hasPassed ? 'var(--text-tertiary)' : 'var(--text-secondary)'};">
                     ${billingIcon} Día ${billingDay}${cycleText}
@@ -243,14 +246,25 @@ export function render() {
             </div>
 
             <div style="margin-bottom: 12px;">
-              <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;">Impuestos / Comisión (%)</label>
-              <div style="display: flex; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
-                <button type="button" class="btn-secondary commission-preset" data-val="0" style="flex: 1; min-width: 40px; min-height: 36px; height: 36px; padding: 0; font-size: 13px;">0%</button>
-                <button type="button" class="btn-secondary commission-preset" data-val="0.08" style="flex: 1; min-width: 40px; min-height: 36px; height: 36px; padding: 0; font-size: 13px;">8%</button>
-                <button type="button" class="btn-secondary commission-preset" data-val="0.21" style="flex: 1; min-width: 40px; min-height: 36px; height: 36px; padding: 0; font-size: 13px;">21%</button>
-                <button type="button" class="btn-secondary commission-preset" data-val="0.30" style="flex: 1; min-width: 40px; min-height: 36px; height: 36px; padding: 0; font-size: 13px;">30%</button>
+              <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;">Impuestos / Recargos</label>
+              <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                <button type="button" class="btn-secondary tax-type-btn active" data-tax-type="percentage" style="flex: 1; min-height: 36px; height: 36px; padding: 0; font-size: 13px; border: 2px solid var(--text-primary);">📊 Porcentaje (%)</button>
+                <button type="button" class="btn-secondary tax-type-btn" data-tax-type="fixed" style="flex: 1; min-height: 36px; height: 36px; padding: 0; font-size: 13px;">💲 Monto Fijo</button>
               </div>
-              <input type="number" id="expense-commission" step="1" class="modal-field" placeholder="Personalizado (Ej: 60)">
+              <input type="hidden" id="expense-tax-type" value="percentage">
+              <div id="tax-percentage-section">
+                <div style="display: flex; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+                  <button type="button" class="btn-secondary commission-preset" data-val="0" style="flex: 1; min-width: 40px; min-height: 36px; height: 36px; padding: 0; font-size: 13px;">0%</button>
+                  <button type="button" class="btn-secondary commission-preset" data-val="0.08" style="flex: 1; min-width: 40px; min-height: 36px; height: 36px; padding: 0; font-size: 13px;">8%</button>
+                  <button type="button" class="btn-secondary commission-preset" data-val="0.21" style="flex: 1; min-width: 40px; min-height: 36px; height: 36px; padding: 0; font-size: 13px;">21%</button>
+                  <button type="button" class="btn-secondary commission-preset" data-val="0.30" style="flex: 1; min-width: 40px; min-height: 36px; height: 36px; padding: 0; font-size: 13px;">30%</button>
+                </div>
+                <input type="number" id="expense-commission" step="1" class="modal-field" placeholder="Personalizado (Ej: 60 para 60%)">
+              </div>
+              <div id="tax-fixed-section" style="display: none;">
+                <input type="number" id="expense-tax-fixed" step="0.01" class="modal-field" placeholder="Monto fijo del impuesto (Ej: 1500)">
+                <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;">Se suma al precio base en la misma moneda del gasto.</div>
+              </div>
             </div>
             
             <div style="display: flex; gap: 12px; margin-bottom: 12px;">
@@ -365,6 +379,30 @@ export function mount() {
     }
   }
 
+  function updateTaxTypeUI(type) {
+    const pctSection = document.getElementById('tax-percentage-section');
+    const fixedSection = document.getElementById('tax-fixed-section');
+    const taxTypeBtns = document.querySelectorAll('.tax-type-btn');
+    if (pctSection && fixedSection) {
+      if (type === 'fixed') {
+        pctSection.style.display = 'none';
+        fixedSection.style.display = 'block';
+      } else {
+        pctSection.style.display = 'block';
+        fixedSection.style.display = 'none';
+      }
+    }
+    taxTypeBtns.forEach(btn => {
+      if (btn.dataset.taxType === type) {
+        btn.classList.add('active');
+        btn.style.border = '2px solid var(--text-primary)';
+      } else {
+        btn.classList.remove('active');
+        btn.style.border = '1px solid var(--border-subtle)';
+      }
+    });
+  }
+
   function openModal(editExpense = null) {
     if (editExpense) {
       document.getElementById('modal-title').innerText = 'Editar Gasto';
@@ -390,6 +428,10 @@ export function mount() {
       document.getElementById('expense-price').value = editExpense.price || '';
       document.getElementById('expense-cur').value = editExpense.cur || 'ARS';
       document.getElementById('expense-commission').value = editExpense.commission ? (editExpense.commission * 100) : 0;
+      const editTaxType = editExpense.taxType || 'percentage';
+      document.getElementById('expense-tax-type').value = editTaxType;
+      if (document.getElementById('expense-tax-fixed')) document.getElementById('expense-tax-fixed').value = editExpense.taxFixed || '';
+      updateTaxTypeUI(editTaxType);
       document.getElementById('expense-billing-day').value = editExpense.billingDay || '';
       if (document.getElementById('expense-cycle-type')) document.getElementById('expense-cycle-type').value = editExpense.cycleType || 'monthly';
       if (document.getElementById('expense-cycle-value')) document.getElementById('expense-cycle-value').value = editExpense.cycleValue || '';
@@ -401,6 +443,9 @@ export function mount() {
       document.getElementById('expense-id').value = '';
       document.getElementById('expense-cur').value = 'ARS';
       document.getElementById('expense-commission').value = '0';
+      document.getElementById('expense-tax-type').value = 'percentage';
+      if (document.getElementById('expense-tax-fixed')) document.getElementById('expense-tax-fixed').value = '';
+      updateTaxTypeUI('percentage');
       if (document.getElementById('expense-cycle-type')) document.getElementById('expense-cycle-type').value = 'monthly';
       if (document.getElementById('expense-bank-select')) document.getElementById('expense-bank-select').value = '';
       if (document.getElementById('expense-bank-custom')) document.getElementById('expense-bank-custom').value = '';
@@ -419,6 +464,15 @@ export function mount() {
 
   const bankSelectEl = document.getElementById('expense-bank-select');
   if (bankSelectEl) bankSelectEl.addEventListener('change', updateBankCustomField);
+
+  // Tax type toggle buttons
+  document.querySelectorAll('.tax-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const type = btn.dataset.taxType;
+      document.getElementById('expense-tax-type').value = type;
+      updateTaxTypeUI(type);
+    });
+  });
 
   if (fab) fab.addEventListener('click', () => openModal());
   if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
@@ -453,6 +507,9 @@ export function mount() {
       }
 
       const commission = parseFloat(document.getElementById('expense-commission').value || '0') / 100;
+      const taxType = document.getElementById('expense-tax-type')?.value || 'percentage';
+      const taxFixedVal = parseFloat(document.getElementById('expense-tax-fixed')?.value || '0');
+      const taxFixed = taxType === 'fixed' ? taxFixedVal : 0;
       const billingDayVal = document.getElementById('expense-billing-day').value;
       const billingDay = billingDayVal ? parseInt(billingDayVal, 10) : null;
       
@@ -471,6 +528,8 @@ export function mount() {
         price,
         cur,
         commission,
+        taxType,
+        taxFixed,
         billingDay,
         cycleType,
         cycleValue,
