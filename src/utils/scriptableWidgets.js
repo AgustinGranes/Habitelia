@@ -7,8 +7,12 @@
 const FIREBASE_API_KEY = "AIzaSyBc3lceZRKbopUj5l8oa89op2r42C9NBdI";
 const PROJECT_ID = "habitelia";
 
-export function generateHabitsWidgetScript(userId = '', userName = 'Viajero', habitsData = []) {
-  const serializedInitial = JSON.stringify(habitsData || []);
+export function generateHabitsWidgetScript(userId = '', userName = 'Viajero', habitsData = [], todosData = []) {
+  const initialBundle = {
+    habits: habitsData || [],
+    todos: todosData || []
+  };
+  const serializedInitial = JSON.stringify(initialBundle);
 
   return `// ==========================================
 // HABITELIA - WIDGET DE HÁBITOS DE HOY
@@ -31,14 +35,9 @@ const TEXT_MUTED = new Color("#8E8E93");
 const GREEN = new Color("#30D158");
 const RED = new Color("#FF453A");
 
-function strikeText(text) {
-  if (!text) return "";
-  return text.split("").map(c => c + "\\u0336").join("");
-}
-
 async function loadData() {
   const fm = FileManager.local();
-  const cachePath = fm.joinPath(fm.documentsDirectory(), "habitelia_habits_" + (USER_ID || "me") + ".json");
+  const cachePath = fm.joinPath(fm.documentsDirectory(), "habitelia_today_v3_" + (USER_ID || "me") + ".json");
   
   if (USER_ID) {
     // 1. Intentar cargar desde public_widgets con API Key
@@ -49,9 +48,9 @@ async function loadData() {
       const res1 = await req1.loadJSON();
       if (res1 && res1.fields && res1.fields.payload) {
         const parsed = JSON.parse(res1.fields.payload.stringValue);
-        if (parsed && parsed.habits && parsed.habits.length > 0) {
-          fm.writeString(cachePath, JSON.stringify(parsed.habits));
-          return parsed.habits;
+        if (parsed) {
+          fm.writeString(cachePath, JSON.stringify(parsed));
+          return parsed;
         }
       }
     } catch(e) {}
@@ -64,121 +63,161 @@ async function loadData() {
       const res2 = await req2.loadJSON();
       if (res2 && res2.fields && res2.fields.payload) {
         const parsed = JSON.parse(res2.fields.payload.stringValue);
-        if (parsed && parsed.habits && parsed.habits.length > 0) {
-          fm.writeString(cachePath, JSON.stringify(parsed.habits));
-          return parsed.habits;
-        }
-      }
-    } catch(e) {}
-
-    // 3. Fallback: Cargar subcolección de hábitos
-    try {
-      const url3 = \`https://firestore.googleapis.com/v1/projects/\${PROJECT_ID}/databases/(default)/documents/users/\${USER_ID}/habits?key=\${API_KEY}\`;
-      const req3 = new Request(url3);
-      req3.timeoutInterval = 5;
-      const res3 = await req3.loadJSON();
-      if (res3 && res3.documents) {
-        const habits = res3.documents.map(d => {
-          const f = d.fields || {};
-          const compMap = {};
-          if (f.completions?.mapValue?.fields) {
-            for (const [k, v] of Object.entries(f.completions.mapValue.fields)) {
-              compMap[k] = v.stringValue || 'completed';
-            }
-          }
-          return {
-            id: d.name.split("/").pop(),
-            name: f.name?.stringValue || "Hábito",
-            time: f.cue?.mapValue?.fields?.time?.stringValue || null,
-            completions: compMap,
-            streak: parseInt(f.streak?.integerValue || "0"),
-            isDeletedToday: f.deletedToday?.booleanValue || false
-          };
-        });
-        if (habits.length > 0) {
-          fm.writeString(cachePath, JSON.stringify(habits));
-          return habits;
+        if (parsed) {
+          fm.writeString(cachePath, JSON.stringify(parsed));
+          return parsed;
         }
       }
     } catch(e) {}
   }
 
-  // 4. Fallback: Cache local
+  // 3. Fallback: Cache local
   if (fm.fileExists(cachePath)) {
     try {
       const cached = JSON.parse(fm.readString(cachePath));
-      if (cached && cached.length > 0) return cached;
+      if (cached) return cached;
     } catch(e) {}
   }
 
-  // 5. Fallback: Datos reales capturados al momento de copiar el script
-  if (Array.isArray(INITIAL_DATA) && INITIAL_DATA.length > 0) {
-    return INITIAL_DATA;
-  }
-
-  return [
-    { name: "Sin hábitos cargados", time: "Hoy", completions: {}, isDeletedToday: false }
-  ];
+  // 4. Fallback: Datos iniciales
+  return INITIAL_DATA || { habits: [], todos: [] };
 }
 
 async function createWidget() {
-  const habits = await loadData();
+  const rawData = await loadData();
+  const habitsList = Array.isArray(rawData) ? rawData : (rawData.habits || []);
+  const todosList = Array.isArray(rawData) ? [] : (rawData.todos || []);
+
   const widget = new ListWidget();
   widget.backgroundColor = BG_COLOR;
   widget.setPadding(14, 14, 14, 14);
 
   const today = new Date();
-  const todayStr = today.toISOString().split("T")[0];
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const date = String(today.getDate()).padStart(2, '0');
+  const todayStr = \`\${year}-\${month}-\${date}\`;
   const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
   const dayName = dayNames[today.getDay()];
+  const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const todayDayKey = dayKeys[today.getDay()];
 
-  let completedCount = 0;
-  let activeHabitsCount = 0;
+  // 1. Filtrar hábitos de hoy (IGNORAR COMPLETAMENTE LOS ELIMINADOS)
+  const activeHabits = [];
+  habitsList.forEach(h => {
+    // Chequear frecuencia semanal
+    if (h.frequency && h.frequency.type === 'weekly' && Array.isArray(h.frequency.days)) {
+      if (!h.frequency.days.includes(todayDayKey)) return;
+    }
 
-  const processedHabits = habits.map(h => {
     const completionStatus = h.completions ? h.completions[todayStr] : null;
+    const isDeleted = h.isDeletedToday || completionStatus === 'deleted_today' || completionStatus === 'deleted';
+    
+    // Si fue eliminado, NO MOSTRAR NUNCA
+    if (isDeleted) return;
+
     const isDone = completionStatus === 'completed' || completionStatus === 'completed_2min';
     const isSkipped = completionStatus === 'skipped';
-    const isDeleted = h.isDeletedToday || completionStatus === 'deleted';
 
-    if (!isDeleted) {
-      activeHabitsCount++;
-      if (isDone) completedCount++;
-    }
+    const habitTime = (h.timePerDay && h.timePerDay[todayDayKey]) || 
+                      (h.cue && h.cue.timePerDay && h.cue.timePerDay[todayDayKey]) || 
+                      h.time || 
+                      (h.cue && h.cue.time) || 
+                      null;
 
     let dotSymbol = "○ ";
     let dotColor = TEXT_MUTED;
     let displayName = h.name || "Hábito";
     let nameColor = TEXT_PRIMARY;
 
-    if (isDeleted) {
-      dotSymbol = "— ";
-      dotColor = new Color("#636366");
-      displayName = strikeText(h.name);
-      nameColor = new Color("#636366");
-    } else if (isSkipped) {
+    if (isSkipped) {
       dotSymbol = "● ";
-      dotColor = RED; // Punto en ROJO si se salteó
+      dotColor = RED;
       nameColor = new Color("#FF9E96");
     } else if (isDone) {
       dotSymbol = "● ";
-      dotColor = GREEN; // Punto VERDE si se completó
+      dotColor = GREEN;
       nameColor = TEXT_MUTED;
     }
 
-    return {
-      ...h,
-      displayName,
-      dotSymbol,
-      dotColor,
-      nameColor,
+    activeHabits.push({
+      id: h.id,
+      name: displayName,
+      time: habitTime,
+      type: 'habit',
       isDone,
       isSkipped,
-      isDeleted
-    };
+      dotSymbol,
+      dotColor,
+      nameColor
+    });
   });
 
-  const total = activeHabitsCount || 1;
+  // 2. Filtrar tareas To-Do de hoy
+  const activeTodos = [];
+  todosList.forEach(t => {
+    const isDueToday = t.dueDate === todayStr;
+    const isRoutine = !t.dueDate && t.showInRoutine;
+    const isPendingNoDate = !t.dueDate && !t.completed;
+
+    if (!isDueToday && !isRoutine && !isPendingNoDate) return;
+
+    const isDone = !!t.completed;
+    let dotSymbol = isDone ? "✓ " : "□ ";
+    let dotColor = isDone ? GREEN : TEXT_MUTED;
+    let displayName = t.name || t.text || "Tarea";
+    let nameColor = isDone ? TEXT_MUTED : TEXT_PRIMARY;
+
+    activeTodos.push({
+      id: t.id,
+      name: displayName,
+      time: t.time || null,
+      tag: t.tag || '',
+      type: 'todo',
+      isDone,
+      isSkipped: false,
+      dotSymbol,
+      dotColor,
+      nameColor
+    });
+  });
+
+  // ORDEN EXACTO SOLICITADO:
+  // 1. Hábitos CON horario (ordenados por horario ascendente)
+  const habitsWithTime = activeHabits
+    .filter(h => !!h.time)
+    .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+  // 2. Hábitos SIN horario
+  const habitsWithoutTime = activeHabits.filter(h => !h.time);
+
+  // 3. Tareas To-Do
+  const todosForToday = activeTodos.sort((a, b) => {
+    if (a.isDone !== b.isDone) return a.isDone ? 1 : -1;
+    if (a.time && b.time) return a.time.localeCompare(b.time);
+    if (a.time) return -1;
+    if (b.time) return 1;
+    return 0;
+  });
+
+  // Lista combinada final ordenada
+  const processedItems = [...habitsWithTime, ...habitsWithoutTime, ...todosForToday];
+
+  if (processedItems.length === 0) {
+    processedItems.push({
+      id: 'empty',
+      name: 'Sin actividades para hoy',
+      time: null,
+      type: 'empty',
+      isDone: true,
+      dotSymbol: '✨ ',
+      dotColor: GREEN,
+      nameColor: TEXT_MUTED
+    });
+  }
+
+  const total = processedItems.filter(i => i.type !== 'empty').length || 1;
+  const completedCount = processedItems.filter(i => i.isDone && i.type !== 'empty').length;
   const percent = Math.round((completedCount / total) * 100);
   const widgetFamily = config.widgetFamily || "medium";
 
@@ -213,18 +252,18 @@ async function createWidget() {
 
     widget.addSpacer(6);
 
-    processedHabits.slice(0, 2).forEach(h => {
+    processedItems.slice(0, 2).forEach(item => {
       const row = widget.addStack();
       row.layoutHorizontally();
       row.centerAlignContent();
       
-      const symbol = row.addText(h.dotSymbol);
+      const symbol = row.addText(item.dotSymbol);
       symbol.font = Font.systemFont(11);
-      symbol.textColor = h.dotColor;
+      symbol.textColor = item.dotColor;
       
-      const name = row.addText(h.displayName);
+      const name = row.addText(item.name);
       name.font = Font.systemFont(11);
-      name.textColor = h.nameColor;
+      name.textColor = item.nameColor;
       name.lineLimit = 1;
       widget.addSpacer(2);
     });
@@ -262,24 +301,25 @@ async function createWidget() {
     const rightCol = mainStack.addStack();
     rightCol.layoutVertically();
     
-    processedHabits.slice(0, 4).forEach((h, idx) => {
+    processedItems.slice(0, 4).forEach((item, idx) => {
       const row = rightCol.addStack();
       row.layoutHorizontally();
       row.centerAlignContent();
       
-      const dot = row.addText(h.dotSymbol);
+      const dot = row.addText(item.dotSymbol);
       dot.font = Font.systemFont(12);
-      dot.textColor = h.dotColor;
+      dot.textColor = item.dotColor;
 
-      const name = row.addText(h.displayName);
+      const name = row.addText(item.name);
       name.font = Font.mediumSystemFont(12);
-      name.textColor = h.nameColor;
+      name.textColor = item.nameColor;
       name.lineLimit = 1;
 
       row.addSpacer();
 
-      if (h.time) {
-        const timeText = row.addText(h.time);
+      const metaText = item.time || item.tag || (item.type === 'todo' ? 'To-Do' : '');
+      if (metaText) {
+        const timeText = row.addText(metaText);
         timeText.font = Font.systemFont(10);
         timeText.textColor = TEXT_MUTED;
       }
@@ -314,10 +354,10 @@ async function createWidget() {
 
     const pLeft = progCard.addStack();
     pLeft.layoutVertically();
-    const pTitle = pLeft.addText("PROGRESO DE HOY");
+    const pTitle = pLeft.addText("ACTIVIDADES DE HOY");
     pTitle.font = Font.boldSystemFont(10);
     pTitle.textColor = TEXT_MUTED;
-    const pCount = pLeft.addText(\`\${completedCount} de \${total} hábitos completados\`);
+    const pCount = pLeft.addText(\`\${completedCount} de \${total} completadas\`);
     pCount.font = Font.systemFont(12);
     pCount.textColor = TEXT_PRIMARY;
 
@@ -329,7 +369,7 @@ async function createWidget() {
 
     widget.addSpacer(12);
 
-    processedHabits.slice(0, 8).forEach((h, idx) => {
+    processedItems.slice(0, 8).forEach((item, idx) => {
       const row = widget.addStack();
       row.layoutHorizontally();
       row.centerAlignContent();
@@ -337,19 +377,20 @@ async function createWidget() {
       row.cornerRadius = 8;
       row.setPadding(6, 10, 6, 10);
 
-      const dot = row.addText(h.dotSymbol);
+      const dot = row.addText(item.dotSymbol);
       dot.font = Font.boldSystemFont(13);
-      dot.textColor = h.dotColor;
+      dot.textColor = item.dotColor;
 
-      const name = row.addText(h.displayName);
+      const name = row.addText(item.name);
       name.font = Font.mediumSystemFont(12.5);
-      name.textColor = h.nameColor;
+      name.textColor = item.nameColor;
       name.lineLimit = 1;
 
       row.addSpacer();
 
-      if (h.time) {
-        const time = row.addText(h.time);
+      const metaText = item.time || item.tag || (item.type === 'todo' ? 'To-Do' : '');
+      if (metaText) {
+        const time = row.addText(metaText);
         time.font = Font.systemFont(11);
         time.textColor = TEXT_MUTED;
       }

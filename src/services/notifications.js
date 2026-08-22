@@ -43,6 +43,15 @@ export const setNotificationsEnabled = (enabled) => {
     } else {
       requestNotificationPermission();
     }
+  } else {
+    stopNotificationScheduler();
+  }
+};
+
+export const stopNotificationScheduler = () => {
+  if (schedulerInterval) {
+    clearInterval(schedulerInterval);
+    schedulerInterval = null;
   }
 };
 

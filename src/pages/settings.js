@@ -119,6 +119,9 @@ export function render(props = {}) {
                         <button id="btn-test-notif" class="btn-secondary" style="width: 100%; min-height: 40px; font-size: 13px; margin-top: 4px;">
                             ${iconSVG('bell', 15)} Enviar Notificación de Prueba
                         </button>
+                        <button id="btn-disable-all-notif" class="btn-ghost" style="width: 100%; min-height: 40px; font-size: 13px; color: #FF453A; border: 1px solid rgba(255,69,58,0.3); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            ${iconSVG('x', 15)} Desactivar Notificaciones Completamente
+                        </button>
                     </div>
                 `}
             </div>
@@ -384,6 +387,19 @@ export function mount() {
         }
     });
 
+    document.getElementById('btn-disable-all-notif')?.addEventListener('click', async () => {
+        setNotificationsEnabled(false);
+        await unsubscribeFromPush();
+        const toggle = document.getElementById('toggle-notif-reminders');
+        if (toggle) toggle.checked = false;
+        showToast('Notificaciones desactivadas por completo', 'info');
+        const page = document.querySelector('.settings-page');
+        if (page) {
+            page.outerHTML = render();
+            mount();
+        }
+    });
+
     document.getElementById('btn-copy-user-id')?.addEventListener('click', async () => {
         const uid = auth.currentUser?.uid || '';
         if (uid) {
@@ -434,7 +450,7 @@ export function mount() {
             case 'todos': return generateTodosWidgetScript(uid, uname, state.todos || []);
             case 'driver': return generateDriverWidgetScript(uid, uname, state.driverProfile || null);
             case 'notes': return generateNotesWidgetScript(uid, uname, state.notes || []);
-            default: return generateHabitsWidgetScript(uid, uname, state.habits || []);
+            default: return generateHabitsWidgetScript(uid, uname, state.habits || [], state.todos || []);
         }
     };
 

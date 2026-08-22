@@ -1003,7 +1003,8 @@ export const store = {
           completed: t.completed || false,
           tag: t.tag || '',
           dueDate: t.dueDate || '',
-          time: t.time || ''
+          time: t.time || '',
+          showInRoutine: t.showInRoutine || false
         })),
         driverProfile: currentState.driverProfile || null,
         notes: (currentState.notes || []).map(n => ({
